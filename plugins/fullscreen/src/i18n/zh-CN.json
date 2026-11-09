@@ -1,0 +1,8 @@
+{
+  "buttonTitle": "切换全屏",
+  "toggleCurrentEditorFullscreen": "切换当前编辑器全屏",
+  "editorFullscreen": "编辑器全屏",
+  "editorFullscreenDesc": "让当前文档编辑器铺满窗口，效果与思源原生的编辑器全屏一致",
+  "windowFullscreen": "窗口全屏",
+  "windowFullscreenDesc": "桌面端通过 Electron API 将应用窗口全屏<br>浏览器端使用页面全屏 API"
+}

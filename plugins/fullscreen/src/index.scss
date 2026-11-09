@@ -1,0 +1,69 @@
+// 按钮内同时放进入 / 退出两个图标。默认显示进入；满足「当前已是全屏」时改显示退出。
+// :root 上的 data-jcfs-editor / data-jcfs-window 对应设置里的两个开关。
+
+.jcfs-exit {
+  display: none;
+}
+
+// 只开编辑器全屏：当前文档 .protyle 带 .fullscreen 时显示退出（与原生 Alt+Y 同一 class）
+:root[data-jcfs-editor]:not([data-jcfs-window]) {
+  .protyle.fullscreen {
+    .jcfs-enter {
+      display: none;
+    }
+
+    .jcfs-exit {
+      display: inline;
+    }
+  }
+}
+
+// 只开窗口全屏
+:root[data-jcfs-window]:not([data-jcfs-editor]) {
+  // Electron：setFullScreen() 是操作系统窗口全屏，思源给 body 加 body--fullscreen，:root 不会匹配 :fullscreen
+  body.body--fullscreen {
+    .jcfs-enter {
+      display: none;
+    }
+
+    .jcfs-exit {
+      display: inline;
+    }
+  }
+
+  // 浏览器：documentElement.requestFullscreen() 让 :root 匹配 :fullscreen（& 即外层 :root[...]）
+  &:fullscreen {
+    .jcfs-enter {
+      display: none;
+    }
+
+    .jcfs-exit {
+      display: inline;
+    }
+  }
+}
+
+// 两个开关都开：窗口和当前编辑器都全屏才显示退出，少一个仍显示进入
+:root[data-jcfs-editor][data-jcfs-window] {
+  // Electron 窗口全屏 + 当前编辑器 .fullscreen
+  body.body--fullscreen .protyle.fullscreen {
+    .jcfs-enter {
+      display: none;
+    }
+
+    .jcfs-exit {
+      display: inline;
+    }
+  }
+
+  // 浏览器页面全屏 + 当前编辑器 .fullscreen
+  &:fullscreen .protyle.fullscreen {
+    .jcfs-enter {
+      display: none;
+    }
+
+    .jcfs-exit {
+      display: inline;
+    }
+  }
+}
