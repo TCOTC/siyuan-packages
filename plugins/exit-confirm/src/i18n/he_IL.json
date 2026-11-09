@@ -1,0 +1,6 @@
+{
+  "exitConfirmTitle": "לצאת מ-SiYuan?",
+  "exitConfirmContent": "לחץ שוב על <b>{shortcut}</b> כדי לאשר יציאה; לחץ על <b>Esc</b> כדי לבטל",
+  "cancel": "ביטול",
+  "exit": "יציאה"
+}

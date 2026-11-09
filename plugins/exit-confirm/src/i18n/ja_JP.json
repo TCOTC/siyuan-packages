@@ -1,0 +1,6 @@
+{
+  "exitConfirmTitle": "SiYuanを終了しますか？",
+  "exitConfirmContent": "終了を確認するには <b>{shortcut}</b> を再度押してください；キャンセルするには <b>Esc</b> を押してください",
+  "cancel": "キャンセル",
+  "exit": "終了"
+}

@@ -1,0 +1,6 @@
+{
+  "exitConfirmTitle": "退出思源笔记？",
+  "exitConfirmContent": "再按一次 <b>{shortcut}</b> 快捷键确认退出；按 <b>Esc</b> 取消退出",
+  "cancel": "取消",
+  "exit": "退出"
+}

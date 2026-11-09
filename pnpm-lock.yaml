@@ -152,6 +152,18 @@ importers:
         specifier: workspace:*
         version: link:../../libs/vconsole
 
+  plugins/exit-confirm:
+    devDependencies:
+      '@jeffrey-chen/siyuan-kit':
+        specifier: workspace:*
+        version: link:../../kit
+      siyuan:
+        specifier: 'catalog:'
+        version: 1.2.9
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+
   plugins/fullscreen:
     devDependencies:
       '@jeffrey-chen/siyuan-kit':

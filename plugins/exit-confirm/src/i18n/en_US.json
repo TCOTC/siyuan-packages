@@ -1,0 +1,6 @@
+{
+  "exitConfirmTitle": "Exit SiYuan?",
+  "exitConfirmContent": "Press <b>{shortcut}</b> again to confirm exit; Press <b>Esc</b> to cancel",
+  "cancel": "Cancel",
+  "exit": "Exit"
+}

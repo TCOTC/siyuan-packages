@@ -1,0 +1,6 @@
+{
+  "exitConfirmTitle": "Zamknąć SiYuan?",
+  "exitConfirmContent": "Naciśnij ponownie <b>{shortcut}</b>, aby potwierdzić zamknięcie; Naciśnij <b>Esc</b>, aby anulować",
+  "cancel": "Anuluj",
+  "exit": "Zamknij"
+}
