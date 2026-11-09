@@ -1,5 +1,5 @@
 import "./index.scss";
-import { Snippet, SnippetType } from "./types";
+import type { Snippet, SnippetType } from "./types";
 import { SnippetStore } from "./domain/snippet-store";
 import { SnippetsConfig } from "./config/config";
 import { ConfigService } from "./config/config-service";
@@ -82,7 +82,7 @@ export default class PluginSnippets extends Plugin {
     error: (...args: any[]) => console.error(...args),
   };
 
-  public async onload() {
+  public override async onload() {
     this.config = new SnippetsConfig();
 
     this.snippetStore = new SnippetStore(this);
@@ -165,13 +165,13 @@ export default class PluginSnippets extends Plugin {
     console.log(this.displayName, "plugin onloaded");
   }
 
-  public async onLayoutReady() {
+  public override async onLayoutReady() {
     // addTopBar 依赖布局就绪后的 #barPlugins。
     void this.menuView.initTopBar();
   }
 
   /** 思源 v3.8.3 之后也会因同内核其他前端实例改配置而触发。 */
-  public async onDataChanged() {
+  public override async onDataChanged() {
     await this.configService.reloadFromStorage();
 
     await this.snippetGroupStore.load(this.snippetsList);
@@ -184,7 +184,7 @@ export default class PluginSnippets extends Plugin {
   /**
    * 运行时清理都收敛在这里，禁用与卸载路径都必须覆盖。
    */
-  public onunload() {
+  public override onunload() {
     this.syncService?.stop();
 
     // 防止插件实例重载后旧监听器残留。
@@ -212,7 +212,7 @@ export default class PluginSnippets extends Plugin {
    * 卸载只做专属逻辑：删除插件数据目录。
    * removeData("") 归一到 data/storage/petal/snippets/，内核递归删除整棵目录。
    */
-  public async uninstall() {
+  public override async uninstall() {
     const removeResponse = await settleWriteResponse(this.removeData(""));
     if (removeResponse.code !== 0) {
       this.showErrorMessage(this.i18n.removeConfigFailed + " [" + removeResponse.code + ": " + removeResponse.msg + "]", 20000, "error");
@@ -226,7 +226,7 @@ export default class PluginSnippets extends Plugin {
   }
 
   /** 方法名固定为 openSetting，思源按该名字调用。 */
-  public openSetting() {
+  public override openSetting() {
     this.settingDialog.open();
   }
 
@@ -254,11 +254,15 @@ export default class PluginSnippets extends Plugin {
 
   // ================================ 事件监听管理 ================================
 
-  addListener(element: HTMLElement, event: string, fn: (event?: Event) => void, options?: AddEventListenerOptions) {
-    this.listenerRegistry.add(element, event, fn, options);
+  /**
+   * 回调参数由调用方按事件名声明具体类型（MouseEvent 等），
+   * 内部统一按 (event?: Event) 簿记；两者只在类型层不同，不影响运行期。
+   */
+  addListener<E extends Event = Event>(element: HTMLElement, event: string, fn: (event: E) => void, options?: AddEventListenerOptions) {
+    this.listenerRegistry.add(element, event, fn as (event?: Event) => void, options);
   }
 
-  removeListener(element: HTMLElement, event?: string, fn?: (event?: Event) => void, options?: AddEventListenerOptions) {
-    this.listenerRegistry.remove(element, event, fn, options);
+  removeListener<E extends Event = Event>(element: HTMLElement, event?: string, fn?: (event: E) => void, options?: AddEventListenerOptions) {
+    this.listenerRegistry.remove(element, event, fn as ((event?: Event) => void) | undefined, options);
   }
 }

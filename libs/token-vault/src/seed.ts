@@ -33,13 +33,25 @@ function readDeviceEnv(): DeviceEnvInput {
       return "";
     }
   })();
-  return {
-    platform: navEx?.platform ?? "",
-    language: navEx?.language ?? "",
-    timeZone: tz,
-    deviceMemory: navEx?.deviceMemory,
-    hardwareConcurrency: navEx?.hardwareConcurrency,
-  };
+  return withOptionalDeviceEnv(
+    {
+      platform: navEx?.platform ?? "",
+      language: navEx?.language ?? "",
+      timeZone: tz,
+    },
+    navEx,
+  );
+}
+
+/** exactOptionalPropertyTypes 下「缺省」才等于「没有」，不能把 undefined 显式写进可选属性。 */
+function withOptionalDeviceEnv(env: DeviceEnvInput, navEx: { deviceMemory?: number; hardwareConcurrency?: number } | undefined): DeviceEnvInput {
+  if (navEx?.deviceMemory !== undefined) {
+    env.deviceMemory = navEx.deviceMemory;
+  }
+  if (navEx?.hardwareConcurrency !== undefined) {
+    env.hardwareConcurrency = navEx.hardwareConcurrency;
+  }
+  return env;
 }
 
 /** 派生设备特征种子。 */

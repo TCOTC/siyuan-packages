@@ -4,8 +4,9 @@ import { createGist, getGist, getRawFile, GistApiError, parseGistUrl, updateGist
 
 /** 构造注入式 fetch 桩：按 URL 与请求选项返回 JSON 响应 */
 const stubFetch = (handler: (url: string, init: RequestInit) => { status: number; json?: unknown; text?: string; headers?: Record<string, string> }) => {
-  const fetchImpl = vi.fn(async (url: string, init: RequestInit) => {
-    const result = handler(String(url), init);
+  // 参数按 `typeof fetch` 声明，才能赋给 getGist 等函数的 fetchImpl（strictFunctionTypes 下参数逆变）
+  const fetchImpl = vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+    const result = handler(String(input), init ?? {});
     const headers = new Headers(result.headers ?? {});
     return new Response(result.json !== undefined ? JSON.stringify(result.json) : (result.text ?? ""), { status: result.status, headers });
   });

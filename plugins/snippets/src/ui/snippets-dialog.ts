@@ -942,7 +942,7 @@ export class SnippetsDialog {
    * 含代码片段编辑/设置/确认等所有 data-key 以 jcsm- 开头的已打开对话框。
    */
   closeAllDialogs() {
-    document.querySelectorAll(".b3-dialog--open[data-key^='jcsm-']").forEach((dialogElement: HTMLElement) => {
+    document.querySelectorAll<HTMLElement>(".b3-dialog--open[data-key^='jcsm-']").forEach((dialogElement) => {
       this.closeByElement(dialogElement);
     });
   }

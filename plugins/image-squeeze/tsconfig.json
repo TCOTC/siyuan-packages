@@ -1,8 +1,4 @@
 {
-  "extends": "../../tsconfig.package.json",
-  "compilerOptions": {
-    "verbatimModuleSyntax": false,
-    "erasableSyntaxOnly": false
-  },
+  "extends": "../../tsconfig.base.json",
   "include": ["src/**/*.ts", "*.config.ts"]
 }

@@ -1,6 +1,7 @@
 import type { Menu, Plugin } from "siyuan";
 import { getHideToolbar, setHideToolbar } from "../api";
-import { MenuItemDef, PluginConfig } from "../config";
+import { PluginConfig } from "../config";
+import type { MenuItemDef } from "../config";
 import { SCHEME_MENU_DEFS } from "./schemeManager";
 import { ThemeManager } from "./themeManager";
 

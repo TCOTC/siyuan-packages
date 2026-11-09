@@ -21,11 +21,13 @@ export class ConfigMenu {
   ) {}
 
   init(): void {
-    this.topBarButton = this.plugin.addTopBar({
-      icon: "iconWhisperFlower",
-      title: (this.plugin.i18n.whisper_theme_menu as string | undefined) ?? "whisper_theme_menu",
-      callback: (event) => this.openConfigMenu(event),
-    });
+    // addTopBar 在挂载失败时返回 undefined，这里归一成 null 以保持字段语义
+    this.topBarButton =
+      this.plugin.addTopBar({
+        icon: "iconWhisperFlower",
+        title: (this.plugin.i18n.whisper_theme_menu as string | undefined) ?? "whisper_theme_menu",
+        callback: (event) => this.openConfigMenu(event),
+      }) ?? null;
   }
 
   destroy(): void {

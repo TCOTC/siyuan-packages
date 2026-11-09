@@ -1,4 +1,14 @@
 {
-  "extends": "../tsconfig.base.json",
+  // kit 的 bin 直接指向 src/cli.ts，由 Node 24 剥离类型后运行，不经过打包器。
+  // 这带来两条只有 kit 需要的限制，其余 21 个包由 vite 编译，不该继承它们：
+  //   - allowImportingTsExtensions：源码里写 ./resolve.ts，Node 才能解析到真实文件
+  //   - erasableSyntaxOnly：禁掉 enum / namespace / 参数属性这类「剥不掉」的语法，
+  //     否则 Node 会在启动时以「未知语法」崩掉
+  // 严格度走加强档：kit 的类型错误会以「构建脚本崩了」的形式扩散到所有包。
+  "extends": "../tsconfig.strict.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true
+  },
   "include": ["src/**/*.ts"]
 }

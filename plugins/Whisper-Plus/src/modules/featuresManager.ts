@@ -1,4 +1,5 @@
-import { CONFIG_FEATURE_MENU_ITEMS, PluginConfig, ConfigKey } from "../config";
+import { CONFIG_FEATURE_MENU_ITEMS, PluginConfig } from "../config";
+import type { ConfigKey } from "../config";
 import { syncAttr } from "../utils";
 
 const FEATURE_KEYS = CONFIG_FEATURE_MENU_ITEMS.map((item) => item.key) as readonly ConfigKey[];

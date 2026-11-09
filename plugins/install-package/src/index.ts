@@ -1,5 +1,6 @@
 import "./index.scss";
-import { Custom, getAllTabs, Menu, Plugin } from "siyuan";
+import { getAllTabs, Menu, Plugin } from "siyuan";
+import type { Custom } from "siyuan";
 import { i18n, setI18n, type PluginI18n } from "./infra/i18n";
 import { clearMessagePrefix, message, setMessagePrefix } from "./infra/message";
 import { clearRuntimeSecretCache, createSetting, loadSetting } from "./settings/setting";
@@ -60,7 +61,7 @@ export default class InstallPackage extends Plugin {
    */
   private dialogPanels: DialogPanels | null = null;
 
-  onload() {
+  override onload() {
     setMessagePrefix(this.displayName);
     setI18n(this.i18n as PluginI18n);
     initSelfPackage(this.name);
@@ -403,12 +404,12 @@ export default class InstallPackage extends Plugin {
     this.localPackagesMenu = undefined;
   }
 
-  onDataChanged() {
+  override onDataChanged() {
     // 避免数据同步时重启插件导致自定义页签内容样式抖动
     loadSetting(this);
   }
 
-  onunload() {
+  override onunload() {
     abortAllActiveInstalls();
     destroyGitHubNotice();
     clearRuntimeSecretCache();
@@ -440,7 +441,7 @@ export default class InstallPackage extends Plugin {
     console.log(this.displayName, "plugin unloaded");
   }
 
-  uninstall() {
+  override uninstall() {
     // 删除 Token 密文文件夹
     this.removeData("secret");
 

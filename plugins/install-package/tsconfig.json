@@ -1,11 +1,4 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "noUncheckedIndexedAccess": false,
-    "noImplicitOverride": false,
-    "exactOptionalPropertyTypes": false,
-    "verbatimModuleSyntax": false,
-    "erasableSyntaxOnly": false
-  },
   "include": ["src/**/*.ts", "*.config.ts"]
 }

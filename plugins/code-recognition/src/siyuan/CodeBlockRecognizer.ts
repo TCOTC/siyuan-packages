@@ -383,7 +383,7 @@ export class CodeBlockRecognizer {
       const liveBlock = root?.querySelector<HTMLElement>(`[data-node-id="${update.id}"]`);
       const liveLanguage = liveBlock?.querySelector<HTMLElement>(LANGUAGE_SELECTOR);
       const liveContent = liveBlock?.querySelector<HTMLElement>(CONTENT_SELECTOR);
-      if (liveLanguage && liveContent) {
+      if (liveBlock && liveLanguage && liveContent) {
         this.renderLanguage(liveBlock, liveContent, liveLanguage, update.language);
       }
     });

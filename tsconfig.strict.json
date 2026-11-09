@@ -1,0 +1,18 @@
+{
+  // 加强档：在 base 之上再开两项比 strict 更严的检查。
+  //
+  // 谁用：kit、libs/*。
+  //   - kit 是构建内核，自身的类型错误会以「构建脚本崩了」的形式扩散到 21 个包。
+  //   - libs/* 是最多被消费方 tsc 程序一并检查的共享源码，收益随消费方数量放大。
+  //
+  // 为什么发布包不默认用它：这两项在 21 个包里会产生 500 余处改动，其中大半是
+  // 给索引访问补 `!`。等某个包整体重构时再把它换成 extends 本文件即可，
+  // 届时 `pnpm typecheck` 会列出需要收的全部位置。
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // 索引签名 / 数组下标访问一律视为可能 undefined
+    "noUncheckedIndexedAccess": true,
+    // 可选属性不允许显式赋 undefined（区别于「没有这个属性」）
+    "exactOptionalPropertyTypes": true
+  }
+}

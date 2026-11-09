@@ -10,7 +10,8 @@
 // 也避免空文件随设备同步而占用空间）。
 import type PluginSnippets from "../index";
 import type { Snippet } from "../types";
-import { hasRealGroups, isSnippetGroupArray, reconcileGroups, SnippetGroup, withUngroupedAnchors } from "../domain/snippet-groups";
+import { hasRealGroups, isSnippetGroupArray, reconcileGroups, withUngroupedAnchors } from "../domain/snippet-groups";
+import type { SnippetGroup } from "../domain/snippet-groups";
 
 /** 分组持久化文件名（loadData/saveData 存储键） */
 export const PLUGIN_GROUPS_STORAGE_NAME = "plugin-groups.json";

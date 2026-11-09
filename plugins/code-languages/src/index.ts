@@ -34,10 +34,11 @@ interface Statistics {
 }
 
 export default class CodeLanguagesPlugin extends Plugin {
-  private config: Config;
+  // 三个字段都在 onload 里赋值（读盘 + 默认值），onload 之前不会被访问。
+  private config!: Config;
   /** 设置面板里尚未确认的副本。 */
-  private tempConfig: Config;
-  private statistics: Statistics;
+  private tempConfig!: Config;
+  private statistics!: Statistics;
 
   private cachedCustomOrderLanguages: string[] = [];
   private cachedOtherCustomLanguages: string[] = [];
@@ -261,8 +262,8 @@ export default class CodeLanguagesPlugin extends Plugin {
 
   override openSetting() {
     this.setting.open(this.displayName || this.name);
-    const contentElement = this.setting.dialog.element.querySelector(".b3-dialog__content") as HTMLElement;
-    if (contentElement) {
+    const contentElement = this.setting.dialog?.element?.querySelector(".b3-dialog__content");
+    if (contentElement instanceof HTMLElement) {
       contentElement.style.scrollbarGutter = "stable";
     }
     this.updateSettingsVisibility();
@@ -338,7 +339,6 @@ export default class CodeLanguagesPlugin extends Plugin {
         container.appendChild(hrButton);
         container.appendChild(fillButton);
 
-        this.customOrderContainer = null;
         this.customOrderContainer = container;
         return container;
       },
@@ -362,7 +362,6 @@ export default class CodeLanguagesPlugin extends Plugin {
           }
         });
 
-        this.frequencyTopCountContainer = null;
         this.frequencyTopCountContainer = inputElement;
         return inputElement;
       },
@@ -386,7 +385,6 @@ export default class CodeLanguagesPlugin extends Plugin {
           }
         });
 
-        this.frequencyDaysRangeContainer = null;
         this.frequencyDaysRangeContainer = inputElement;
         return inputElement;
       },

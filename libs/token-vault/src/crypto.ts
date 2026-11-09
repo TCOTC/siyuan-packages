@@ -19,7 +19,7 @@ const DEVICE_HASH_LEN = 20;
 function bytesToBase64(bytes: Uint8Array): string {
   let s = "";
   for (let i = 0; i < bytes.length; i++) {
-    s += String.fromCharCode(bytes[i]);
+    s += String.fromCharCode(bytes[i]!);
   }
   return btoa(s);
 }
@@ -51,7 +51,7 @@ function base64UrlToBytes(b64url: string): Uint8Array | null {
 function bytesToHex(bytes: Uint8Array): string {
   let out = "";
   for (let i = 0; i < bytes.length; i++) {
-    out += bytes[i].toString(16).padStart(2, "0");
+    out += bytes[i]!.toString(16).padStart(2, "0");
   }
   return out;
 }
@@ -113,12 +113,13 @@ export async function decryptToken(payload: string, seed: string): Promise<strin
     return null;
   }
   const parts = payload.split(".");
-  if (parts.length !== 4 || parts[0] !== CURRENT_VERSION) {
+  const [version, saltPart, ivPart, cipherPart] = parts;
+  if (parts.length !== 4 || version !== CURRENT_VERSION || saltPart === undefined || ivPart === undefined || cipherPart === undefined) {
     return null;
   }
-  const salt = base64UrlToBytes(parts[1]);
-  const iv = base64UrlToBytes(parts[2]);
-  const cipher = base64UrlToBytes(parts[3]);
+  const salt = base64UrlToBytes(saltPart);
+  const iv = base64UrlToBytes(ivPart);
+  const cipher = base64UrlToBytes(cipherPart);
   if (!salt || !iv || !cipher) {
     return null;
   }

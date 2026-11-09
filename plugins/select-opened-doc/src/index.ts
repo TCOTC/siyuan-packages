@@ -4,8 +4,9 @@ const STORAGE_NAME = "select-opened-doc-config.json";
 
 // 原始代码片段：https://ld246.com/article/1727980528164
 export default class SelectOpenedDocPlugin extends Plugin {
-  private isMobile: boolean;
-  private focusButton: HTMLElement;
+  private isMobile!: boolean;
+  /** onLayoutReady 里可能找不到折叠按钮（不同主题 / 布局），此时保持 null。 */
+  private focusButton: HTMLElement | null = null;
   private originalButtonText = "";
 
   override async onload() {
@@ -18,7 +19,7 @@ export default class SelectOpenedDocPlugin extends Plugin {
     this.data[STORAGE_NAME].desktopFoldKey ??= "right"; // 默认是鼠标右键折叠文档树
     this.data[STORAGE_NAME].mobileFoldKey ??= "longPress"; // 默认是长按折叠文档树
     this.data[STORAGE_NAME].changeButtonText ??= // 如果是插件 i18n 支持的语种，则默认修改按钮文案，否则不修改
-      ["zh-CN", "zh-TW", "en"].includes(window.siyuan.config.appearance.lang) ? true : false;
+      ["zh-CN", "zh-TW", "en"].includes(window.siyuan.config!.appearance.lang) ? true : false;
 
     // 插件设置
     this.setting = new Setting({
@@ -81,7 +82,7 @@ export default class SelectOpenedDocPlugin extends Plugin {
   }
 
   override onLayoutReady() {
-    this.focusButton = document.querySelector(":is(.sy__file .block__icon, #sidebar .fn__flex-column[data-type='sidebar-file'] .toolbar .toolbar__icon)[data-type='focus']");
+    this.focusButton = document.querySelector<HTMLElement>(":is(.sy__file .block__icon, #sidebar .fn__flex-column[data-type='sidebar-file'] .toolbar .toolbar__icon)[data-type='focus']");
     if (!this.focusButton) {
       console.error(this.displayName, this.i18n.onloadFailed);
       return;
@@ -101,11 +102,13 @@ export default class SelectOpenedDocPlugin extends Plugin {
   }
 
   override onunload() {
-    // 卸载事件监听器
-    this.focusButton.removeEventListener("click", this.leftClickHandler);
-    this.focusButton.removeEventListener("contextmenu", this.rightClickHandler);
-    this.focusButton.removeEventListener("touchstart", this.touchstartHandler);
-    this.focusButton.removeEventListener("touchend", this.touchendHandler);
+    // 卸载事件监听器（onLayoutReady 没找到按钮时不会注册过）
+    if (this.focusButton) {
+      this.focusButton.removeEventListener("click", this.leftClickHandler);
+      this.focusButton.removeEventListener("contextmenu", this.rightClickHandler);
+      this.focusButton.removeEventListener("touchstart", this.touchstartHandler);
+      this.focusButton.removeEventListener("touchend", this.touchendHandler);
+    }
 
     // 还原按钮文案
     this.restoreButtonText();
@@ -122,10 +125,10 @@ export default class SelectOpenedDocPlugin extends Plugin {
 
   private changeButtonText = (isFirst: boolean = false) => {
     // 移动端没有悬浮提示
-    if (this.isMobile) return;
+    if (this.isMobile || !this.focusButton) return;
 
     const ariaLabel = this.focusButton.getAttribute("aria-label");
-    if (isFirst) this.originalButtonText = ariaLabel;
+    if (isFirst) this.originalButtonText = ariaLabel ?? "";
 
     if (this.data[STORAGE_NAME].changeButtonText) {
       // 如果修改按钮文案
@@ -137,7 +140,7 @@ export default class SelectOpenedDocPlugin extends Plugin {
   };
 
   private restoreButtonText = () => {
-    if (this.isMobile) return;
+    if (this.isMobile || !this.focusButton) return;
     this.focusButton.setAttribute("aria-label", this.originalButtonText);
   };
 

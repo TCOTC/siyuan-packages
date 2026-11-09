@@ -14,7 +14,7 @@ type PastePayload = {
 };
 
 function isFlomoWebClipboard(textHTML: string, textPlain: string): boolean {
-  return (textPlain && textPlain.indexOf(TEXT_MARK) >= 0) || (textHTML && textHTML.indexOf("data-flomo-web") >= 0);
+  return (textPlain !== "" && textPlain.indexOf(TEXT_MARK) >= 0) || (textHTML !== "" && textHTML.indexOf("data-flomo-web") >= 0);
 }
 
 function stripMarks(textHTML: string, textPlain: string): { html: string; plain: string } {

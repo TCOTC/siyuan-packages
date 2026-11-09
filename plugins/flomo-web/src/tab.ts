@@ -40,7 +40,8 @@ function mountCustom(custom: Custom, plugin: FlomoPlugin) {
  * 把 update 置空：思源同步也会调 update，真正的重建放在 init / hydrate。
  */
 function bindCustomHooks(custom: Custom) {
-  custom.update = undefined;
+  // Custom.update 在类型里是必填方法，但清空它能阻止旧闭包被思源的同步流程再次调用
+  (custom as { update?: Custom["update"] }).update = undefined;
   custom.destroy = function () {
     unmountCustom(this);
   };

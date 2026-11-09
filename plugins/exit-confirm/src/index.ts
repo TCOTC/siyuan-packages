@@ -6,8 +6,13 @@ export default class ExitConfirm extends Plugin {
   declare i18n: typeof zhCN;
 
   private exitDialog: Dialog | null = null;
-  private backend: string;
-  private boundKeyDownHandler: (event: KeyboardEvent) => void;
+  private backend!: string;
+  /**
+   * 只有 windows / darwin 注册了全局按键。
+   * 其余 backend（linux / docker / android / ios / harmony，见 `app/src/util/functions.ts`
+   * 的 getBackend）没有退出快捷键，保持 null，不注册监听。
+   */
+  private boundKeyDownHandler: ((event: KeyboardEvent) => void) | null = null;
 
   override onload() {
     this.backend = getBackend();
@@ -16,12 +21,16 @@ export default class ExitConfirm extends Plugin {
     } else if (this.backend === "darwin") {
       this.boundKeyDownHandler = this.handleKeyDownMac.bind(this);
     }
-    document.addEventListener("keydown", this.boundKeyDownHandler, true);
+    if (this.boundKeyDownHandler) {
+      document.addEventListener("keydown", this.boundKeyDownHandler, true);
+    }
     console.log(this.displayName, "plugin loaded");
   }
 
   override onunload() {
-    document.removeEventListener("keydown", this.boundKeyDownHandler, true);
+    if (this.boundKeyDownHandler) {
+      document.removeEventListener("keydown", this.boundKeyDownHandler, true);
+    }
     if (this.exitDialog) {
       this.exitDialog.destroy();
     }
@@ -76,7 +85,7 @@ export default class ExitConfirm extends Plugin {
 
     const contentText = this.i18n.exitConfirmContent.replace("{shortcut}", shortcutText);
 
-    let handleDialogKeyDown: (e: KeyboardEvent) => void;
+    let handleDialogKeyDown: (e: Event) => void;
 
     const dialog = new Dialog({
       content: `<div class="b3-dialog__content">
@@ -112,7 +121,11 @@ export default class ExitConfirm extends Plugin {
       this.confirmExit();
     });
 
-    handleDialogKeyDown = (e: KeyboardEvent) => {
+    handleDialogKeyDown = (e: Event) => {
+      // dialog.element 是 Element，按键事件按 Event 传进来，这里收窄
+      if (!(e instanceof KeyboardEvent)) {
+        return;
+      }
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
@@ -137,7 +150,9 @@ export default class ExitConfirm extends Plugin {
   }
 
   private confirmExit() {
-    document.removeEventListener("keydown", this.boundKeyDownHandler, true);
+    if (this.boundKeyDownHandler) {
+      document.removeEventListener("keydown", this.boundKeyDownHandler, true);
+    }
     if (this.exitDialog) {
       this.exitDialog.destroy();
     }

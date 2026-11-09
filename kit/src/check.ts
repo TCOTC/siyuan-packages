@@ -125,8 +125,15 @@ function checkTests(root: string, push: (message: string) => void): void {
   }
 }
 
-/** 包内 tsconfig 只能 extends 这两个基线之一，避免各包配置漂移。 */
-const ALLOWED_TSCONFIG_BASES = ["../../tsconfig.base.json", "../../tsconfig.package.json"];
+/** 包内 tsconfig 只能 extends 这两份共享基线之一，避免各包配置漂移。 */
+const ALLOWED_TSCONFIG_BASES = ["../../tsconfig.base.json", "../../tsconfig.strict.json"];
+
+/**
+ * 归共享基线管辖的选项。包内覆盖它们会让 21 份配置重新漂移：
+ * 一半是编译事实（改了会改产物），一半是基线严格度（改了等于自创一档）。
+ * 包内允许的只剩「把某项检查调得更严」，例如 noUnusedLocals。
+ */
+const BASELINE_OWNED_OPTIONS = ["target", "lib", "module", "moduleResolution", "types", "noEmit", "skipLibCheck", "resolveJsonModule", "strict", "noImplicitOverride", "noUncheckedIndexedAccess", "exactOptionalPropertyTypes", "verbatimModuleSyntax", "allowImportingTsExtensions", "erasableSyntaxOnly"];
 
 function checkTsconfig(root: string, push: (message: string) => void): void {
   const file = join(root, "tsconfig.json");
@@ -135,10 +142,27 @@ function checkTsconfig(root: string, push: (message: string) => void): void {
   }
 
   // tsconfig 允许注释，JSON.parse 会直接报错；这里只关心 extends 这一项，正则足够
-  const match = /"extends"\s*:\s*"([^"]*)"/.exec(readFileSync(file, "utf8"));
+  const source = readFileSync(file, "utf8");
+  const match = /"extends"\s*:\s*"([^"]*)"/.exec(source);
   const base = match?.[1];
   if (base === undefined || !ALLOWED_TSCONFIG_BASES.includes(base)) {
     push(`tsconfig.json 必须 extends ${ALLOWED_TSCONFIG_BASES.map((item) => JSON.stringify(item)).join(" 或 ")}，实际是 ${JSON.stringify(base ?? null)}`);
+  }
+
+  const owned = compilerOptionKeys(source).filter((key) => BASELINE_OWNED_OPTIONS.includes(key));
+  if (owned.length > 0) {
+    push(`tsconfig.json 不允许覆盖共享基线的选项：${owned.join("、")}；需要不同的严格度请换成 tsconfig.strict.json`);
+  }
+}
+
+/** 取 compilerOptions 的键名；注释剥不干净时返回空数组，宁可漏报也不误报。 */
+function compilerOptionKeys(source: string): string[] {
+  const stripped = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
+  try {
+    const parsed = JSON.parse(stripped) as { compilerOptions?: Record<string, unknown> };
+    return Object.keys(parsed.compilerOptions ?? {});
+  } catch {
+    return [];
   }
 }
 

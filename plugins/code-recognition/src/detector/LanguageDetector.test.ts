@@ -17,8 +17,8 @@ test("selects a supported high-confidence betlang result", async () => {
     { language: "python", score: 0.1 },
   ]);
   const result = await detector.detect('fn main() { println!("hello"); }');
-  expect(result.language).toBe("rust");
-  expect(result.source).toBe("betlang");
+  expect(result?.language).toBe("rust");
+  expect(result?.source).toBe("betlang");
 });
 
 test("rejects low-confidence text without code signals", async () => {
@@ -36,7 +36,7 @@ test("recognizes high-confidence code without code signals", async () => {
     { language: "markdown", score: 0.08 },
   ]);
   const result = await detector.detect("name: demo\nversion: latest");
-  expect(result.language).toBe("yaml");
+  expect(result?.language).toBe("yaml");
 });
 
 test("rejects medium-confidence results without code signals", async () => {
@@ -54,7 +54,7 @@ test("recognizes short code without a character limit", async () => {
     { language: "javascript", score: 0.1 },
   ]);
   const result = await detector.detect("{}");
-  expect(result.language).toBe("json");
+  expect(result?.language).toBe("json");
 });
 
 test("rejects an ambiguous top group", async () => {
@@ -81,14 +81,14 @@ test("recognizes markdown when confidence is sufficient", async () => {
     { detect: () => undefined },
   );
   const result = await detector.detect("# Heading\n- first item\n- second item");
-  expect(result.language).toBe("markdown");
-  expect(result.source).toBe("betlang");
+  expect(result?.language).toBe("markdown");
+  expect(result?.source).toBe("betlang");
 });
 
 test("falls back to long-tail feature rules", async () => {
   const detector = createDetector([], new RuleDetector(available));
   const source = 'syntax = "proto3";\nmessage User {\n  repeated string names = 1;\n}';
   const result = await detector.detect(source);
-  expect(result.language).toBe("protobuf");
-  expect(result.source).toBe("rule");
+  expect(result?.language).toBe("protobuf");
+  expect(result?.source).toBe("rule");
 });

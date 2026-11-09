@@ -153,7 +153,7 @@ export default class HarmonyOSFontPlugin extends Plugin {
     const emojiReset = '"Emojis Additional", "Emojis Reset"';
     const emojiStack = emojiFont ? `"Twemoji", ${emojiReset}` : emojiReset;
 
-    const lang = window.siyuan.config.appearance.lang; // 不能用 document.documentElement.lang，因为插件启动时这个属性可能还不存在
+    const lang = window.siyuan.config!.appearance.lang; // 不能用 document.documentElement.lang，因为插件启动时这个属性可能还不存在
     let harmonyOS: string;
     switch (lang) {
       case "ar":
@@ -198,7 +198,7 @@ export default class HarmonyOSFontPlugin extends Plugin {
       rules.push(`${UI_FONT_SELECTORS} { font-family: ${stack}; ${bodyWeight}; }`);
       // 编辑器元素自身未声明 font-weight 时从 body 继承，故按 SiYuan 的取值恢复，
       // 使界面模式的覆盖不进入编辑器与文档
-      const editorFontWeight = readFirstFontWeight(window.siyuan.config.editor, "fontFamilies") || readFirstFontWeight(window.siyuan.config.appearance, "globalFontFamilies") || DEFAULT_FONT_WEIGHT;
+      const editorFontWeight = readFirstFontWeight(window.siyuan.config!.editor, "fontFamilies") || readFirstFontWeight(window.siyuan.config!.appearance, "globalFontFamilies") || DEFAULT_FONT_WEIGHT;
       if (editorFontWeight !== DEFAULT_FONT_WEIGHT) {
         rules.push(`${EDITOR_SELECTORS} { font-weight: ${editorFontWeight}; }`);
         // .protyle-wysiwyg 会命中表格单元格内嵌套的编辑器，需恢复为从宿主单元格继承

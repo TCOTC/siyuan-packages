@@ -7,7 +7,8 @@
 // 拖拽期间会拦住触摸事件继续上传，避免菜单祖先上的手势（移动端底部菜单的下拉关闭、全局滑动）同时响应。
 import { Constants } from "siyuan";
 import type PluginSnippets from "../index";
-import { assignSnippetToGroup, cloneGroups, isUngroupedGroup, moveGroup, moveSnippetWithinGroup, SnippetGroup, UNGROUPED_GROUP_ID, unassignSnippetFromGroup } from "../domain/snippet-groups";
+import { assignSnippetToGroup, cloneGroups, isUngroupedGroup, moveGroup, moveSnippetWithinGroup, UNGROUPED_GROUP_ID, unassignSnippetFromGroup } from "../domain/snippet-groups";
+import type { SnippetGroup } from "../domain/snippet-groups";
 
 /** 位移超过该值（像素）才视为拖拽开始 */
 const DRAG_START_THRESHOLD_PX = 3;

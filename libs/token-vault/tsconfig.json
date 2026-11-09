@@ -1,10 +1,6 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    // 这两项与两个消费方包（install-package / snippets）的设置保持一致：
-    // 本包源码会被它们的 tsc 程序一并检查。
-    "noUncheckedIndexedAccess": false,
-    "exactOptionalPropertyTypes": false
-  },
+  // 加强档：本包源码会被消费方（install-package / snippets）的 tsc 程序一并检查，
+  // 严格度取两者上限，因此不跟着 base 走。
+  "extends": "../../tsconfig.strict.json",
   "include": ["src", "vitest.config.ts"]
 }

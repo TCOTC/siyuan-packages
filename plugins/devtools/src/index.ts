@@ -74,7 +74,9 @@ const createSwitch = (checked: boolean) => {
 };
 
 const joinDataPath = (...segments: string[]): string => {
-  const dataDir = window.siyuan.config.system.dataDir ?? "";
+  // config 在 window.siyuan 初始化后、loadPlugins 之前由 getConf 写入（app/src/index.ts），
+  // 插件运行时一定存在；类型里写成可选只是启动早期的形状。
+  const dataDir = window.siyuan.config!.system.dataDir ?? "";
   if (!dataDir) {
     return "";
   }
@@ -135,7 +137,7 @@ const openLocalPath = async (filePath: string, fallbackMessage: string): Promise
 
 const toggleVConsoleSwitch = () => {
   if (!vConsoleInstance) {
-    const theme = window.siyuan.config.appearance.mode === 1 ? "dark" : "light";
+    const theme = window.siyuan.config!.appearance.mode === 1 ? "dark" : "light";
     vConsoleInstance = new VConsole({
       theme,
       pluginOrder: ["default", "element", "network", "storage", "system"],
@@ -374,7 +376,8 @@ export default class DevToolsPlugin extends Plugin {
         title: this.displayName,
         position: "right",
         callback: () => {
-          this.openMenu(this.getTopBarRect(topBarElement));
+          // 只有 addTopBar 成功返回元素后才会触发这个 callback。
+          this.openMenu(this.getTopBarRect(topBarElement!));
         },
       });
     });

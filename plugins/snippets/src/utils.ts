@@ -158,8 +158,8 @@ export const moveElementToTop = (element: HTMLElement) => {
 
   let maxZIndex = 0;
   // 查找所有打开的代码片段编辑对话框和菜单，如果 zIndex 不是最大的才增加
-  const allElements = document.querySelectorAll(`${SNIPPET_DIALOG_SELECTOR}, #commonMenu[data-name='PluginSnippets']`);
-  allElements.forEach((el: HTMLElement) => {
+  const allElements = document.querySelectorAll<HTMLElement>(`${SNIPPET_DIALOG_SELECTOR}, #commonMenu[data-name='PluginSnippets']`);
+  allElements.forEach((el) => {
     const zIndex = Number(el.style.zIndex);
     if (zIndex > maxZIndex) {
       maxZIndex = zIndex;

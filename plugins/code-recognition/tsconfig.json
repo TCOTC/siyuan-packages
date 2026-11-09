@@ -1,7 +1,4 @@
 {
-  "extends": "../../tsconfig.package.json",
-  "compilerOptions": {
-    "erasableSyntaxOnly": false
-  },
+  "extends": "../../tsconfig.base.json",
   "include": ["src/**/*.ts", "*.config.ts"]
 }

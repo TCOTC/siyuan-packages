@@ -39,9 +39,11 @@ describe("encryptToken / decryptToken", () => {
   it("篡改密文后解密失败", async () => {
     const payload = await encryptToken("secret-token", seed);
     const parts = payload.split(".");
+    // 加密产物固定四段，第 2 段（salt）必然存在
+    const saltPart = parts[1]!;
     // 篡改 salt 段中段字符（避开末尾 padding 丢弃位，确保字节真实变化）
-    const mid = Math.floor(parts[1].length / 2);
-    parts[1] = parts[1].slice(0, mid) + (parts[1][mid] === "a" ? "b" : "a") + parts[1].slice(mid + 1);
+    const mid = Math.floor(saltPart.length / 2);
+    parts[1] = saltPart.slice(0, mid) + (saltPart[mid] === "a" ? "b" : "a") + saltPart.slice(mid + 1);
     expect(await decryptToken(parts.join("."), seed)).toBeNull();
   });
 

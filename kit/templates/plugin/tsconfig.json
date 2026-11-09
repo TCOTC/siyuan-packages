@@ -3,8 +3,8 @@
   // 在 kit/templates/plugin/ 原地时这个 extends 是悬空的——模板本身不参与 typecheck
   // （kit/tsconfig.json 只收 src/**/*.ts），只有仓库根的 oxlint / oxfmt 会扫到它。
   //
-  // 新包默认走严格档；需要放宽时改成 ../../tsconfig.package.json，
-  // 或在 compilerOptions 里逐项覆盖（`siyuan-kit check` 会拦住自创的基线）。
+  // 全仓只有这一份基线，没有「放宽」的分支：要更严用 ../../tsconfig.strict.json，
+  // 其余差异一律写进 compilerOptions（`siyuan-kit check` 会拦住自创的基线）。
   "extends": "../../tsconfig.base.json",
   "include": ["src/**/*.ts", "*.config.ts"]
 }

@@ -38,10 +38,11 @@ const genEmptyParagraph = (id?: string) => {
   element.setAttribute("data-node-id", id || window.Lute.NewNodeID());
   element.setAttribute("data-type", "NodeParagraph");
   element.className = "p";
-  element.innerHTML = `<div contenteditable="true" spellcheck="${window.siyuan.config.editor.spellcheck}"></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div>`;
+  element.innerHTML = `<div contenteditable="true" spellcheck="${window.siyuan.config!.editor.spellcheck}"></div><div class="protyle-attr" contenteditable="false">${Constants.ZWSP}</div>`;
   const editElement = element.firstElementChild as HTMLElement;
   editElement.classList.add("protyle-wysiwyg--empty");
-  editElement.setAttribute("placeholder", window.siyuan.languages.emptyPlaceholder);
+  // languages 由 loadLanguages 写入，比 loadPlugins 晚；此处只在页签挂载时调用，启动早已完成。
+  editElement.setAttribute("placeholder", window.siyuan.languages!.emptyPlaceholder);
   return element;
 };
 
@@ -120,19 +121,20 @@ export default class TempEditPlugin extends Plugin {
 </div>
 <div class="temp-edit__body"></div>`;
 
-    const instance = new Protyle(this.app, panel.querySelector<HTMLElement>(".temp-edit__body"), EDITOR_OPTIONS);
+    // .temp-edit__body 刚由上面的 innerHTML 写入，必然存在
+    const instance = new Protyle(this.app, panel.querySelector<HTMLElement>(".temp-edit__body")!, EDITOR_OPTIONS);
     const protyle = instance.protyle;
-    // 未加载文档时不会写入该属性，需与内核加载文档后的状态保持一致
-    protyle.wysiwyg.element.setAttribute("data-readonly", "false");
+    // Protyle 构造期就同步创建了 wysiwyg（app/src/protyle/index.ts），这里不会为空
+    protyle.wysiwyg!.element.setAttribute("data-readonly", "false");
 
     this.resetContent(instance);
     this.editors.set(custom.element, { instance });
 
-    panel.querySelector(".temp-edit__clear").addEventListener("click", () => {
+    panel.querySelector(".temp-edit__clear")!.addEventListener("click", () => {
       this.clearContent(instance);
     });
-    panel.querySelector(".temp-edit__copy").addEventListener("click", () => {
-      const markdown = protyle.lute.BlockDOM2StdMd(protyle.wysiwyg.element.innerHTML).trim();
+    panel.querySelector(".temp-edit__copy")!.addEventListener("click", () => {
+      const markdown = protyle.lute!.BlockDOM2StdMd(protyle.wysiwyg!.element.innerHTML).trim();
       if (!markdown) {
         showMessage(this.i18n.nothingToCopy);
         return;
@@ -160,7 +162,7 @@ export default class TempEditPlugin extends Plugin {
   }
 
   private resetContent(instance: Protyle) {
-    const wysiwygElement = instance.protyle.wysiwyg.element;
+    const wysiwygElement = instance.protyle.wysiwyg!.element;
     wysiwygElement.innerHTML = "";
     wysiwygElement.appendChild(genEmptyParagraph());
     instance.clearStack();
@@ -169,7 +171,7 @@ export default class TempEditPlugin extends Plugin {
   // 清空需通过 transaction 写入撤销栈，lite 模式下仅压入前端栈（LocalUndo）而不提交内核；
   // transaction 不会修改 DOM，因此这里需同步替换本地内容
   private clearContent(instance: Protyle) {
-    const wysiwygElement = instance.protyle.wysiwyg.element;
+    const wysiwygElement = instance.protyle.wysiwyg!.element;
     const blockElements = Array.from(wysiwygElement.children).filter((item) => item.hasAttribute("data-node-id")) as HTMLElement[];
     if (blockElements.length === 0) {
       return;
@@ -182,7 +184,8 @@ export default class TempEditPlugin extends Plugin {
     }
 
     // 清空后的空段落复用首块 ID，使撤销/重做中的插入操作始终有可用锚点
-    const firstID = firstBlockElement.getAttribute("data-node-id");
+    // 上面的 filter 已保证每项都有 data-node-id
+    const firstID = firstBlockElement.getAttribute("data-node-id")!;
     const emptyParagraph = genEmptyParagraph(firstID);
     const doOperations: IOperation[] = [
       {

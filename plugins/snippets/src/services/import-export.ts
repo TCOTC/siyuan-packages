@@ -86,7 +86,7 @@ export class ImportExportService {
       await saveExportFile("/export/" + encodeURIComponent(cleanExportFileName));
     } catch (error) {
       this.plugin.console.error("exportSnippets: Failed to export snippets: ", error);
-      this.plugin.showErrorMessage(this.plugin.i18n.exportSnippetsFailed + ": " + error.message);
+      this.plugin.showErrorMessage(this.plugin.i18n.exportSnippetsFailed + ": " + (error instanceof Error ? error.message : String(error)));
     }
   }
 
@@ -200,7 +200,7 @@ export class ImportExportService {
           await this.commitImport(newSnippetsList, successMessage);
         } catch (error) {
           this.plugin.console.error("importSnippets: Failed to import snippets", error);
-          this.plugin.showErrorMessage(this.plugin.i18n.importSnippetsFailed + ": " + error.message);
+          this.plugin.showErrorMessage(this.plugin.i18n.importSnippetsFailed + ": " + (error instanceof Error ? error.message : String(error)));
         } finally {
           // 清理文件输入元素
           document.body.removeChild(input);
@@ -212,7 +212,7 @@ export class ImportExportService {
       input.click();
     } catch (error) {
       this.plugin.console.error("importSnippets: Failed to create file input", error);
-      this.plugin.showErrorMessage(this.plugin.i18n.importSnippetsFailed + ": " + error.message);
+      this.plugin.showErrorMessage(this.plugin.i18n.importSnippetsFailed + ": " + (error instanceof Error ? error.message : String(error)));
     }
   }
 
@@ -243,7 +243,7 @@ export class ImportExportService {
       return committed ? { addedCount: plan.addedCount, updatedCount: plan.updatedCount } : false;
     } catch (error) {
       this.plugin.console.error("importSnippetsFromData: Failed to import snippets", error);
-      this.plugin.showErrorMessage(this.plugin.i18n.importSnippetsFailed + ": " + error.message);
+      this.plugin.showErrorMessage(this.plugin.i18n.importSnippetsFailed + ": " + (error instanceof Error ? error.message : String(error)));
       return false;
     }
   }

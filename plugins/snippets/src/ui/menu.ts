@@ -2,7 +2,8 @@
 import { Menu, platformUtils } from "siyuan";
 import { escapeHtml, genSnippetSwitchHtml, getDialogKeyHandler, hideTooltip, htmlToElement, isInputElementActive, moveElementToTop, PLUGIN_NAME, showElementTooltip, SNIPPET_DIALOG_SELECTOR } from "../utils";
 import { filterSnippetsByKeyword, isSnippetsTypeEnabled, snippetTitle, sortSnippets } from "../domain/snippet";
-import { addGroup, cloneGroups, findGroup, genNewGroupId, isUngroupedGroup, removeGroup, renameGroup, SnippetGroup, UNGROUPED_GROUP_ID, ungroupedSnippetIds, withUngroupedAnchors } from "../domain/snippet-groups";
+import { addGroup, cloneGroups, findGroup, genNewGroupId, isUngroupedGroup, removeGroup, renameGroup, UNGROUPED_GROUP_ID, ungroupedSnippetIds, withUngroupedAnchors } from "../domain/snippet-groups";
+import type { SnippetGroup } from "../domain/snippet-groups";
 import { MenuDragSort } from "./menu-drag-sort";
 import type PluginSnippets from "../index";
 import type { Snippet, SnippetType } from "../types";
@@ -173,15 +174,15 @@ export class SnippetsMenu {
       if (target.tagName.toLowerCase() === "input" && target.dataset.action === "search") {
         // 筛选代码片段（过滤逻辑见 domain/snippet.ts filterSnippetsByKeyword）
         const filterSnippetsIds = filterSnippetsByKeyword(this.plugin.snippetsList, this.plugin.config.snippetSearchType, target.value);
-        const snippetItems = this.menuItems.querySelectorAll(".jcsm-snippet-item");
+        const snippetItems = this.menuItems.querySelectorAll<HTMLElement>(".jcsm-snippet-item");
         if (filterSnippetsIds) {
           // 仅显示命中的片段
-          snippetItems.forEach((item: HTMLElement) => {
+          snippetItems.forEach((item) => {
             item.classList.toggle("fn__none", !filterSnippetsIds.includes(item.dataset.id!));
           });
         } else {
           // 禁用搜索或关键字为空时显示全部
-          snippetItems.forEach((item: HTMLElement) => {
+          snippetItems.forEach((item) => {
             item.classList.remove("fn__none");
           });
         }
@@ -1068,7 +1069,7 @@ export class SnippetsMenu {
    * 清除菜单选中
    */
   clearMenuSelection() {
-    this.menuItems?.querySelectorAll(`.${CURRENT_ITEM_CLASS}`).forEach((item: HTMLElement) => {
+    this.menuItems?.querySelectorAll<HTMLElement>(`.${CURRENT_ITEM_CLASS}`).forEach((item) => {
       item.classList.remove(CURRENT_ITEM_CLASS);
     });
   }
@@ -1123,8 +1124,8 @@ export class SnippetsMenu {
    * 设置所有打开了代码片段编辑对话框的菜单项编辑按钮高亮
    */
   private setAllSnippetsEditButtonActive() {
-    const dialogs = document.querySelectorAll(SNIPPET_DIALOG_SELECTOR);
-    dialogs.forEach((dialog: HTMLElement) => {
+    const dialogs = document.querySelectorAll<HTMLElement>(SNIPPET_DIALOG_SELECTOR);
+    dialogs.forEach((dialog) => {
       this.setSnippetEditButtonActive(dialog.dataset.snippetId!);
     });
   }
@@ -1182,8 +1183,8 @@ export class SnippetsMenu {
     if (event.key === "Escape") {
       let maxZIndex = 0;
       let maxZIndexElement: HTMLElement | null | undefined;
-      const snippetDialogElements = document.querySelectorAll(`body > ${SNIPPET_DIALOG_SELECTOR}`);
-      snippetDialogElements.forEach((element: HTMLElement) => {
+      const snippetDialogElements = document.querySelectorAll<HTMLElement>(`body > ${SNIPPET_DIALOG_SELECTOR}`);
+      snippetDialogElements.forEach((element) => {
         const zIndex = Number(element.style?.zIndex ?? 0);
         if (zIndex > maxZIndex) {
           maxZIndex = zIndex;

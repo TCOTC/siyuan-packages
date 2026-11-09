@@ -7,6 +7,11 @@ import { fetchPostPromise, genNewSnippetId, getFile } from "../utils";
 import type PluginSnippets from "../index";
 import type { FileState } from "../types";
 
+/** catch 到的值在 strict 下是 unknown；窗口读盘错误靠文案分支，这里统一取出可字符串化的消息。 */
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 /**
  * 文件夹代码片段监听服务
  * 监听状态（已加载文件状态表、轮询定时器 ID）为本服务内部状态，随实例生命周期启停。
@@ -140,13 +145,14 @@ export class FileWatchService {
 
       this.plugin.console.log("loadExistingFiles: Existing files loading completed");
     } catch (error) {
-      if (error.message && error.message.includes("system cannot find the file specified")) {
+      const message = errorMessage(error);
+      if (message.includes("system cannot find the file specified")) {
         // 检查是否是路径无效的错误
         this.plugin.console.warn("loadExistingFiles: Invalid folder path, stopping file watch");
         this.plugin.showErrorMessage(this.plugin.i18n.fileWatchInvalidPath + ": " + this.plugin.config.fileWatchPath, 0);
         this.stop();
         return;
-      } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+      } else if (message.includes("filename, directory name, or volume label syntax is incorrect")) {
         // 检查是否是绝对路径无效的错误
         this.plugin.console.warn("loadExistingFiles: Invalid folder path, stopping file watch");
         this.plugin.showErrorMessage(this.plugin.i18n.fileWatchNoSupportAbsPath + ": " + this.plugin.config.fileWatchPath, 0);
@@ -155,7 +161,7 @@ export class FileWatchService {
       }
 
       this.plugin.console.error("loadExistingFiles: Failed to load existing files", error);
-      this.plugin.showErrorMessage(this.plugin.i18n.fileWatchError + ": " + error.message);
+      this.plugin.showErrorMessage(this.plugin.i18n.fileWatchError + ": " + message);
     }
   }
 
@@ -213,11 +219,12 @@ export class FileWatchService {
 
       this.plugin.console.log("loadSingleFile: File loaded successfully", filePath);
     } catch (error) {
-      if (error.message && error.message.includes("The system cannot find the file specified")) {
+      const message = errorMessage(error);
+      if (message.includes("The system cannot find the file specified")) {
         // 检查是否是路径无效的错误
         this.plugin.console.warn("loadSingleFile: Invalid file path", filePath);
         return;
-      } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+      } else if (message.includes("filename, directory name, or volume label syntax is incorrect")) {
         // 检查是否是绝对路径无效的错误
         this.plugin.console.warn("loadSingleFile: Invalid absolute file path", filePath);
         return;
@@ -287,13 +294,14 @@ export class FileWatchService {
         await this.checkSingleFileChange(file);
       }
     } catch (error) {
-      if (error.message && error.message.includes("The system cannot find the file specified")) {
+      const message = errorMessage(error);
+      if (message.includes("The system cannot find the file specified")) {
         // 检查是否是路径无效的错误
         this.plugin.console.warn("checkFileChanges: Invalid folder path, stopping file watch");
         this.plugin.showErrorMessage(this.plugin.i18n.fileWatchInvalidPath + ": " + this.plugin.config.fileWatchPath, 0);
         this.stop();
         return;
-      } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+      } else if (message.includes("filename, directory name, or volume label syntax is incorrect")) {
         // 检查是否是绝对路径无效的错误
         this.plugin.console.warn("checkFileChanges: Invalid absolute path, stopping file watch");
         this.plugin.showErrorMessage(this.plugin.i18n.fileWatchNoSupportAbsPath + ": " + this.plugin.config.fileWatchPath, 0);
@@ -302,7 +310,7 @@ export class FileWatchService {
       }
 
       this.plugin.console.error("checkFileChanges: Failed to check file changes", error);
-      this.plugin.showErrorMessage(this.plugin.i18n.fileWatchError + ": " + error.message);
+      this.plugin.showErrorMessage(this.plugin.i18n.fileWatchError + ": " + message);
     }
   }
 
@@ -339,11 +347,12 @@ export class FileWatchService {
 
       return files;
     } catch (error) {
-      if (error.message && error.message.includes("The system cannot find the file specified")) {
+      const message = errorMessage(error);
+      if (message.includes("The system cannot find the file specified")) {
         // 检查是否是路径无效的错误
         this.plugin.console.warn("getFolderFiles: Invalid folder path", folderPath);
         throw error; // 重新抛出错误，让上层方法处理
-      } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+      } else if (message.includes("filename, directory name, or volume label syntax is incorrect")) {
         // 检查是否是绝对路径无效的错误
         this.plugin.console.warn("getFolderFiles: Invalid absolute path", folderPath);
         throw error; // 重新抛出错误，让上层方法处理
@@ -448,13 +457,14 @@ export class FileWatchService {
         }
       }
     } catch (error) {
-      if (error.message && error.message.includes("The system cannot find the file specified")) {
+      const message = errorMessage(error);
+      if (message.includes("The system cannot find the file specified")) {
         // 检查是否是路径无效的错误
         this.plugin.console.warn("checkSingleFileChange: Invalid file path", filePath);
         // 移除无效文件的状态
         this.fileWatchFileStates.delete(filePath);
         return;
-      } else if (error.message && error.message.includes("filename, directory name, or volume label syntax is incorrect")) {
+      } else if (message.includes("filename, directory name, or volume label syntax is incorrect")) {
         // 检查是否是绝对路径无效的错误
         this.plugin.console.warn("checkSingleFileChange: Invalid absolute file path", filePath);
         // 移除无效文件的状态

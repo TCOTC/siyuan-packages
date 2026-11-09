@@ -1,5 +1,6 @@
 import type { Plugin } from "siyuan";
-import { CONFIG_SCHEMA, PluginConfig, ConfigKey } from "../config";
+import { CONFIG_SCHEMA, PluginConfig } from "../config";
+import type { ConfigKey } from "../config";
 import { logging } from "../logger";
 import { syncAttr } from "../utils";
 import { getCurrentMode } from "./themeSwitch";

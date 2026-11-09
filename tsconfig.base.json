@@ -1,4 +1,16 @@
 {
+  // 全仓基线：编译事实 + 默认严格度。所有发布包与 kit 都从这里出发，不另立基线。
+  //
+  // 这里只放两类东西：
+  //   1. 编译事实 —— target / lib / module / moduleResolution / noEmit，
+  //      决定「这份 TS 编出来是什么」，改了会改产物。
+  //   2. 默认严格度 —— strict、noImplicitOverride、verbatimModuleSyntax。
+  //
+  // 刻意不放在这里的两类：
+  //   - noUncheckedIndexedAccess / exactOptionalPropertyTypes：比 strict 更严的
+  //     索引与可选属性检查，属于加强档，见 tsconfig.strict.json。
+  //   - erasableSyntaxOnly：只有「由 Node 直接运行 .ts」才需要（kit 的 bin 指向
+  //     src/cli.ts），见 kit/tsconfig.json。
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
@@ -7,17 +19,16 @@
     "types": ["node"],
 
     "strict": true,
-    "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
-    "exactOptionalPropertyTypes": true,
 
-    // 下面三项是「kit 不编译、直接由 Node 24 运行 .ts」的前提：
-    // verbatimModuleSyntax 保证 import type 不被保留成运行时导入，
-    // allowImportingTsExtensions 允许写 ./foo.ts，
-    // erasableSyntaxOnly 禁掉 enum / namespace 这类无法剥离的语法。
+    // 强制区分类型导入与值导入（必须写 import type）。产物由 rolldown/esbuild
+    // 剥离类型，少写一个 type 就让纯类型导入留进 bundle，运行期去找不存在的模块。
     "verbatimModuleSyntax": true,
+
+    // 允许写 "./foo.ts" 这种带扩展名的导入。全仓都需要：kit 的 exports 直接指向
+    // src/index.ts，各包的 tsc 程序会顺带编译 kit 源码，而那些导入必须带 .ts
+    // （Node 剥离类型运行时要求真实文件名）。对包自己只是「允许」，不会强制。
     "allowImportingTsExtensions": true,
-    "erasableSyntaxOnly": true,
 
     "resolveJsonModule": true,
     "skipLibCheck": true,
