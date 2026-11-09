@@ -26,7 +26,7 @@ export const ALLOWED_BUILD_CONFIG: Record<string, string> = {
   "code-recognition": "wasm 与第三方许可不在 vite 模块图里，需要 copy",
   "flomo-web": "主进程挂钩脚本由 remote.require 按路径加载，需要 copy",
   "image-squeeze": "Worker 入口要 iife + inlineDynamicImports，需要 passes",
-  "inline-elements": "旧产物在生产构建里开启 dropConsole",
+  "inline-elements": "生产构建需要去掉 console.*（dropConsole）",
   "siyuan-plugin-openmoji-emoji": "字体与根 LICENSE 需要 copy",
   "siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji": "11 MB 字体不能进模块图，需要 copy",
   "siyuan-ttf-LXGWWenKaiGB-and-Twemoji": "14 MB 字体不能进模块图，需要 copy",
@@ -136,9 +136,9 @@ function checkTests(root: string, push: (message: string) => void): void {
 
 /**
  * 包内 tsconfig 只能 extends 仓库里的两个基线之一：
- *   - tsconfig.package.json：从旧仓库原样迁入的宽松档（多数包）
- *   - tsconfig.base.json：旧仓库本来就是 strict 的包
- * 不许各写一份互不相同的配置——那正是合仓要消除的漂移。
+ *   - tsconfig.package.json：宽松档（strict: false，多数包）
+ *   - tsconfig.base.json：严格档（严格度正在逐步收紧的包）
+ * 不许各写一份互不相同的配置——那正是单仓要消除的漂移。
  */
 const ALLOWED_TSCONFIG_BASES = ["../../tsconfig.base.json", "../../tsconfig.package.json"];
 
@@ -229,7 +229,7 @@ function checkI18nFileNames(pkg: ResolvedPackage, push: (message: string) => voi
   }
 }
 
-/** 产物只能落在 <repo>/dist/，包目录里出现产物说明有人跑了旧脚本或手动拷回。 */
+/** 产物只能落在 <repo>/dist/，包目录里出现产物说明有人手动拷回或绕过了 kit。 */
 function checkForbiddenEntries(root: string, push: (message: string) => void): void {
   for (const entry of FORBIDDEN_ENTRIES) {
     if (existsSync(join(root, entry))) {

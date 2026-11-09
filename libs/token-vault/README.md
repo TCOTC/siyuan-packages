@@ -75,7 +75,7 @@ vault.clear(); // 仅清内存明文缓存
 - 种子字段拼接顺序 `workspaceDir|platform|language|timeZone|memory|cores|deviceId|deviceName|devicePlatform` 不变
 - 密文文件名 `token_<20 位 hex>.dat` 的派生算法不变
 
-因此从旧的 `siyuan-token-vault` git 依赖切到本仓源码，**不需要迁移或重新配置任何存量 Token**。
+因此本包的密文与 0.1.x 完全兼容，**不需要重新配置任何存量 Token**。
 
 ## 安全说明
 

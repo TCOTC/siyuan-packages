@@ -112,7 +112,7 @@ export function resolvePackage(root: string, kindOverride?: PackageKind): Resolv
   // 目录名必须与清单 name 逐字符相同（含大小写）。
   //
   // name 决定三件事：产物目录 dist/<name>、思源安装目录 data/<类型>/<name>、
-  // 以及归档旧仓库 README 里 `.../tree/main/<类型>/<name>` 那条链接。
+  // 以及发布目标仓库 TCOTC/<name>。
   // 目录名一旦各自漂移（Whisper-Plus 曾写成 whisper-plus、Whisper 曾写成 whisper），
   // 同一个包就在四个地方有不同写法，看目录的人无从判断哪个是真实身份。
   // 这里拦成硬错误，而不是警告：改名成本在这次构建里就该付掉。

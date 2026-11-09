@@ -48,8 +48,7 @@ export interface BuildOptions {
   /**
    * 生产构建里丢掉所有 `console.*` 调用。
    *
-   * 对应旧仓库的 `rolldownOptions.output.minify.compress.dropConsole`：源码里保留错误诊断，
-   * 发布产物里一句都不打印。dev 不生效——本地调试正是要看这些日志。
+   * 源码里保留错误诊断，发布产物里一句都不打印。dev 不生效——本地调试正是要看这些日志。
    */
   dropConsole?: boolean;
   /** 是否产出 zip，默认 true。 */

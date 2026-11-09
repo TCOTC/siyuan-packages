@@ -112,7 +112,7 @@ function ensureStyleAsset(pkg: ResolvedPackage, entry: string, outDir: string): 
       if (existsSync(file)) {
         return;
       }
-      // 与旧 webpack 的 dev 产物同形：1 字节换行，内容是空样式表
+      // 1 字节换行：工作空间里看到的目录结构稳定，不会因为空样式表而没有 index.css
       writeFileSync(file, "\n");
     },
   };

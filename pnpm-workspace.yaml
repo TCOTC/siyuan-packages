@@ -15,11 +15,11 @@ catalog:
   #   - open-menu-doctree 的 items 带 effectiveSortMode / childrenSortMode
   #   - Title.getText()（纯文本摘要）
   # 仍然是「单一真相源 + 单一 pin」：全仓 22 个包共用这一行。
-  # petal 发布新版后改回并重新 typecheck 即可（届时应删掉各包的类型垫片）。
+  # petal 发布含这些声明的版本后改回 semver 并重新 typecheck 即可。
   siyuan: "github:siyuan-note/petal#edc4b0494a"
 
   # image-squeeze 的 WASM 编解码器（Squoosh 移植）。直接进产物，写精确版本，
-  # 否则「与旧产物对拍」的 wasm 体积会随上游漂移。
+  # 否则产物会随上游漂移，出问题时无法归因。
   "@jsquash/jpeg": "1.6.0"
   "@jsquash/oxipng": "2.3.0"
   "@jsquash/webp": "1.5.0"
@@ -31,7 +31,7 @@ catalog:
   "@octokit/openapi-types": "^29.0.1"
 
   # snippets 的编辑器与格式化运行时（会被打包进 index.js）。
-  # 这里刻意写精确版本而不是 ^：它们直接进产物，版本漂移会让「与旧产物对拍」失去意义。
+  # 这里刻意写精确版本而不是 ^：它们直接进产物，版本漂移会让产物随上游变化。
   "@codemirror/autocomplete": "6.20.4"
   "@codemirror/commands": "6.11.1"
   "@codemirror/lang-css": "6.3.1"

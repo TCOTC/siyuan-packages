@@ -1,8 +1,8 @@
 /* https://github.com/hfg-gmuend/openmoji/blob/17.0.0/font/OpenMoji-color-glyf_colr_0/OpenMoji-color-glyf_colr_0.woff2 */
 @font-face {
   font-family: "OpenMoji";
-  /* 旧仓库写的是相对路径 `../plugins/<name>/...`；思源把插件样式内联进 <style>，
-     在根路径下两者等价。改成绝对路径后 vite 不会把它当成要解析的模块依赖。 */
+  /* 思源把插件样式内联进 <style>，根路径可以直接用。绝对路径让 vite
+     不会把它当成要解析的模块依赖，也就不会再打包一份字体。 */
   src: url("/plugins/siyuan-plugin-openmoji-emoji/OpenMoji/OpenMoji-color-glyf_colr_0-17.0.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;

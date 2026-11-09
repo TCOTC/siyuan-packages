@@ -1,7 +1,7 @@
 {
-  // 从旧仓库原样迁入的发布包共用这一档严格度。
+  // 宽松档：多数发布包共用这一份 compilerOptions。
   //
-  // 这些包的源码都是 webpack + esbuild-loader 编出来的，原仓库大多只开了 noImplicitAny。
+  // 这些包目前只开了 noImplicitAny，严格度收紧属于独立的重构。
   // 把 18 份一模一样的 compilerOptions 收在这里，包内 tsconfig 只留 extends 与 include，
   // 想收紧严格度的包改成 extends "../tsconfig.base.json"（snippets / install-package /
   // inline-elements 就是这样）。
