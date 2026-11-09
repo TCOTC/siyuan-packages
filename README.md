@@ -2,8 +2,8 @@
 
 把散在 27 个目录、25 个 GitHub 仓库里的思源集市包收进一个源码仓库：**统一构建，各自发布**。
 
-> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package`、`plugins/snippets`、`plugins/select-opened-doc`、`plugins/heatmap` 与 `plugins/siyuan-ttf-LXGWWenKaiGB-and-Twemoji`，七个旧仓库均已归档（只剩 `README.md`）。**
-> 七者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写；`select-opened-doc` 的 `index.js` 小 20%，静态资源逐字节相同，字符串字面量只差 webpack 运行时的三个；`heatmap` 的 `index.js` 小 10.6%，字符串字面量同样只差那三个，CSS 只有 minifier 等价重写；`siyuan-ttf-LXGWWenKaiGB-and-Twemoji` 的 `index.js` 小 19%，15 MB 字体在内的静态资源逐字节相同），单测 / 类型检查 / lint 均已接入仓库根的那一套。
+> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package`、`plugins/snippets`、`plugins/select-opened-doc`、`plugins/heatmap`、`plugins/siyuan-ttf-LXGWWenKaiGB-and-Twemoji` 与 `plugins/siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji`，八个旧仓库均已归档（只剩 `README.md`）。**
+> 八者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写；`select-opened-doc` 的 `index.js` 小 20%，静态资源逐字节相同，字符串字面量只差 webpack 运行时的三个；`heatmap` 的 `index.js` 小 10.6%，字符串字面量同样只差那三个，CSS 只有 minifier 等价重写；`siyuan-ttf-LXGWWenKaiGB-and-Twemoji` 的 `index.js` 小 19%，15 MB 字体在内的静态资源逐字节相同；`siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` 的 `index.js` 小 18%，11 MB 鸿蒙字体在内的 18 个静态文件逐字节相同），单测 / 类型检查 / lint 均已接入仓库根的那一套。
 > **共享库 `siyuan-token-vault` 已迁入 `libs/token-vault`**，`install-package` 与 `snippets` 改用 `workspace:*` 直接从源码导入，不再依赖 GitHub 上的 git 哈希。
 > 其余包仍按 README 末尾的迁移计划逐个搬。**每个包的迁移任务只有在旧仓库归档后才算完成**，规则见 9.1 ⑧。
 
@@ -197,15 +197,16 @@ kit 从同目录的清单读 `name` / `version` / `icon` / `preview` / `readme`�
 
 偏离约定用**同一套 API** 声明，而不是退回 webpack。目前已知需要 `build.config.ts` 的包：
 
-| 包                                    | 需要什么                                                    | 怎么表达                                                                                                                 |
-| ------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `image-squeeze`                       | 主入口 CJS + Worker 入口 IIFE；wasm 资源；自定义 base       | `passes: [{format:"cjs"}, {format:"iife", name, inlineDynamicImports}]`                                                  |
-| `plugin-sample`                       | 插件 CJS + 内核侧 ESM                                       | `passes: [{format:"cjs"}, {format:"es", entry:"src/kernel.ts"}]`                                                         |
-| `devtools`                            | 构建前先打包 vConsole                                       | 保留 prebuild 脚本，`scripts.build` 里串联                                                                               |
-| `highlight-search`                    | 旧 vite 配置里的自定义 define 与 CSS 改名                   | 已实测**无需** `build.config.ts`：preset 的 `define` 与 `assetFileNames` 原样覆盖，静态资源由 `collectStaticAssets` 复制 |
-| `siyuan-ttf-LXGWWenKaiGB-and-Twemoji` | 15 MB 字体文件不能进模块图（会被当成 url() 依赖再打包一份） | `copy: ["LXGWWenKai/**/*", "Twemoji/**/*", "!**/*.bak"]`，原样复制到产物根；样式里写 `/plugins/<name>/...` 绝对 URL      |
+| 包                                         | 需要什么                                                    | 怎么表达                                                                                                                 |
+| ------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `image-squeeze`                            | 主入口 CJS + Worker 入口 IIFE；wasm 资源；自定义 base       | `passes: [{format:"cjs"}, {format:"iife", name, inlineDynamicImports}]`                                                  |
+| `plugin-sample`                            | 插件 CJS + 内核侧 ESM                                       | `passes: [{format:"cjs"}, {format:"es", entry:"src/kernel.ts"}]`                                                         |
+| `devtools`                                 | 构建前先打包 vConsole                                       | 保留 prebuild 脚本，`scripts.build` 里串联                                                                               |
+| `highlight-search`                         | 旧 vite 配置里的自定义 define 与 CSS 改名                   | 已实测**无需** `build.config.ts`：preset 的 `define` 与 `assetFileNames` 原样覆盖，静态资源由 `collectStaticAssets` 复制 |
+| `siyuan-ttf-LXGWWenKaiGB-and-Twemoji`      | 15 MB 字体文件不能进模块图（会被当成 url() 依赖再打包一份） | `copy: ["LXGWWenKai/**/*", "Twemoji/**/*", "!**/*.bak"]`，原样复制到产物根；样式里写 `/plugins/<name>/...` 绝对 URL      |
+| `siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` | 11 MB 字体文件不能进模块图（会被当成 url() 依赖再打包一份） | `copy: ["HarmonyOS_Sans/**/*", "Twemoji/**/*"]`，原样复制到产物根；样式里写 `/plugins/<name>/...` 绝对 URL               |
 
-这 5 个是**已知例外**，不是「以后再想」。迁移时逐个验证，不要强行套模板。
+这 6 个是**已知例外**，不是「以后再想」。迁移时逐个验证，不要强行套模板。
 
 ---
 
@@ -414,6 +415,9 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **`siyuan-ttf-LXGWWenKaiGB-and-Twemoji` 迁入，需要 `build.config.ts` 的 `copy`**：两套字体（13.6 MB 的 woff 与 598 KiB 的 woff2）不能进模块图，否则 url() 会被 vite 当成依赖再打包一份；`collectStaticAssets` 只管清单 / README / 图标 / 预览图 / i18n，所以给 kit 补上了 `define.ts` 里早已声明却一直没实现的 `copy`（相对包根的 glob，`!` 前缀排除，命中的目录递归复制）。`index.js` 从 5832 降到 4710 字节，`index.css` 从 725 降到 697（`font-family:"LXGW WenKai"`→`LXGW WenKai`、`U+00A9`→`U+A9`、url 去引号都是 CSS 等价写法），其余 14 个文件（含两套字体、`OFL.txt`、`LICENSE-GRAPHICS`）**SHA-256 全部相同**
 - **`siyuan-ttf-LXGWWenKaiGB-and-Twemoji` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，`loadData` / 两个设置项（下拉四个选项、开关默认值）/ 四种作用范围的 `confirmCallback`（生成的 `#snippetCSS-<name>-override` 样式文本与 `saveData` 载荷）/ `#siyuanStyle` 被重写后重新生成规则 / `destroyCallback` / `onunload` / `uninstall` 的 `removeData` 全部一致，`document.fonts.load` 的三条预加载调用也一致
 - **`siyuan-ttf-LXGWWenKaiGB-and-Twemoji` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`、`src/`、`scripts/`、`LXGWWenKai/`、`Twemoji/`、`webpack.config.js`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`dprint.json`、`eslint.config.mjs`、`plugin.json`、`LICENSE`、两份 README 与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
+- **`siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` 迁入，沿用 LXGW 那套 `copy`**：四款 HarmonyOS Sans（基础 / 斜体 / SC / 阿拉伯语，合计 11 MB）与 Twemoji 不能进模块图，`build.config.ts` 只写 `copy: ["HarmonyOS_Sans/**/*", "Twemoji/**/*"]`（本包没有字形剥离脚本，不需要 `!**/*.bak`）。两套字体、`LICENSE.txt`、`LICENSE-GRAPHICS`、图标、预览图共 13 个文件**SHA-256 全部相同**；`plugin.json`、两份 README、`i18n/*.json` 只差 CRLF→LF 与 oxfmt 的空白（`git diff --ignore-all-space` 无输出）。`index.js` 从 6059 降到 4970 字节，acorn 取字符串字面量（含模板字符串）后 121→117，差异只有 webpack 运行时的 `use strict` / `u` / `Module` / `__esModule`；`index.css` 从 2158 降到 2105，差异只有 url 改成 `/plugins/<name>/...` 绝对路径、`font-family:"..."` 去引号、`U+00A9`→`U+A9`、末尾多一个 `/*$vite$:1*/`
+- **`siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` 的运行时行为用桩模块对拍过**：与 LXGW 同一套桩 `siyuan` + jsdom 脚本，覆盖 `zh-CN` / `en` / `ar` 三种语言 × 是否配置编辑器与全局字重，共 468 条记录；`loadData`、两个设置项（下拉四项、开关默认值）、四种作用范围 × 开关两态的 `preview` / `confirmCallback`（生成的 `#snippetCSS-<name>-override` 文本与 `saveData` 载荷）、`#siyuanStyle` 被重写后重新生成规则、`destroyCallback`、`onunload`、`uninstall` 的 `removeData`、`document.fonts.load` 的四条预加载全部一致。**唯二差异**是导出形态（webpack 的 `{default}` → cjs 的 `module.exports = class`，思源 loader 取 `.default || exports`，两种都认）与实例上多出的 `inlineStyleObserver: undefined` 字段
+- **`siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`、`src/`、`HarmonyOS_Sans/`、`Twemoji/`、`webpack.config.js`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`dprint.json`、`eslint.config.mjs`、`tsconfig.json`、`plugin.json`、`LICENSE`、两份 README 与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
 
 **实测踩到的两个坑（已写进 preset 注释，迁移时不用再踩）**
 
