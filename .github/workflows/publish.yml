@@ -1,30 +1,33 @@
 name: Publish
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 草稿：尚未在真实仓库上验证。骨架阶段只允许手动触发，避免误发。
+# 发布链路（原因见根 README 第 8 节）
 #
-# 正式接入后把触发器改成按 tag 发布，tag 约定 `<包目录名>/v<version>`：
+# 主入口是按 tag 发布，tag 约定 `<包目录名>/v<version>`：
 #
-#   on:
-#     push:
-#       tags: ["*/v*"]
+#   git tag move-doc/v1.0.3 && git push origin move-doc/v1.0.3
 #
-# 然后从 github.ref_name 里切出让包名与版本，并做一致性校验。
+# 手动触发保留下来做 dry-run：只构建、校验 zip 结构，不创建 release。
 #
-# 三个必须遵守的点（原因见根 README 第 8 节）：
+# 三个必须遵守的点：
 #   1. 跨仓库写必须用 PAT，GITHUB_TOKEN 只能写本仓库
 #   2. 必须建「正式」release，prerelease 不会进集市索引
 #   3. 目标仓库原来的 release.yml 要先删掉，否则创建 tag 会触发它重复构建
 # ─────────────────────────────────────────────────────────────────────────────
 on:
+  push:
+    tags: ["*/v*"]
   workflow_dispatch:
     inputs:
       package:
         description: "包目录名，例如 move-doc"
         required: true
-      target:
-        description: "目标收录仓库，例如 TCOTC/move-doc"
+      version:
+        description: "版本号，不带 v，必须与清单一致"
         required: true
+      target:
+        description: "目标收录仓库 owner/repo；留空则从清单 url 推导"
+        required: false
       dry_run:
         description: "只构建，不创建 release"
         type: boolean
@@ -48,12 +51,36 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: 定位包目录并读取版本
+      - name: 解析包名、版本与目标仓库
         id: meta
         env:
-          PKG: ${{ inputs.package }}
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_PACKAGE: ${{ inputs.package }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
+
+          # tag 形如 `move-doc/v1.0.3`：`${REF%%/*}` 取包目录名，`${REF#*/v}` 取版本
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            PKG="$INPUT_PACKAGE"
+            WANT_VERSION="$INPUT_VERSION"
+            TARGET="$INPUT_TARGET"
+            DRY_RUN="$INPUT_DRY_RUN"
+          else
+            PKG="${REF_NAME%%/*}"
+            WANT_VERSION="${REF_NAME#*/v}"
+            TARGET=""
+            DRY_RUN="false"
+          fi
+
+          if [ -z "$PKG" ] || [ -z "$WANT_VERSION" ] || [ "$WANT_VERSION" = "$REF_NAME" ]; then
+            echo "::error::tag 必须形如 <包目录名>/v<version>，实际是 $REF_NAME"
+            exit 1
+          fi
+
           DIR=""
           for kind in plugins themes widgets; do
             if [ -d "$kind/$PKG" ]; then DIR="$kind/$PKG"; break; fi
@@ -64,17 +91,47 @@ jobs:
           fi
 
           MANIFEST=$(ls "$DIR"/plugin.json "$DIR"/theme.json "$DIR"/widget.json 2>/dev/null | head -n1)
+          if [ -z "$MANIFEST" ]; then
+            echo "::error::$DIR 下没有清单文件"
+            exit 1
+          fi
+
+          NAME=$(node -p "require('./$MANIFEST').name")
           VERSION=$(node -p "require('./$MANIFEST').version")
 
-          # 集市要求清单里的 version 不带 v 前缀且单调递增，这里先拦住前缀问题
+          # 集市要求清单里的 version 不带 v 前缀
           case "$VERSION" in v*|V*) echo "::error::清单 version 不能带 v 前缀: $VERSION"; exit 1;; esac
 
-          # 产物目录与 zip 用的是清单里的 name，不一定等于包目录名（主题 Whisper 就是如此）
-          NAME=$(node -p "require('./$MANIFEST').name")
+          # tag / 手动输入与清单必须逐字符一致：typo 会安静地发一个内容不对的版本
+          if [ "$VERSION" != "$WANT_VERSION" ]; then
+            echo "::error::版本不一致：tag 是 $WANT_VERSION，$MANIFEST 是 $VERSION"
+            exit 1
+          fi
+
+          # 目录名必须等于清单 name（kit 的 resolvePackage 也会拦，这里先给出可读的原因）
+          if [ "$(basename "$DIR")" != "$NAME" ]; then
+            echo "::error::包目录名 $(basename "$DIR") 与清单 name $NAME 不一致"
+            exit 1
+          fi
+
+          # 目标收录仓库：手动输入优先，否则从清单 url 推导，最后回退 TCOTC/<name>
+          if [ -z "$TARGET" ]; then
+            URL=$(node -p "require('./$MANIFEST').url || ''")
+            if [ -n "$URL" ]; then
+              TARGET=$(node -e 'const u = new URL(process.argv[1]); console.log(u.pathname.replace(/^\/|\/$/g, ""))' "$URL")
+            fi
+          fi
+          if [ -z "$TARGET" ]; then
+            TARGET="TCOTC/$NAME"
+          fi
 
           echo "dir=$DIR" >> "$GITHUB_OUTPUT"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
+
+          echo "包目录 $DIR / 名称 $NAME / 版本 $VERSION / 目标 $TARGET / dry_run=$DRY_RUN"
 
       - name: 构建
         run: pnpm --dir "${{ steps.meta.outputs.dir }}" build
