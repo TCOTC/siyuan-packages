@@ -6,15 +6,14 @@
 
 ## 特性
 
-- 纯前端实现：仅依赖 Web Crypto（`crypto.subtle`），无 Node/宿主运行时依赖
+- 仅依赖 Web Crypto（`crypto.subtle`），无 Node / 宿主运行时依赖，也无第三方依赖
 - 载荷版本化（`v1.salt.iv.cipher`），为后续算法升级预留兼容解码
-- 加密带完整性校验（AES-GCM），密文被篡改或种子变化时解密返回 `null` 而非抛错
-- 每次加密随机生成 salt/iv，同一明文密文不同
-- 无运行时第三方依赖；消费方按源码引入，由构建工具直接打入插件 bundle
+- AES-GCM 带完整性校验：密文被篡改或种子变化时返回 `null` 而非抛错
+- 每次加密随机生成 salt / iv，同一明文密文不同
 
 ## 使用
 
-本库以 `workspace:*` 被同仓插件依赖，`exports` 直接指向 `src/index.ts`（与 `kit` 一样不预编译），消费方构建时由 vite 一并编译打包：
+本库以 `workspace:*` 被同仓插件依赖，`exports` 指向 `src/index.ts`（不预编译），消费方构建时由 vite 一并打包：
 
 ```json
 {
@@ -71,17 +70,17 @@ vault.clear(); // 仅清内存明文缓存
 
 ## 兼容性承诺
 
-- 密文载荷 `v1.<saltB64Url>.<ivB64Url>.<cipherB64Url>` 与 0.1.x 逐字节一致
-- 种子字段拼接顺序 `workspaceDir|platform|language|timeZone|memory|cores|deviceId|deviceName|devicePlatform` 不变
-- 密文文件名 `token_<20 位 hex>.dat` 的派生算法不变
+以下三处与 0.1.x 逐字节一致，**存量 Token 不需要重新配置**：
 
-因此本包的密文与 0.1.x 完全兼容，**不需要重新配置任何存量 Token**。
+- 密文载荷格式 `v1.<saltB64Url>.<ivB64Url>.<cipherB64Url>`
+- 种子字段拼接顺序 `workspaceDir|platform|language|timeZone|memory|cores|deviceId|deviceName|devicePlatform`
+- 密文文件名 `token_<20 位 hex>.dat` 的派生算法
 
 ## 安全说明
 
-- 密钥绑定工作空间目录与设备特征：**不同设备 / 不同工作空间需分别配置 Token**
-- 种子不含密码学意义上的随机秘密，加密强度取决于 PBKDF2 迭代次数与 AES-GCM；本方案目标是防「配置文件被直接复制阅读」，不替代系统级凭据管理
-- 若浏览器界面语言（`navigator.language`）或时区等参与种子的环境特征变化，会导致既有密文无法解密，届时需重新配置 Token
+- 密钥绑定工作空间目录与设备特征，**不同设备 / 工作空间需分别配置 Token**
+- 种子不含密码学随机秘密，强度取决于 PBKDF2 迭代次数与 AES-GCM；目标是防「配置文件被直接复制阅读」，不替代系统级凭据管理
+- 浏览器语言或时区等参与种子的环境特征变化，会导致既有密文无法解密
 
 ## 使用本库的插件
 

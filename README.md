@@ -53,31 +53,28 @@
 
 ```bash
 pnpm install
-
-pnpm build                          # 构建全部包 → dist/<name>/ 与 dist/<name>.zip
 pnpm --filter move-doc build        # 只构建一个包
 pnpm --filter move-doc dev          # 监听构建，并同步到思源工作空间
 ```
 
+| 命令                              | 作用                                             |
+| --------------------------------- | ------------------------------------------------ |
+| `pnpm build`                      | 构建全部包 → `dist/<name>/` 与 `dist/<name>.zip` |
+| `pnpm --filter <name> build\|dev` | 只构建 / 监听一个包                              |
+| `pnpm check`                      | 校验目录、清单、脚本、locale 等契约              |
+| `pnpm typecheck` / `pnpm test`    | 全仓 `tsc -p .` / vitest                         |
+| `pnpm lint` / `pnpm format`       | oxlint / oxfmt                                   |
+| `pnpm create:plugin <name>`       | 基于模板新建插件                                 |
+
 `--filter` **区分大小写**：包目录名与清单里的 `name` 逐字符一致，所以是 `--filter Whisper`、`--filter Whisper-Plus`。
 
-`dev` 需要仓库根的 `siyuan.config.json`（已 gitignore），指向思源工作空间的根目录：
+`dev` 需要仓库根的 `siyuan.config.json`（已 gitignore），指向思源工作空间的根目录（含 `data/` 的那层）：
 
 ```json
 { "workspace": "D:/SiYuan" }
 ```
 
 没有这个文件时 `dev` 只构建、不同步。
-
-### 常用命令
-
-- `pnpm build` —— 构建全部包
-- `pnpm --filter <name> build` / `dev` —— 只构建 / 监听一个包
-- `pnpm check` —— 校验目录、清单、脚本、locale 等契约
-- `pnpm typecheck` —— 全部包跑 `tsc -p .`
-- `pnpm test` —— 全部包跑 vitest
-- `pnpm lint` / `pnpm format` —— oxlint / oxfmt
-- `pnpm create:plugin <name>` —— 基于模板新建插件
 
 ---
 
@@ -105,7 +102,7 @@ pnpm create:plugin my-plugin \
   --description "What it does" --zh-description "它做什么"
 ```
 
-命令会把 `kit/templates/plugin/` 复制成 `plugins/my-plugin/` 并替换占位符（清单、两份 README 与 `package.json` 都会带上新名字）。生成后执行一次 `pnpm install` 把新包接进 workspace，再 `pnpm --filter my-plugin dev`。占位符清单见 [`kit/templates/README.md`](kit/templates/README.md)。
+命令会把 `kit/templates/plugin/` 复制成 `plugins/my-plugin/` 并替换占位符（清单、两份 README 与 `package.json` 都会带上新名字）。之后执行 `pnpm install` 把新包接进 workspace。占位符清单见 [`kit/templates/README.md`](kit/templates/README.md)。
 
 ---
 
@@ -117,21 +114,21 @@ pnpm create:plugin my-plugin \
 git tag move-doc/v1.0.3 && git push origin move-doc/v1.0.3
 ```
 
-`.github/workflows/publish.yml` 会校验 tag 与清单、只构建这一个包、把 `dist/<name>.zip` 改名为 `package.zip`，在对应的集市收录仓库创建正式 release。集市下一轮抓取后即可见。
+`.github/workflows/publish.yml` 会校验 tag 与清单、只构建这一个包、把 `dist/<name>.zip` 改名为 `package.zip`，在对应的集市收录仓库创建正式 release。集市下一轮抓取后即可见。细则见 [`docs/rules.md`](docs/rules.md) 第 10 节。
 
 ---
 
 ## 许可
 
-本仓与 22 个包统一使用根目录的 [MIT License](LICENSE)（`Copyright (c) 2026 Jeffrey Chen`），各包目录不再放 `LICENSE` 副本，发布产物也不带自有许可原文。
+本仓与各包统一使用根目录的 [MIT License](LICENSE)（`Copyright (c) 2026 Jeffrey Chen`）。各包不放 `LICENSE` 副本，发布产物也不带自有许可原文。
 
-第三方内容的再分发义务单独处理：包根放一个 `THIRD_PARTY-NOTICES.md`（固定文件名，许可全文写在同一文件内），kit 会自动带进产物（`devtools` / `snippets` / `image-squeeze` / `code-recognition`）；字体则随字体子目录内的许可文件一起分发。明细见 [`docs/rules.md`](docs/rules.md) 第 11 节。
+第三方内容的再分发义务单独处理：包根放一个固定文件名的 `THIRD_PARTY-NOTICES.md`，kit 自动带进产物；字体随字体子目录内的许可文件一起分发。明细见 [`docs/rules.md`](docs/rules.md) 第 11 节。
 
 ---
 
 ## 文档
 
-- [`docs/rules.md`](docs/rules.md) —— 仓库规则：集市约束、目录与身份、产物契约、`build.config.ts` 白名单、tsconfig 两档、`pnpm check` 门禁、依赖治理、格式化、发布链路。
+- [`docs/rules.md`](docs/rules.md) —— 仓库规则：集市约束、目录与身份、产物契约、`build.config.ts` 白名单、tsconfig、`pnpm check`、依赖治理、格式化、发布、许可。
 - [`kit/templates/README.md`](kit/templates/README.md) —— 新建包的模板与占位符。
 
 各包自己的说明与多语言 README 在包目录下。
