@@ -19,9 +19,10 @@
 | `{{displayNameZhCN}}` | 集市显示名（zh-CN）                 | 同 `{{displayName}}`              |
 | `{{description}}`     | 集市描述（default）                 | 空字符串                          |
 | `{{descriptionZhCN}}` | 集市描述（zh-CN）                   | 空字符串                          |
-| `{{author}}`          | 清单 author 与 LICENSE 版权人       | `Jeffrey Chen`                    |
+| `{{author}}`          | 清单 author                         | `Jeffrey Chen`                    |
 | `{{url}}`             | 清单 url                            | `https://github.com/TCOTC/<name>` |
-| `{{year}}`            | LICENSE 年份                        | 当前年份                          |
+
+模板里没有 `LICENSE`：整个仓库共用根目录那一份 MIT，各包不再放副本，产物也不带原文。引入第三方运行时依赖时，在包根加一个名为 `THIRD_PARTY-NOTICES.md` 的文件（文件名固定，许可全文写在同一个文件里），kit 会自动把它带进产物（不必写 `copy`）。
 
 占位符只能出现在**字符串、JSON 值、Markdown 与注释**里。`kit/templates/plugin/src/` 下的 TS 会被仓库根的 `pnpm lint` / `pnpm format` 扫描，把占位符写进标识符位置会让解析直接失败。
 

@@ -164,11 +164,11 @@ kit 从同目录的清单读 `name` / `version` / `icon` / `preview` / `readme`�
 | 包                                         | 需要什么                                                | 怎么表达                                                                                                                                                     |
 | ------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `image-squeeze`                            | 主入口 CJS + Worker 入口 IIFE；wasm 由 `new URL` 引用   | `passes: [{format:"cjs"}, {format:"iife", name, inlineDynamicImports}]`，另加 `define: {"import.meta.url": "self.location.href"}`（iife 没有 `import.meta`） |
-| `code-recognition`                         | wasm 与两份第三方许可不在模块图里                       | `copy: ["wasm/**/*", "THIRD_PARTY-*-LICENSE"]`，原样复制到产物根                                                                                             |
+| `code-recognition`                         | wasm 不在模块图里（运行期按绝对路径动态 import）        | `copy: ["wasm/**/*"]`，原样复制到产物根                                                                                                                      |
 | `flomo-web`                                | 主进程挂钩脚本由 `remote.require()` 按路径加载          | `copy: ["devtools-hook.cjs"]`                                                                                                                                |
 | `siyuan-ttf-LXGWWenKaiGB-and-Twemoji`      | 14 MB 字体不能进模块图（会被当成 url() 依赖再打包一份） | `copy: ["LXGWWenKai/**/*", "Twemoji/**/*", "!**/*.bak"]`；样式里写 `/plugins/<name>/...` 绝对 URL                                                            |
 | `siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` | 11 MB 字体不能进模块图                                  | `copy: ["HarmonyOS_Sans/**/*", "Twemoji/**/*"]`，同上                                                                                                        |
-| `siyuan-plugin-openmoji-emoji`             | 953 KiB 字体不能进模块图；产物里还要有根 `LICENSE`      | `copy: ["OpenMoji/**/*", "LICENSE"]`（`collectStaticAssets` 不复制根 `LICENSE`）                                                                             |
+| `siyuan-plugin-openmoji-emoji`             | 953 KiB 字体不能进模块图                                | `copy: ["OpenMoji/**/*"]`（字体自带的 `OpenMoji/LICENSE.txt` 一并复制）                                                                                      |
 | `inline-elements`                          | 生产构建要去掉 `console.*`                              | `dropConsole: true`：挂件 preset 把它传给 rolldown 的 `output.minify.compress.dropConsole`，dev 不生效                                                       |
 
 这份表是**白名单**，不是「以后再想」：新增条目必须先登记到 `kit/src/check.ts` 的 `ALLOWED_BUILD_CONFIG`（附理由），否则 `pnpm check` 会红。
@@ -208,6 +208,8 @@ kit 从同目录的清单读 `name` / `version` / `icon` / `preview` / `readme`�
 | locale      | 清单的 `displayName` / `description` / `readme` / `title` key 与 `src/i18n/*.json` 文件名必须是 BCP 47       |
 | README 存在 | 清单 `readme` 声明的每个文件都必须存在                                                                       |
 | 产物位置    | 包目录里不允许出现 `dist/` / `package.zip` / `index.js` / `index.css` / `i18n/`                              |
+| 许可副本    | 包根不允许出现 `LICENSE` / `LICENSE.md` / `LICENSE.txt`，许可只在仓库根声明                                  |
+| 第三方通知  | 包根只能有 `THIRD_PARTY-NOTICES.md`，其它 `THIRD_PARTY*` 文件一律报错（它们不会进产物）                      |
 | 约定入口    | 没有 `build.config.ts` 时，`src/index.ts`（插件）/ `index.html`（挂件）/ `styles/index.scss`（主题）必须存在 |
 
 CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错的输入上。
@@ -296,3 +298,41 @@ git tag move-doc/v1.0.3 && git push origin move-doc/v1.0.3
 1. **用 PAT，不能用 `GITHUB_TOKEN`**。`GITHUB_TOKEN` 只能写当前仓库，跨 20 多个收录仓库需要 fine-grained PAT（`contents: write`），存在 `PUBLISH_TOKEN`。
 2. **目标仓库不能有自己的发布工作流**。创建 release 会在目标仓库创建 tag，若那里还有 `on: push: tags` 的旧工作流，同一版本会被构建两次、互相覆盖资产。
 3. **不要用「推 tag 让目标仓库自己构建」**。那等于保留 20 多份 lockfile 和 20 多份工具链。
+
+---
+
+## 11. 许可
+
+### 11.1 自有代码：仓库根一份
+
+**整个仓库共用根目录的一份 [LICENSE](../LICENSE)（MIT）。** 各包不再放副本，`pnpm check` 会把包根的 `LICENSE` / `LICENSE.md` / `LICENSE.txt` 判为错误。
+
+**发布产物固定不带许可原文。** `collectStaticAssets` 只复制清单、README、图标、预览图、`i18n/` 与第三方通知文件，`build.config.ts` 的 `copy` 也不许列 `LICENSE`。集市包是「装进 `data/plugins/<name>/` 的一组文件」，作者与条款由仓库根的 LICENSE 与各包 README 承担。
+
+### 11.2 第三方：固定一个 `THIRD_PARTY-NOTICES.md`
+
+第三方条款是**再分发义务**，不能靠仓库根那一份代替。约定是包根放**恰好一个** `THIRD_PARTY-NOTICES.md`，kit 的 `collectStaticAssets` 自动把它复制到产物根——不需要也不要再写 `copy`。
+
+**文件名固定，不允许多种后缀并行。** 许可全文（Apache / BSD / IJG / ISC …）写进这个文件的「许可全文」段落，每份用 ` ```text ` 围栏包住（围栏内不会被 oxfmt 重排，逐字符保留原文）。`pnpm check` 会把包根任何 `THIRD_PARTY` 开头但名字不对的文件判为错误：那些文件**不会**进产物，而作者会以为带上了。
+
+判断依据是「代码有没有进产物」，不是「有没有装依赖」：
+
+| 形态                                   | 是否需随附 | 例子                                              |
+| -------------------------------------- | ---------- | ------------------------------------------------- |
+| 打包进 `index.js` / `codecWorker.js`   | 需要       | CodeMirror、prettier、acorn、vConsole、`@jsquash` |
+| 作为独立文件随产物分发                 | 需要       | 字体、wasm、模型                                  |
+| 仅类型（`import type`）                | 不需要     | `electron`、`@octokit/openapi-types`、`siyuan`    |
+| 仅构建期（vite / sass / oxc / vitest） | 不需要     | —                                                 |
+
+现有第三方内容的归属：
+
+| 包                             | 内容                                                                            | 许可                               | 位置                                        |
+| ------------------------------ | ------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------- |
+| `devtools`                     | vConsole 3.16.0-alpha                                                           | MIT（腾讯声明）                    | `THIRD_PARTY-NOTICES.md`                    |
+| `snippets`                     | CodeMirror 6 / @lezer / prettier / meriyah / acorn / @uiw 主题 / @babel/runtime | MIT + ISC                          | `THIRD_PARTY-NOTICES.md`                    |
+| `image-squeeze`                | `@jsquash/*` 与三份编解码器 wasm                                                | Apache-2.0 + BSD-3 + IJG + MIT     | `THIRD_PARTY-NOTICES.md`（含四份许可全文）  |
+| `code-recognition`             | betlang wasm、Magika 蒸馏模型                                                   | MIT / Apache-2.0                   | `THIRD_PARTY-NOTICES.md`（含两份许可全文）  |
+| `siyuan-plugin-openmoji-emoji` | OpenMoji 字体                                                                   | CC BY-SA 4.0                       | `OpenMoji/LICENSE.txt`（随字体一起 `copy`） |
+| 两个字体包                     | Twemoji / 霞鹜文楷 / HarmonyOS Sans                                             | CC BY 4.0 / OFL 1.1 / 华为字体许可 | 各字体子目录内的许可文件                    |
+
+新增第三方内容时，先确认条款对「随插件分发」的要求，再在 `THIRD_PARTY-NOTICES.md` 的「随附组件」表里加一行（组件 / 版本 / 许可 / 版权行），并把许可全文追加到「许可全文」段落。**不要**拆成多个 `THIRD_PARTY-*` 文件，也不要把许可改名成包根 `LICENSE` 或塞进 `copy`。

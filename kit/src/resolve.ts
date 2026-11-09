@@ -158,6 +158,17 @@ export interface StaticAsset {
   to: string;
 }
 
+/**
+ * 第三方许可与通知文件：包根出现这份文件就随产物分发。
+ *
+ * 自有许可只在仓库根声明一次，**不**随产物走；第三方条款则是再分发义务，
+ * 不能靠仓库根那一份代替，所以这条单独识别，不允许各包另写 `copy` 去补。
+ *
+ * 文件名固定：许可全文（Apache / BSD / OFL …）一律写进这一个文件的「许可全文」
+ * 段落，不另存文件。多种后缀的许可散在包根时，产物清单没人能一眼看出缺了谁。
+ */
+export const THIRD_PARTY_NOTICES = "THIRD_PARTY-NOTICES.md";
+
 export function collectStaticAssets(pkg: ResolvedPackage): StaticAsset[] {
   const assets: StaticAsset[] = [{ from: join(pkg.root, pkg.manifestFile), to: pkg.manifestFile }];
 
@@ -166,6 +177,11 @@ export function collectStaticAssets(pkg: ResolvedPackage): StaticAsset[] {
     if (/^README(\.[\w-]+)?\.md$/.test(file)) {
       assets.push({ from: join(pkg.root, file), to: file });
     }
+  }
+
+  const notices = join(pkg.root, THIRD_PARTY_NOTICES);
+  if (existsSync(notices)) {
+    assets.push({ from: notices, to: THIRD_PARTY_NOTICES });
   }
 
   for (const [field, legacy] of [

@@ -105,7 +105,7 @@ pnpm create:plugin my-plugin \
   --description "What it does" --zh-description "它做什么"
 ```
 
-命令会把 `kit/templates/plugin/` 复制成 `plugins/my-plugin/` 并替换占位符（清单、两份 README、`LICENSE` 与 `package.json` 都会带上新名字）。生成后执行一次 `pnpm install` 把新包接进 workspace，再 `pnpm --filter my-plugin dev`。占位符清单见 [`kit/templates/README.md`](kit/templates/README.md)。
+命令会把 `kit/templates/plugin/` 复制成 `plugins/my-plugin/` 并替换占位符（清单、两份 README 与 `package.json` 都会带上新名字）。生成后执行一次 `pnpm install` 把新包接进 workspace，再 `pnpm --filter my-plugin dev`。占位符清单见 [`kit/templates/README.md`](kit/templates/README.md)。
 
 ---
 
@@ -118,6 +118,14 @@ git tag move-doc/v1.0.3 && git push origin move-doc/v1.0.3
 ```
 
 `.github/workflows/publish.yml` 会校验 tag 与清单、只构建这一个包、把 `dist/<name>.zip` 改名为 `package.zip`，在对应的集市收录仓库创建正式 release。集市下一轮抓取后即可见。
+
+---
+
+## 许可
+
+本仓与 22 个包统一使用根目录的 [MIT License](LICENSE)（`Copyright (c) 2026 Jeffrey Chen`），各包目录不再放 `LICENSE` 副本，发布产物也不带自有许可原文。
+
+第三方内容的再分发义务单独处理：包根放一个 `THIRD_PARTY-NOTICES.md`（固定文件名，许可全文写在同一文件内），kit 会自动带进产物（`devtools` / `snippets` / `image-squeeze` / `code-recognition`）；字体则随字体子目录内的许可文件一起分发。明细见 [`docs/rules.md`](docs/rules.md) 第 11 节。
 
 ---
 

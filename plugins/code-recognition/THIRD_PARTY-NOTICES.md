@@ -1,3 +1,50 @@
+# 第三方许可与通知
+
+本包发布产物中随附的第三方代码，按各许可的再分发条款在此声明。自有代码的许可见仓库根目录的 `LICENSE`。
+
+## 随附组件
+
+| 组件                                              | 形态                                                     | 许可       | 版权                      |
+| ------------------------------------------------- | -------------------------------------------------------- | ---------- | ------------------------- |
+| [betlang](https://github.com/ealmloff/betlang)    | `wasm/betlang_wasm_bg.wasm`（本仓 `wasm-detector` 编译） | MIT        | Copyright (c) Dioxus Labs |
+| [Google Magika](https://github.com/google/magika) | 蒸馏后的语言识别模型，编进上述 wasm                      | Apache-2.0 | Google LLC                |
+
+模型由 Magika 教师模型蒸馏而来，属于 Apache-2.0 的衍生作品；wasm 以独立文件随产物分发。
+
+---
+
+## 许可全文
+
+### betlang（MIT）
+
+```text
+MIT License
+
+Copyright (c) Dioxus Labs
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+```
+
+### Google Magika（Apache License 2.0）
+
+```text
 
                                  Apache License
                            Version 2.0, January 2004
@@ -200,3 +247,4 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+```

@@ -19,7 +19,6 @@ export type TemplateValues = {
   descriptionZhCN: string;
   author: string;
   url: string;
-  year: string;
 };
 
 const TEMPLATE_KIND = "plugin";
@@ -27,9 +26,8 @@ const DEFAULT_AUTHOR = "Jeffrey Chen";
 const NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TOKEN_PATTERN = /\{\{([a-zA-Z][a-zA-Z0-9]*)\}\}/g;
 
-/** 按扩展名判断文本文件；`LICENSE` 这类无扩展名的也当文本处理。 */
+/** 按扩展名判断文本文件；其余（图片等）原样复制。 */
 const TEXT_EXTENSIONS = new Set([".json", ".md", ".scss", ".ts"]);
-const TEXT_FILES = new Set(["LICENSE"]);
 
 const FLAGS = new Set(["display-name", "zh-name", "description", "zh-description", "author", "url"]);
 
@@ -82,7 +80,6 @@ export function parseCreateArgs(args: string[]): TemplateValues {
     descriptionZhCN: flags.get("zh-description") ?? description,
     author: flags.get("author") ?? DEFAULT_AUTHOR,
     url: flags.get("url") ?? `https://github.com/TCOTC/${name}`,
-    year: String(new Date().getFullYear()),
   };
 }
 
@@ -133,7 +130,7 @@ function copyDirectory(from: string, to: string, values: TemplateValues): void {
 }
 
 function isTextFile(fileName: string): boolean {
-  return TEXT_EXTENSIONS.has(extname(fileName)) || TEXT_FILES.has(fileName);
+  return TEXT_EXTENSIONS.has(extname(fileName));
 }
 
 /**

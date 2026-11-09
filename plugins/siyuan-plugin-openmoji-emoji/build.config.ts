@@ -5,12 +5,11 @@ import type { BuildOptions } from "@jeffrey-chen/siyuan-kit";
  * 产物里会多出一份哈希命名的副本，而运行期本来就按绝对路径
  * `/plugins/<name>/OpenMoji/...` 加载。这里原样复制到产物根目录。
  *
- * `LICENSE` 也要显式列上：kit 的 `collectStaticAssets` 只管清单 / README /
- * 图标 / 预览图 / i18n，不会复制包根的 `LICENSE`，而本包产物里需要它
- * （其他包不需要，所以默认不复制）。
+ * 字体自带的 `OpenMoji/LICENSE.txt`（CC BY-SA 4.0）随字体一起复制；
+ * 包自己的 MIT 只在仓库根声明，产物不带原文。
  */
 const options: BuildOptions = {
-  copy: ["OpenMoji/**/*", "LICENSE"],
+  copy: ["OpenMoji/**/*"],
 };
 
 export default options;

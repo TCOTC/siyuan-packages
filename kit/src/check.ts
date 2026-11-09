@@ -1,6 +1,6 @@
 import { existsSync, globSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
-import { resolvePackage, type ResolvedPackage } from "./resolve.ts";
+import { resolvePackage, THIRD_PARTY_NOTICES, type ResolvedPackage } from "./resolve.ts";
 
 /**
  * 仓库级的「契约门禁」。
@@ -23,11 +23,11 @@ const PACKAGE_KINDS = ["plugins", "themes", "widgets"] as const;
  * 否则任何人加一份配置都不会被发现。表里的理由也会打印在 `--verbose` 输出里。
  */
 export const ALLOWED_BUILD_CONFIG: Record<string, string> = {
-  "code-recognition": "wasm 与第三方许可不在 vite 模块图里，需要 copy",
+  "code-recognition": "wasm 不在 vite 模块图里，需要 copy",
   "flomo-web": "主进程挂钩脚本由 remote.require 按路径加载，需要 copy",
   "image-squeeze": "Worker 入口要 iife + inlineDynamicImports，需要 passes",
   "inline-elements": "生产构建需要去掉 console.*（dropConsole）",
-  "siyuan-plugin-openmoji-emoji": "字体与根 LICENSE 需要 copy",
+  "siyuan-plugin-openmoji-emoji": "字体不在 vite 模块图里，需要 copy",
   "siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji": "11 MB 字体不能进模块图，需要 copy",
   "siyuan-ttf-LXGWWenKaiGB-and-Twemoji": "14 MB 字体不能进模块图，需要 copy",
 };
@@ -98,6 +98,7 @@ function checkPackage(root: string, issues: CheckIssue[]): void {
   checkLocales(pkg, push);
   checkI18nFileNames(pkg, push);
   checkForbiddenEntries(root, push);
+  checkLicenseCopy(root, push);
   checkEntry(pkg, push);
 }
 
@@ -234,6 +235,29 @@ function checkForbiddenEntries(root: string, push: (message: string) => void): v
   for (const entry of FORBIDDEN_ENTRIES) {
     if (existsSync(join(root, entry))) {
       push(`包目录里出现产物 ${entry}；产物只能落在 <仓库>/dist/ 下`);
+    }
+  }
+}
+
+/**
+ * 许可只在仓库根声明一次，各包不再放副本：产物固定不带许可原文，
+ * 22 份副本迟早会漂移出不同年份、不同写法。第三方许可（OFL / CC / Apache）
+ * 属于随附条款，不在此列——它们统一写进包根的 THIRD_PARTY-NOTICES.md。
+ */
+const LICENSE_COPIES = ["LICENSE", "LICENSE.md", "LICENSE.txt"];
+
+function checkLicenseCopy(root: string, push: (message: string) => void): void {
+  for (const file of LICENSE_COPIES) {
+    if (existsSync(join(root, file))) {
+      push(`包目录里不允许有 ${file}：许可统一在仓库根的 LICENSE 声明，产物不带原文`);
+    }
+  }
+
+  // 第三方通知的文件名是固定的，kit 只认这一个名字。多出来的 THIRD_PARTY-* 不会被
+  // 复制进产物，而作者以为它被带上了——这是最容易静默失效的一类。
+  for (const file of readdirSync(root)) {
+    if (file.startsWith("THIRD_PARTY") && file !== THIRD_PARTY_NOTICES) {
+      push(`第三方通知必须写成 ${THIRD_PARTY_NOTICES}，不允许 ${file}；许可全文写在该文件的「许可全文」段落`);
     }
   }
 }

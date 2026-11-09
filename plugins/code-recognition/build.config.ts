@@ -5,11 +5,11 @@ import type { BuildOptions } from "@jeffrey-chen/siyuan-kit";
  * 动态 import，再由它去取同目录的 `.wasm`。旧 webpack 的 CopyPlugin 把整份
  * `src/wasm/` 平铺到产物根的 `wasm/`，这里用 `copy` 保持同一位置。
  *
- * 第三方许可文本同样由旧 CopyPlugin 复制到产物根，`collectStaticAssets` 只认
- * 清单 / README / 图标 / 预览图，所以要显式列出来。
+ * 第三方许可是包根的 `THIRD_PARTY-NOTICES.md`，由 kit 的 `collectStaticAssets`
+ * 自动带进产物，不用在这里重复声明。
  */
 const options: BuildOptions = {
-  copy: ["wasm/**/*", "THIRD_PARTY-*-LICENSE"],
+  copy: ["wasm/**/*"],
 };
 
 export default options;
