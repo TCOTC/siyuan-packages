@@ -12,5 +12,5 @@
   "objectWrap": "preserve",
   "proseWrap": "preserve",
   "sortPackageJson": false,
-  "ignorePatterns": ["dist/**", "package.zip", "**/*.yml", "**/*.yaml", "libs/vconsole/dist/**", "libs/vconsole/build/**"]
+  "ignorePatterns": ["dist/**", "package.zip", "**/*.yml", "**/*.yaml", "libs/vconsole/dist/**", "libs/vconsole/build/**", "plugins/code-recognition/docs/**", "plugins/code-recognition/wasm/**"]
 }
