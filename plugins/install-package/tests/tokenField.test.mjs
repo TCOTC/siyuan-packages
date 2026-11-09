@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { test } from "node:test";
+import { test } from "vitest";
 import { TOKEN_FIELD_CLASS, TOKEN_REVEAL_CLASS, supportsTextSecurity } from "../src/settings/tokenField.ts";
 
 /** `CSS` 替身：只回应指定结果，同时记录被问到的属性与取值；`result` 为 Error 时模拟抛错 */

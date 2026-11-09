@@ -6,7 +6,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { base64UrlNoPadding, kernelProxyUrl } from "../src/infra/kernelProxy.ts";
 
 test("base64UrlNoPadding 用 URL 安全字母表且不带填充", () => {

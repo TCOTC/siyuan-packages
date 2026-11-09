@@ -6,7 +6,7 @@
  */
 
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 
 import { PACKAGE_IMAGE_EXTENSIONS, packageImageFileNames } from "../src/infra/packageImage.ts";
 

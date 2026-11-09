@@ -6,7 +6,7 @@
 
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { test } from "node:test";
+import { test } from "vitest";
 import { REPO_SUMMARY_ATTRS, isRepoSummaryRendered } from "../src/ui/repoSummaryDom.ts";
 
 /** 摘要根节点的最小替身：`isRepoSummaryRendered` 只读这两个属性，不需要真实 DOM */

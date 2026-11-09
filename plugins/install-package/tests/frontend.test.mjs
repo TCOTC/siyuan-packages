@@ -7,7 +7,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { isMobileFrontendOf } from "../src/infra/frontend.ts";
 
 test("移动端前端包含原生移动端与浏览器移动版", () => {

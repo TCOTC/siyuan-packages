@@ -6,7 +6,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { sortPackagesByBazaarOrder } from "../src/install/packageSort.ts";
 
 /** 造一个可排序的包；只用到排序字段与名字（便于断言） */

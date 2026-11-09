@@ -7,7 +7,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { findInstalledByRepo, mergeInstalledByType, refreshedTypes, sortByKernelType } from "../src/install/installedPackageList.ts";
 
 /** 测试替身：上述函数只读 kernelType / name / repoKey 三个字段 */

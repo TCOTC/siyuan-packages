@@ -6,7 +6,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { INSTALL_URI_ACTION, parseInstallUri } from "../src/install/siyuanUri.ts";
 
 const PLUGIN = "install-package";

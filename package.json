@@ -15,6 +15,7 @@
     "format:check": "oxfmt --check",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",
+    "check": "siyuan-kit check",
     "build": "pnpm -r --if-present build"
   },
   "devDependencies": {

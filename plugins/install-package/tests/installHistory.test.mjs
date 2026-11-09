@@ -8,7 +8,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { clearInstallHistory, ensureInstallHistoryLoaded, initInstallHistory, installHistoryUrl, listInstallHistory, mergeInstallHistoryEntry, parseInstallHistory, recordInstallHistory, removeInstallHistoryEntry } from "../src/install/installHistory.ts";
 
 /** 把记录压成便于断言的字符串，顺带固定字段顺序 */

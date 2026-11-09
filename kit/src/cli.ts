@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { checkWorkspace } from "./check.ts";
 import { createPlugin, parseCreateArgs } from "./create.ts";
 import type { BuildOptions } from "./define.ts";
 import { cleanOutput, copyAssets, copyExtras, zipDir } from "./pack.ts";
@@ -16,6 +17,7 @@ const USAGE = `siyuan-kit — 思源集市包统一构建
 用法：
   siyuan-kit build [--no-zip]     构建当前包 → <仓库>/dist/<name>/ 与 <仓库>/dist/<name>.zip
   siyuan-kit dev                  监听构建，每次产物落盘后同步进思源工作空间
+  siyuan-kit check                校验仓库里所有包是否遵守统一契约（CI 用）
   siyuan-kit create <name> [--display-name <显示名>] [--zh-name <中文显示名>]
         [--description <描述>] [--zh-description <中文描述>] [--author <作者>] [--url <仓库地址>]
                                   基于 templates/plugin 生成 plugins/<name>（随后执行 pnpm install）
@@ -46,6 +48,10 @@ async function main(): Promise<void> {
   }
   if (command === "build" || command === "dev") {
     await runBuild(root, command === "dev", rest);
+    return;
+  }
+  if (command === "check") {
+    runCheck(findRepoRoot(root));
     return;
   }
   if (command === "create") {
@@ -122,6 +128,26 @@ async function runStep(step: BuildStep): Promise<void> {
   }
 
   await runSassStep(step);
+}
+
+/**
+ * 校验仓库里所有包是否遵守统一契约。
+ *
+ * 只报告不修复：修复一定涉及「这个包到底该不该有这份配置」的判断，
+ * 写进 README 的规则不如写成一条会变红的检查。
+ */
+function runCheck(repoRoot: string): void {
+  const { packages, issues } = checkWorkspace(repoRoot);
+
+  for (const issue of issues) {
+    console.error(`${issue.package}: ${issue.message}`);
+  }
+
+  if (issues.length > 0) {
+    throw new Error(`[\`check\`] ${issues.length} 个问题，涉及 ${new Set(issues.map((issue) => issue.package)).size} 个包`);
+  }
+
+  console.log(`[\`check\`] ${packages.length} 个包全部符合仓库契约`);
 }
 
 /**

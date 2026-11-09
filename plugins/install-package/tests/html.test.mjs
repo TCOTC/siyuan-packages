@@ -6,7 +6,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { escapeHtml, safeExternalUrl } from "../src/infra/html.ts";
 
 test("escapeHtml 转义会破坏 HTML 结构的字符", () => {

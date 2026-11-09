@@ -7,7 +7,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { normalizeData, parseInstalled, parsePull, PENDING_INSTALL_PRESET_KEY, resolveVersionPin, serializeInstalled, serializePull, takePendingInstallPreset } from "../src/ui/panelData.ts";
 
 test("normalizeData 只保留已知字段并修剪字符串", () => {

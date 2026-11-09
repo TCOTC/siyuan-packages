@@ -43,20 +43,22 @@
   },
   "readme": {
     "default": "README.md",
-    "ar_SA": "README_ar_SA.md",
-    "de_DE": "README_de_DE.md",
-    "es_ES": "README_es_ES.md",
-    "fr_FR": "README_fr_FR.md",
-    "he_IL": "README_he_IL.md",
-    "it_IT": "README_it_IT.md",
-    "ja_JP": "README_ja_JP.md",
-    "ko_KR": "README_ko_KR.md",
-    "pl_PL": "README_pl_PL.md",
-    "pt_BR": "README_pt_BR.md",
-    "ru_RU": "README_ru_RU.md",
-    "tr_TR": "README_tr_TR.md",
-    "zh_CHT": "README_zh_CHT.md",
-    "zh_CN": "README_zh_CN.md"
+    "ar_SA": "README.ar-SA.md",
+    "de_DE": "README.de-DE.md",
+    "es_ES": "README.es-ES.md",
+    "fr_FR": "README.fr-FR.md",
+    "he_IL": "README.he-IL.md",
+    "it_IT": "README.it-IT.md",
+    "ja_JP": "README.ja-JP.md",
+    "ko_KR": "README.ko-KR.md",
+    "pl_PL": "README.pl-PL.md",
+    "pt_BR": "README.pt-BR.md",
+    "ru_RU": "README.ru-RU.md",
+    "tr_TR": "README.tr-TR.md",
+    "zh_CHT": "README.zh-CHT.md",
+    "zh_CN": "README.zh-CN.md"
   },
-  "funding": { "custom": ["https://mytemos.com/"] }
+  "funding": {
+    "custom": ["https://mytemos.com/"]
+  }
 }

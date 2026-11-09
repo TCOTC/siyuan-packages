@@ -7,7 +7,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { parsePackageChange } from "../src/install/packageChange.ts";
 
 test("bazaarChanged 带出受影响的类型，按内核顺序排列并去重", () => {

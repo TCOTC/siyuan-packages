@@ -22,6 +22,10 @@ jobs:
       # 否则这里会因为缺少 lockfile 而失败。
       - run: pnpm install --frozen-lockfile
 
+      # 先验结构再验内容：目录名 / 脚本 / 配置白名单 / 产物位置这些
+      # 「构建阶段就能判定」的契约一旦漂移，后面的检查都会跑在错的输入上
+      - run: pnpm check
+
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck

@@ -5,7 +5,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { normalizeRepoKey, repoKeyFromOwnerRepo, repoKeyOf } from "../src/infra/repoKey.ts";
 
 test("repoKeyOf 归一化仓库地址", () => {

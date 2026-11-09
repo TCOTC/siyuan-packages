@@ -6,7 +6,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { buildPackageCompareRows, COMPARE_DASH, formatPackageCompareLog } from "../src/ui/packageCompare.ts";
 
 const SUFFIXES = { latest: "（最新）", prerelease: "（预发布）" };

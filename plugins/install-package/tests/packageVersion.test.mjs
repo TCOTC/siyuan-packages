@@ -6,7 +6,7 @@
  */
 
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { comparePackageVersions, isVersionAtLeast } from "../src/install/packageVersion.ts";
 
 test("归一化 v 前缀", () => {
