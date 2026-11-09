@@ -13,6 +13,7 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
     "build": "pnpm -r --if-present build",
     "verify": "pnpm -r --if-present verify"
   },

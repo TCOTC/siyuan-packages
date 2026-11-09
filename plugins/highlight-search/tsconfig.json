@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // 原仓库 tsconfig 是 strict: false。把搜索逻辑收紧成 strict 属于独立重构，
+    // 不和「换构建系统」这件事混在一起做；这里显式记录本包当前的严格度。
+    "strict": false,
+    "noUncheckedIndexedAccess": false,
+    // 依赖 strictNullChecks，本包当前关着
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
+  },
+  "include": ["src/**/*.ts", "vitest.config.ts"]
+}

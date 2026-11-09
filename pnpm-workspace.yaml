@@ -26,6 +26,11 @@ catalog:
   # 与 engines.node 的最低版本对齐：类型定义了 Node 的 API 面
   "@types/node": "^24.6.2"
 
+  # 单元测试：
+  vitest: "^5.1.0"
+  # 插件里有直接操作 DOM 的纯函数，用 jsdom 提供 document
+  jsdom: "^31.0.0"
+
 allowBuilds:
   # sass 的可选原生依赖，用于 --watch
   "@parcel/watcher": false

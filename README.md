@@ -2,9 +2,9 @@
 
 把散在 27 个目录、25 个 GitHub 仓库里的思源集市包收进一个源码仓库：**统一构建，各自发布**。
 
-> **当前状态：骨架，未迁移任何包。**
-> 这个仓库里还没有真实的包代码，只有目录约定、构建契约、kit 内核和发布链路的草稿。
-> 它的用途是先评审架构，确认后再按 README 末尾的迁移计划逐步搬。
+> **当前状态：已迁入第一个试点包 `plugins/highlight-search`。**
+> 它由 `pnpm --filter highlight-search build` 构建，产物与旧仓库的 `package.zip` 对拍一致，单测 / 类型检查 / lint 均已接入仓库根的那一套。
+> 其余包仍按 README 末尾的迁移计划逐个搬。
 
 ---
 
@@ -81,7 +81,7 @@ siyuan-packages/
 ├── plugins/              # 23 个插件，一个包一个目录
 ├── themes/               # 主题
 ├── widgets/              # 挂件
-├── kit/                  # 构建内核 @tcotc/siyuan-kit
+├── kit/                  # 构建内核 @jeffrey-chen/siyuan-kit
 │   └── src/
 │       ├── define.ts     # 公开契约：BuildOptions / PassOptions
 │       ├── resolve.ts    # 约定推断：包类型、清单、静态资源
@@ -180,7 +180,7 @@ dev 同步需要知道本机的思源工作空间在哪。在仓库根建 `siyua
   "type": "module",
   "scripts": { "build": "siyuan-kit build", "dev": "siyuan-kit dev" },
   "devDependencies": {
-    "@tcotc/siyuan-kit": "workspace:*",
+    "@jeffrey-chen/siyuan-kit": "workspace:*",
     "siyuan": "catalog:"
   }
 }
@@ -188,16 +188,16 @@ dev 同步需要知道本机的思源工作空间在哪。在仓库根建 `siyua
 
 kit 从同目录的清单读 `name` / `version` / `icon` / `preview` / `readme`，按约定找 `src/index.ts` 和 `src/i18n/`，用清单里的 name 算出 `/plugins/<name>/` 作为 `base`。
 
-`@tcotc/siyuan-kit` 必须写进 `devDependencies`（`workspace:*`），否则 pnpm 不会把 `siyuan-kit` 这个 bin 链进该包的 `node_modules/.bin`。
+`@jeffrey-chen/siyuan-kit` 必须写进 `devDependencies`（`workspace:*`），否则 pnpm 不会把 `siyuan-kit` 这个 bin 链进该包的 `node_modules/.bin`。
 
 偏离约定用**同一套 API** 声明，而不是退回 webpack。目前已知需要 `build.config.ts` 的包：
 
-| 包                 | 需要什么                                              | 怎么表达                                                                |
-| ------------------ | ----------------------------------------------------- | ----------------------------------------------------------------------- |
-| `image-squeeze`    | 主入口 CJS + Worker 入口 IIFE；wasm 资源；自定义 base | `passes: [{format:"cjs"}, {format:"iife", name, inlineDynamicImports}]` |
-| `plugin-sample`    | 插件 CJS + 内核侧 ESM                                 | `passes: [{format:"cjs"}, {format:"es", entry:"src/kernel.ts"}]`        |
-| `devtools`         | 构建前先打包 vConsole                                 | 保留 prebuild 脚本，`scripts.build` 里串联                              |
-| `highlight-search` | 现有 vite 配置（自定义 define 与资源改名）            | 大部分可被 preset 吸收，剩余走 `define` / `copy`                        |
+| 包                 | 需要什么                                              | 怎么表达                                                                                                                 |
+| ------------------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `image-squeeze`    | 主入口 CJS + Worker 入口 IIFE；wasm 资源；自定义 base | `passes: [{format:"cjs"}, {format:"iife", name, inlineDynamicImports}]`                                                  |
+| `plugin-sample`    | 插件 CJS + 内核侧 ESM                                 | `passes: [{format:"cjs"}, {format:"es", entry:"src/kernel.ts"}]`                                                         |
+| `devtools`         | 构建前先打包 vConsole                                 | 保留 prebuild 脚本，`scripts.build` 里串联                                                                               |
+| `highlight-search` | 旧 vite 配置里的自定义 define 与 CSS 改名             | 已实测**无需** `build.config.ts`：preset 的 `define` 与 `assetFileNames` 原样覆盖，静态资源由 `collectStaticAssets` 复制 |
 
 这 4 个是**已知例外**，不是「以后再想」。迁移时逐个验证，不要强行套模板。
 
@@ -292,6 +292,8 @@ siyuan-kit verify --against ../old-package.zip
 - **同步的两道安全校验都实测生效**：目标目录没有清单 → 拒绝；清单里 name 不一致 → 拒绝。两种都会给出指向 `siyuan.config.json` 的报错，不会误删别人的插件目录
 - **CJS 产物形状确认**：入口被打成 `module.exports = ...`，符合思源 `require` 的加载方式
 - **`verify` 可用**：自比对报「与基线一致」，非法 zip 明确报错并退出 1
+- **`highlight-search` 原样迁入，不需要 `build.config.ts`**：旧 vite 配置只做三件事——注入 `process.env.*`、把 `style.css` 改名成 `index.css`、复制清单 / README / 图标与 `src/i18n`，三者分别由 preset 的 `define`、`assetFileNames` 和 `collectStaticAssets` 覆盖。`verify --against <旧 package.zip>` 报「与基线一致」，`index.css` 体积完全相同，`index.js` 只差 0.3%（vite 8.1.5 → 8.3.6），产物仍以 `require("siyuan")` 开头、`module.exports` 结尾
+- **迁移没有顺手改代码**：包内 `tsconfig.json` 保留原来的 `strict: false`（收紧类型属于独立重构），只补了 `override` 修饰符与一个 `new Array(n)` 写法以满足仓库基线；单测 90 条全过
 
 **实测踩到的两个坑（已写进 preset 注释，迁移时不用再踩）**
 
@@ -309,7 +311,7 @@ siyuan-kit verify --against ../old-package.zip
 
 - 源码要不要镜像回 25 个仓库？镜像则 GitHub 上仍能看代码、issue 有上下文，但多一层失败面；不镜像则那些仓库的树停在搬家那天
 - 迁移时保留各仓库历史（`git subtree add`，慢但完整）还是 squash 重开（快，旧历史留在旧仓库）
-- 仓库可见性：私有还是公开（公开则 kit 的实现对外可见，命名要走 `@tcotc/*`）
+- 仓库可见性：私有还是公开（公开则 kit 的实现对外可见，命名要走 `@jeffrey-chen/*`）
 
 **已知不迁移**
 
