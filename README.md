@@ -279,6 +279,48 @@ siyuan-kit verify --against ../old-package.zip
 
 只报差异不自动判定：少文件是硬失败，体积变化与新增文件需要人看。构建系统迁移最危险的失败不是「构建失败」，而是「构建成功但运行时报错」，这在 CI 里不会红。
 
+### 9.1 迁移笔记（临时，P1 完成后删）
+
+`highlight-search` 迁完后总结出的通用做法，后面 24 个包照这个走。**这节是过程记录，不是长期文档**。
+
+**① 旧仓库的 `package.zip` 基本不可信，别当基线。**
+这里的 `package.zip` 是 `version 1.0.2` 的产物，而源码已经是 `1.0.3`（提示文案也改过）。直接拿它对拍，`verify` 报「一致」只证明了**文件清单**同名——内容差异被完全掩盖。正确做法是先 `git status` 确认旧仓库干净，用**旧工具链**（旧 `pnpm install` + 旧 `vite.config.ts`）重建一份，那才是基线。
+
+**② `verify` 只比文件名与体积（默认 5% 容差），永远不比内容。**
+通过它是必要条件，不是充分条件。补两步：逐文件 SHA-256 比对；文本资源用 `git diff --no-index --ignore-all-space --ignore-blank-lines` 复核——Windows 上旧产物是 CRLF、本仓强制 LF，`plugin.json` / `README*.md` / `i18n/*.json` 会字节不同而内容相同。
+
+**③ 用 2×2 构建矩阵把「工具链漂移」和「自己的源码改动」分开。**
+
+```
+old toolchain × old source   ← 基线
+new toolchain × old source   ← 差集 A = 工具链
+new toolchain × new source   ← 差集 B = 你改的代码
+```
+
+对压缩产物，把 minifier 生成的 1–3 字符标识符**按首次出现顺序重编号**，再 diff 词元流，几百处「差异」会收敛到几处真的。经验值：vite 8.1.5 → 8.3.6 只会带来两类等价重写——函数体末尾的 `if (c) { f(); return } tail` → `c ? f() : tail`，以及常量折叠 `${800*2}px` → `1600px`。字符串字面量数量与内容应当**完全不变**，变了就是真改动。
+
+**④ 要证明运行时等价，而不只是长得像。**
+用桩模块顶掉 `siyuan`（`app` / `fetchSyncPost` / `Dialog` 用宽容 Proxy），在 jsdom 里加载产物、`new Plugin()` 后调 `onload()`，记录注册了什么：命令的 `langKey` / `hotkey`、图标、顶栏按钮、设置项、存储调用，然后 diff 两份记录。注意 `type: module` 的仓库会把 `.js` 产物当 ESM 加载，`require` 前先复制成 `.cjs`。
+
+**⑤ 换构建系统时不要顺手改严格度。**
+保留包原有的 `tsconfig`（这里是 `strict: false`），只修共享配置强制要求的：`Plugin` 成员的 `override`（`noImplicitOverride`）、以及 oxlint **error 级**规则（`no-new-array` 会让 CI 变红）。收紧类型另开一次提交。连带一条：`strictNullChecks` 关着时，基线的 `exactOptionalPropertyTypes` 必须显式关掉，否则 TS5052。
+
+**⑥ 产物形状不能变。** 入口必须 `module.exports`（内核用 `require` 加载）；样式必须落在 `index.css`，不能是 `assets/index-<hash>.css`（内核按固定名找）。
+
+**⑦ 不要拿源码目录当 `dev` 的同步目标。** `siyuan-kit dev` 会镜像并**删除**产物里没有的文件，指向 checkout 会清掉 `src/` 和 `.git`。
+
+**⑧ 旧仓库归档后仍要保留。** 集市按**旧仓库**的 `releases/latest` 取包，所以旧仓库不是「搬走就删」：源码清空、只留几行 README 指向 `plugins/<name>/`，但继续承接后续 release。另外 `package.zip` 落后一个版本时，别继续用它做基线。
+
+**⑨ 归档后的 README 就按这个模板写**，把 `<...>` 换掉即可（`highlight-search` 已是这个形态）：
+
+```markdown
+# <displayName.default>
+
+Source code: [TCOTC/siyuan-packages](https://github.com/TCOTC/siyuan-packages/tree/main/plugins/<name>). This repository only hosts Bazaar releases.
+```
+
+三条要求：标题用清单里 `displayName.default` 的原文；链接必须指向 `plugins/<name>` 目录而不是仓库根；只讲「源码在哪、本仓库干什么」，不写迁移过程——过程记录留在本 README 的 9.1 节。
+
 ---
 
 ## 10. 已验证 / 仍待验证
