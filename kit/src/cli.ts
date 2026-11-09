@@ -9,7 +9,6 @@ import { cleanOutput, copyAssets, copyExtras, zipDir } from "./pack.ts";
 import { plan, type BuildStep } from "./plan.ts";
 import { findRepoRoot, resolvePackage } from "./resolve.ts";
 import { runSassStep } from "./sass.ts";
-import { diffZip, formatDiff, readZip } from "./verify.ts";
 import { CONFIG_FILE, loadWorkspaceConfig, syncToWorkspace } from "./workspace.ts";
 
 const USAGE = `siyuan-kit — 思源集市包统一构建
@@ -17,8 +16,6 @@ const USAGE = `siyuan-kit — 思源集市包统一构建
 用法：
   siyuan-kit build [--no-zip]     构建当前包 → <仓库>/dist/<name>/ 与 <仓库>/dist/<name>.zip
   siyuan-kit dev                  监听构建，每次产物落盘后同步进思源工作空间
-  siyuan-kit verify --against <基线 zip> [--current <新 zip>]
-                                  与基线产物对拍（迁移时用）
   siyuan-kit create <name> [--display-name <显示名>] [--zh-name <中文显示名>]
         [--description <描述>] [--zh-description <中文描述>] [--author <作者>] [--url <仓库地址>]
                                   基于 templates/plugin 生成 plugins/<name>（随后执行 pnpm install）
@@ -49,10 +46,6 @@ async function main(): Promise<void> {
   }
   if (command === "build" || command === "dev") {
     await runBuild(root, command === "dev", rest);
-    return;
-  }
-  if (command === "verify") {
-    await runVerify(root, rest);
     return;
   }
   if (command === "create") {
@@ -144,34 +137,6 @@ async function loadOptions(root: string): Promise<BuildOptions> {
   }
   const mod = (await import(pathToFileURL(file).href)) as { default?: BuildOptions };
   return mod.default ?? {};
-}
-
-async function runVerify(root: string, rest: string[]): Promise<void> {
-  const baseline = readFlag(rest, "--against");
-  if (!baseline) {
-    throw new Error("用法：siyuan-kit verify --against <基线 zip> [--current <新 zip>]");
-  }
-  const pkg = resolvePackage(root);
-  const current = readFlag(rest, "--current") ?? join(findRepoRoot(pkg.root), "dist", `${pkg.name}.zip`);
-
-  const diff = diffZip(readZip(baseline), readZip(current));
-  console.log(`基线：  ${baseline}`);
-  console.log(`新产物：${current}\n`);
-  console.log(formatDiff(diff));
-
-  if (diff.onlyInBaseline.length > 0) {
-    // 少文件是硬失败：思源安装后可能找不到清单、样式或翻译
-    process.exitCode = 1;
-    console.error("\n缺少文件属于硬失败，先修掉再谈体积差异。");
-  }
-}
-
-function readFlag(args: string[], name: string): string | undefined {
-  const index = args.indexOf(name);
-  if (index < 0) {
-    return undefined;
-  }
-  return args[index + 1];
 }
 
 main().catch((error: unknown) => {

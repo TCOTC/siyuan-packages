@@ -62,7 +62,6 @@
 ┌─ 执行层 ─────────────────────────────────────────────┐
 │ cli.ts：推断包类型 → 生成 step 列表 → 顺序执行          │
 │ pack.ts：复制静态资源 → dist/<name>/ → dist/<name>.zip  │
-│ verify.ts：与旧产物对拍（迁移安全网）                   │
 └──────────────────────────────────────────────────────┘
                      ↓
 ┌─ 分发层（.github/workflows/publish.yml）─────────────┐
@@ -92,9 +91,8 @@ siyuan-packages/
 │   │   ├── plan.ts       # 按包类型生成 BuildStep[]
 │   │   ├── presets/      # plugin / widget / theme
 │   │   ├── pack.ts       # 复制静态资源、打 zip
-│   │   ├── verify.ts     # 与基线产物对拍
 │   │   ├── create.ts     # 基于模板生成新包
-│   │   └── cli.ts        # build / dev / verify / create
+│   │   └── cli.ts        # build / dev / create
 │   └── templates/        # 新建包的骨架（不在 workspace 里，不参与构建）
 │       └── plugin/       # pnpm create:plugin <name> 复制这一份
 ├── pnpm-workspace.yaml   # catalog：依赖版本唯一真相源
@@ -293,31 +291,24 @@ monorepo 打 tag `move-doc/v1.0.2`
 
 ## 9. 迁移计划
 
-| 阶段   | 内容                                                                                                                                             | 验收标准                                                                                                                      |
-| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| **P0** | 骨架 + kit + 2 个试点包（`move-doc` 标准插件、`highlight-search` 现有 vite 配置）                                                                | 两个包 `pnpm build` 通过；`verify` 与旧产物对拍无缺文件；**旧仓库已归档**（只剩 `README.md`，见 9.1 ⑧）；在真实思源里装上能跑 |
-| **P1** | 20 个标准插件机械迁移                                                                                                                            | 每个包都对拍 + 实机安装 + **旧仓库已归档**；`pnpm -r build` 全绿                                                              |
-| **P2** | 3 个例外包：`image-squeeze`、`plugin-sample`、+ 有 `scripts/` 的三个（`devtools` 已用它自己的方式迁入：vConsole 预编译产物落在 `libs/vconsole`） | 逐个人工验证，尤其是 `image-squeeze` 的 Worker 与 wasm；**旧仓库已归档**                                                      |
-| **P3** | 主题（Whisper）+ 挂件（inline-elements）：两者均已完成（见第 10 节）                                                                             | 产物结构与现有一致；主题在思源里渲染正常；**旧仓库已归档**                                                                    |
-| **P4** | 接入 `publish.yml`，先 dry-run 再真发一个包                                                                                                      | 集市 Stage 能抓到新版本                                                                                                       |
+| 阶段   | 内容                                                                                                                                             | 验收标准                                                                                                                            |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **P0** | 骨架 + kit + 2 个试点包（`move-doc` 标准插件、`highlight-search` 现有 vite 配置）                                                                | 两个包 `pnpm build` 通过；产物与旧 `package.zip` 对拍无缺文件；**旧仓库已归档**（只剩 `README.md`，见 9.1 ⑧）；在真实思源里装上能跑 |
+| **P1** | 20 个标准插件机械迁移                                                                                                                            | 每个包都对拍 + 实机安装 + **旧仓库已归档**；`pnpm -r build` 全绿                                                                    |
+| **P2** | 3 个例外包：`image-squeeze`、`plugin-sample`、+ 有 `scripts/` 的三个（`devtools` 已用它自己的方式迁入：vConsole 预编译产物落在 `libs/vconsole`） | 逐个人工验证，尤其是 `image-squeeze` 的 Worker 与 wasm；**旧仓库已归档**                                                            |
+| **P3** | 主题（Whisper）+ 挂件（inline-elements）：两者均已完成（见第 10 节）                                                                             | 产物结构与现有一致；主题在思源里渲染正常；**旧仓库已归档**                                                                          |
+| **P4** | 接入 `publish.yml`，先 dry-run 再真发一个包                                                                                                      | 集市 Stage 能抓到新版本                                                                                                             |
 
-**安全网（每个包都要做）**：用旧仓库的 `package.zip` 当基线，运行
-
-```bash
-siyuan-kit build
-siyuan-kit verify --against ../old-package.zip
-```
-
-只报差异不自动判定：少文件是硬失败，体积变化与新增文件需要人看。构建系统迁移最危险的失败不是「构建失败」，而是「构建成功但运行时报错」，这在 CI 里不会红。
+**安全网（每个包都要做）**：用旧仓库的 `package.zip` 当基线，逐文件比 SHA-256，再用桩模块在 jsdom 里加载新旧产物、比对运行时的调用记录。构建系统迁移最危险的失败不是「构建失败」，而是「构建成功但运行时报错」，这在 CI 里不会红。
 
 ### 9.1 迁移笔记（临时，P1 完成后删）
 
 `highlight-search` 迁完后总结出的通用做法，后面 24 个包照这个走。**这节是过程记录，不是长期文档**。
 
 **① 旧仓库的 `package.zip` 基本不可信，别当基线。**
-这里的 `package.zip` 是 `version 1.0.2` 的产物，而源码已经是 `1.0.3`（提示文案也改过）。直接拿它对拍，`verify` 报「一致」只证明了**文件清单**同名——内容差异被完全掩盖。正确做法是先 `git status` 确认旧仓库干净，用**旧工具链**（旧 `pnpm install` + 旧 `vite.config.ts`）重建一份，那才是基线。
+这里的 `package.zip` 是 `version 1.0.2` 的产物，而源码已经是 `1.0.3`（提示文案也改过）。直接拿它对拍，文件清单一致只证明了**文件名**同名——内容差异被完全掩盖。正确做法是先 `git status` 确认旧仓库干净，用**旧工具链**（旧 `pnpm install` + 旧 `vite.config.ts`）重建一份，那才是基线。
 
-**② `verify` 只比文件名与体积（默认 5% 容差），永远不比内容。**
+**② 文件清单对拍只比文件名与体积，永远不比内容。**
 通过它是必要条件，不是充分条件。补两步：逐文件 SHA-256 比对；文本资源用 `git diff --no-index --ignore-all-space --ignore-blank-lines` 复核——Windows 上旧产物是 CRLF、本仓强制 LF，`plugin.json` / `README*.md` / `i18n/*.json` 会字节不同而内容相同。
 
 **③ 用 2×2 构建矩阵把「工具链漂移」和「自己的源码改动」分开。**
@@ -358,7 +349,7 @@ new toolchain × new source   ← 差集 B = 你改的代码
 
 两条必须记住的连带事实：
 
-- **`package.zip` 同时是 `verify` 的基线。** 归档删掉它以后想再对拍，只能从 GitHub release 重新下载；而那份会停在归档时的版本，源码已经比它新，**别当成基线用**（见 ①）。所以第 0 步的离线副本要留好。
+- **`package.zip` 同时是对拍的基线。** 归档删掉它以后想再对拍，只能从 GitHub release 重新下载；而那份会停在归档时的版本，源码已经比它新，**别当成基线用**（见 ①）。所以第 0 步的离线副本要留好。
 - **归档不等于发布。** 归档只改旧仓库的树；集市看到的是 release 资产，一次发布都不会因此中断，也不会提前生效。真正的新版本仍要走第 8 节的 tag → `publish.yml`。
 
 **⑨ 归档后的 README 就按这个模板写**，把 `<...>` 换掉即可（`highlight-search` 已是这个形态）：
@@ -378,15 +369,14 @@ Source code: [TCOTC/siyuan-packages](https://github.com/TCOTC/siyuan-packages/tr
 **⑪ 入口 import 了样式、但编译后没有任何规则时，vite 不产出 CSS 文件。**
 典型是整份 SCSS 都是注释（`move-doc` 就是这样），旧 webpack 会留下 1 字节的 `index.css`。
 **dev 与 build 这里刻意不同**：dev 补一个空 `index.css`（工作空间里看到的目录结构与真实插件一致，避免来回切换时文件忽有忽无）；build 不补——没有有效样式就不应有这个文件。
-这也意味着 `move-doc` 的 `verify --against` 会把 `index.css` 报成「缺少文件」并退出 1，**这是预期偏差**，不是迁移失败。新包不要再为了让产物「有文件」去加无用样式规则。
+所以与旧产物对拍时，`move-doc` 这类包的 `index.css` 会表现为「基线有、新产物没有」，**这是预期偏差**，不是迁移失败。新包不要再为了让产物「有文件」去加无用样式规则。
 
 **⑫ dev 与 build 的产物形态只有两处不同，不要合并。**
 dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；build：压缩 + 无 sourcemap（思源用 `eval` 加载，外链 `.map` 也解析不到）。其余（`base`、`external`、CSS 固定命名）两边一致，否则「本地能跑、装了包不行」。
 
-**⑬ 打包进产物的依赖要同时写 catalog 与 overrides（`snippets` 实测）。**
-`@codemirror/*` / `@lezer/*` 这类库既在 `dependencies` 里、又会带一串同族传递依赖。只写 catalog（哪怕是精确版本）时，pnpm 会为嵌套范围再解析一份更新的副本：
-`tsc` 会把两份 `@codemirror/state` 的私有字段当成不同类型直接报错，产物里也会出现两套 parser 表。做法是把旧仓库 lockfile 的解析结果写进根 `pnpm-workspace.yaml` 的 `overrides`（目前只有 `snippets` 用这些包），升级时改一处即可。
-另外 `@uiw/codemirror-theme-vscode@4.25.11` 的 ESM 产物 import 了 `@babel/runtime/helpers/extends` 却没声明该依赖（幽灵依赖），旧仓库靠顶层声明兜住，迁移时也要照写。
+**⑬ 打包进产物的依赖写 catalog 精确版本，版本由 lockfile 钉住（`snippets` 实测）。**
+`@codemirror/*` / `@lezer/*` 这类库既在 `dependencies` 里、又会带一串同族传递依赖，版本漂移会让产物与基线对不上，所以 catalog 里写精确版本而不是 `^`。
+不用 `overrides` 去强行压平副本：一旦上游把最低要求提到高于我们 pin 的版本，pnpm 会解析出两份 `@codemirror/state`，`tsc` 把两份实例的私有字段当成不同类型直接报错——这个错误恰好提示该升级 catalog 了；而 `overrides` 会把旧版本静默塞给要求新版的包，编译能过、运行期缺 API。
 
 **⑭ 已发布 `siyuan` 类型升级后，旧代码可能只在类型层报错（`snippets` 实测）。**
 `siyuan@1.2.6 → 1.2.9` 有两处破坏性类型变化：
@@ -410,10 +400,9 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **dev 同步链路跑通**：`siyuan-kit dev` 监听构建，每次落盘后把 `dist/<name>/` 镜像进假工作空间；目标目录里预先放的旧文件被正确清掉
 - **同步的两道安全校验都实测生效**：目标目录没有清单 → 拒绝；清单里 name 不一致 → 拒绝。两种都会给出指向 `siyuan.config.json` 的报错，不会误删别人的插件目录
 - **CJS 产物形状确认**：入口被打成 `module.exports = ...`，符合思源 `require` 的加载方式
-- **`verify` 可用**：自比对报「与基线一致」，非法 zip 明确报错并退出 1
-- **`highlight-search` 原样迁入，不需要 `build.config.ts`**：旧 vite 配置只做三件事——注入 `process.env.*`、把 `style.css` 改名成 `index.css`、复制清单 / README / 图标与 `src/i18n`，三者分别由 preset 的 `define`、`assetFileNames` 和 `collectStaticAssets` 覆盖。`verify --against <旧 package.zip>` 报「与基线一致」，`index.css` 体积完全相同，`index.js` 只差 0.3%（vite 8.1.5 → 8.3.6），产物仍以 `require("siyuan")` 开头、`module.exports` 结尾
+- **`highlight-search` 原样迁入，不需要 `build.config.ts`**：旧 vite 配置只做三件事——注入 `process.env.*`、把 `style.css` 改名成 `index.css`、复制清单 / README / 图标与 `src/i18n`，三者分别由 preset 的 `define`、`assetFileNames` 和 `collectStaticAssets` 覆盖。产物文件清单与旧 `package.zip` 一致，`index.css` 体积完全相同，`index.js` 只差 0.3%（vite 8.1.5 → 8.3.6），产物仍以 `require("siyuan")` 开头、`module.exports` 结尾
 - **迁移没有顺手改代码**：包内 `tsconfig.json` 保留原来的 `strict: false`（收紧类型属于独立重构），只补了 `override` 修饰符与一个 `new Array(n)` 写法以满足仓库基线；单测 90 条全过
-- **`move-doc` 标准插件迁入，不需要 `build.config.ts`**：`plugin.json` / README / 图标 / `i18n/*.json` 与旧产物逐字节相同（清单只被 oxfmt 重排空白）；`index.js` 从 7115 降到 5635 字节，多出来的只有 webpack 运行时（`use strict` / `Module` / `__esModule`）三个字符串字面量，其余 76 个新旧一一对应。`index.css` 是 1 字节空样式，按设计**不再产出**（见 9.1 ⑪），所以 `verify` 会报这一个缺失文件并退出 1——预期偏差，其余清单一致
+- **`move-doc` 标准插件迁入，不需要 `build.config.ts`**：`plugin.json` / README / 图标 / `i18n/*.json` 与旧产物逐字节相同（清单只被 oxfmt 重排空白）；`index.js` 从 7115 降到 5635 字节，多出来的只有 webpack 运行时（`use strict` / `Module` / `__esModule`）三个字符串字面量，其余 76 个新旧一一对应。`index.css` 是 1 字节空样式，按设计**不再产出**（见 9.1 ⑪），所以对拍会表现为这一个文件缺失——预期偏差，其余清单一致
 - **dev 与 build 的形态差异已实测**：dev 产物 41504 字节、不压缩、末尾带 inline sourcemap，并额外补一个空 `index.css`；build 产物 5635 字节、压缩、无 sourcemap、无 `index.css`。`highlight-search`（样式有真实内容）两种模式都正常产出 `index.css`，说明这段补丁只作用于「编译结果为空」的情况
 - **`move-doc` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` 下分别加载新旧 `index.js`，`onload`（事件订阅、两个设置项与下拉选项）、三种 `open-menu-doctree`（自定义排序 / 非自定义排序 / 笔记本）、`moveDocBeside` 与 `moveDocAsChild` 的 API 调用序列、`onunload` / `uninstall` 全部一致；只有 `src/compat.ts` 新增的 `?? ""` 多出一个空字符串字面量
 - **归档后的旧仓库确实只剩 README**：`move-doc` 清完以后 `git ls-tree -r HEAD` 只输出 `README.md`，工作区目录也只有 `README.md` 与 `.git`，`git status` 干净；`plugin.json` / 图标 / `LICENSE` / 运行时文件都已从树与磁盘移除（顺序与坑见 9.1 ⑧）
@@ -462,12 +451,12 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **`fullscreen` 只改类型层**：补 3 个生命周期方法的 `override`（`onload` / `onunload` / `uninstall`），`declare i18n: typeof zhCN` 沿用原写法即满足 1.2.9 的 `Record<string, JSONValue>`；运行期代码未动。旧仓库没有单测，本包也未新增
 - **`fullscreen` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`（commit `f706c7d`，未 push），`.github/`、`src/`、`webpack.config.js`、`eslint.config.mjs`、`dprint.json`、`tsconfig.json`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`.gitignore`、`plugin.json`、`LICENSE`、两份 README、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
 
-- **`devtools` 迁入，`libs/vconsole` 是预编译产物的首个案例**：旧仓库的 `package.zip` 停在 1.0.0、早于 1.0.1 的 HEAD（`plugin.json` / `i18n` 都旧，两份 README 是 0 字节），按 9.1 ① 用旧工具链（webpack 5.109.2 + esbuild-loader + 子模块里已编好的 `vconsole.min.js`）重建基线。`icon.png` / `preview.png` / `i18n/*.json` 与基线 **SHA-256 相同**；`plugin.json` 只被 oxfmt 在 `funding` 对象内补空格，两份 README 只被 oxfmt 对齐表格（`git diff --no-index --ignore-all-space` 无其他内容）。`index.js` 从 336130 降到 328745 字节（-2.2%）；acorn 取字符串字面量（含模板字符串）后 1029→1004，差异只有两处——vConsole 里 26 个布尔属性名被新 minifier 合并成一个点分字符串、以及 UMD 的 `VConsole` 全局名，插件自己的字面量一条没少。`index.css` 是 1 字节空样式，按 9.1 ⑪ 不再产出，`verify` 因此只报这一个缺失文件并退出 1（预期偏差）
+- **`devtools` 迁入，`libs/vconsole` 是预编译产物的首个案例**：旧仓库的 `package.zip` 停在 1.0.0、早于 1.0.1 的 HEAD（`plugin.json` / `i18n` 都旧，两份 README 是 0 字节），按 9.1 ① 用旧工具链（webpack 5.109.2 + esbuild-loader + 子模块里已编好的 `vconsole.min.js`）重建基线。`icon.png` / `preview.png` / `i18n/*.json` 与基线 **SHA-256 相同**；`plugin.json` 只被 oxfmt 在 `funding` 对象内补空格，两份 README 只被 oxfmt 对齐表格（`git diff --no-index --ignore-all-space` 无其他内容）。`index.js` 从 336130 降到 328745 字节（-2.2%）；acorn 取字符串字面量（含模板字符串）后 1029→1004，差异只有两处——vConsole 里 26 个布尔属性名被新 minifier 合并成一个点分字符串、以及 UMD 的 `VConsole` 全局名，插件自己的字面量一条没少。`index.css` 是 1 字节空样式，按 9.1 ⑪ 不再产出，对拍因此只表现这一个文件缺失（预期偏差）
 - **`devtools` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，13 个场景——桌面（顶栏菜单）、桌面点遍全部菜单项、桌面无 Electron、桌面独立窗口、浏览器桌面、移动端、浏览器移动端、四个开关全关、部分关闭、`loadData` 抛错、`reloadUI` 失败、`openPath` 返回错误、`window.require` 抛错——覆盖 `loadData` / `saveData` / `removeData`、4 条命令、`addTopBar` 的 id 与图标、`Setting` 的 4 个开关项、菜单项与 `accelerator`、`fetchPost` 的 URL 与 multipart 字段、`ipcRenderer.send` 的 `openPath` / `toggleDevTools` 载荷、`showMessage` 文案，13 份记录**全部相同**；移动端场景里 vConsole 也真的被构造（jsdom 需额外补 `XMLHttpRequest` / `Text` / `location` 等全局）
 - **`devtools` 只改类型层**：补 5 个生命周期方法的 `override`；siyuan@1.2.9 把 `/api/file/putFile` 的 body 收紧成带 `apiRequest` 影子字段的 `APIFormData`，用一个本地 `type MultipartFormData = FormData & {readonly apiRequest: never}` 放行一次。运行期代码未动，旧仓库没有单测，本包也未新增
 - **`devtools` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`（commit `9d01f07`，未 push），`.github/`、`src/`、`scripts/`、`vendor/vconsole`（git submodule，连同 `.git/modules` 残留）、`webpack.config.js`、`eslint.config.mjs`、`dprint.json`、`tsconfig.json`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`AGENTS.md`、`.gitmodules`、`.gitignore`、`plugin.json`、`LICENSE`、两份 README、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
 
-- **`code-languages` 迁入，需要 `build.config.ts` 的 `copy`**：两份 README 沿用旧仓库的 `README_zh_CN.md` 命名（清单的 `readme.zh_CN` 按这套文件名映射），kit 的 `collectStaticAssets` 只认 `README.md` / `README.<locale>.md`，所以多语言 README 必须写 `copy: ["README_*.md"]`。旧仓库没有 `package.zip`（`dist/` 是更早一次 production 构建，HEAD 已比 `v0.1.0` tag 多两个提交）→ 仍按 9.1 ① 用旧工具链（webpack 5.101.2 + esbuild-loader）重建基线，复制到仓库外后再动手。`icon.png` / `preview.png` / `i18n/*.json` 与基线 **SHA-256 相同**；`plugin.json`、两份 README、`LICENSE` 只差 CRLF→LF 与 oxfmt 空白（`git diff --no-index --ignore-all-space` 无输出）。`index.js` 从 9901 降到 8597 字节（-13%），acorn 取字符串字面量（含模板字符串）后 43→39，差异只有 webpack 运行时的 `use strict` / `u` / `Module` / `__esModule`；`src/index.scss` 是 0 字节，按 9.1 ⑪ 不再产出 `index.css`，`verify` 因此只报这一个缺失文件并退出 1（预期偏差）
+- **`code-languages` 迁入，需要 `build.config.ts` 的 `copy`**：两份 README 沿用旧仓库的 `README_zh_CN.md` 命名（清单的 `readme.zh_CN` 按这套文件名映射），kit 的 `collectStaticAssets` 只认 `README.md` / `README.<locale>.md`，所以多语言 README 必须写 `copy: ["README_*.md"]`。旧仓库没有 `package.zip`（`dist/` 是更早一次 production 构建，HEAD 已比 `v0.1.0` tag 多两个提交）→ 仍按 9.1 ① 用旧工具链（webpack 5.101.2 + esbuild-loader）重建基线，复制到仓库外后再动手。`icon.png` / `preview.png` / `i18n/*.json` 与基线 **SHA-256 相同**；`plugin.json`、两份 README、`LICENSE` 只差 CRLF→LF 与 oxfmt 空白（`git diff --no-index --ignore-all-space` 无输出）。`index.js` 从 9901 降到 8597 字节（-13%），acorn 取字符串字面量（含模板字符串）后 43→39，差异只有 webpack 运行时的 `use strict` / `u` / `Module` / `__esModule`；`src/index.scss` 是 0 字节，按 9.1 ⑪ 不再产出 `index.css`，对拍因此只表现这一个文件缺失（预期偏差）
 - **`code-languages` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan`（`Plugin` 带 `loadData` / `saveData` / `removeData` 与 `EventBus`；`Setting` 的 `createActionElement` 立即构造，`open()` 按思源的结构把每一项包进 `.b3-label`）+ jsdom 下分别加载新旧 `index.js`，43 条记录——`onload` 的两次 `loadData`、`Setting` 构造与 6 个设置项（标题 / 描述 / `direction` / 元素属性）、`openSetting` 的 `scrollbarGutter` 与 `frequency` 模式下的项可见性、两个「填入全部内置语言」按钮（`Constants.ALIAS_CODE_LANGUAGES` + `window.hljs.listLanguages()`）、切到 `custom` 模式后的可见性翻转、`code-language-update` 的排序与按前缀筛选（自定义 / 频率两种模式）、6 次 `code-language-change` 的统计与 `frequencyOrder` 冒泡、改 3 个 textarea / 2 个 number input 后 `confirmCallback` 的落盘载荷、`destroyCallback` 的还原、`onunload` 的两次 `off` 与 `uninstall` 的两次 `removeData`——**全部相同**。只有两处需要归一化：webpack 把小写类名压成单字母（`constructor.name`）、把箭头函数属性名抹成 `anonymous`（vite 保留 `languageUpdate` / `languageChange`）
 - **`code-languages` 只改类型层**：补 4 个方法的 `override`（`onload` / `onunload` / `uninstall` / `openSetting`）；1.2.9 把 `Plugin.i18n` 收紧成 `Record<string, JSONValue>`，在派生类里 `declare i18n: Record<string, string>` 收窄；`IProtyle` 改成 `type IProtyle`（`verbatimModuleSyntax`）；`src/types.d.ts` 的 `Setting.dialog` 扩展保留（1.2.9 仍未声明，运行时由 `Setting.open()` 创建）；`*.scss` 的模块声明按仓库惯例拆到独立的 `src/declarations.d.ts`（通配符环境模块声明不能和 `import` 同文件）。`Constants.ALIAS_CODE_LANGUAGES` 在 1.2.9 里**是有类型的**（`types/constants.ts`，不在 `siyuan.d.ts` 里，容易误判成缺失），不需要 compat 垫片。旧仓库没有单测，本包也未新增
 - **`code-languages` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`（commit `f14a47c`，未 push；原仓库本来就没有 `.github/`），`.gitignore`、`src/`、`webpack.config.js`、`eslint.config.mjs`、`tsconfig.json`、`package.json`、`pnpm-lock.yaml`、`plugin.json`、`LICENSE`、两份 README、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
@@ -488,12 +477,12 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **`code-recognition` 的单测与行为对拍**：3 个 `node --test` + 预编译 `.test-dist` 的用例迁到 vitest 直跑 TS（11 条，含 wasm 实测 4 种语言）；桩 `siyuan` + jsdom 下加载新旧 `index.js`，39 条记录——`onload` 的 7 个事件订阅 / 命令 / 默认不添加顶栏与面包屑、两次 `Setting.confirmCallback`（全开 → `addTopBar` + `addBreadcrumbButton` + `saveData`；全关 → 两个 `remove*`）、`destroyCallback` 还原界面值、`click-blockicon` / `click-editortitleicon` 的菜单项 id/icon/label、`protyle.disabled` 时 `disabled: true`、`onLayoutReady` 的 `getActiveEditor`、`onunload` 的 7 次解绑与移除——**逐字节相同**。只改类型层：3 个生命周期方法的 `override`
 - **`code-recognition` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`、`src/`、`tests/`、`docs/`、`scripts/`、`wasm/`、`wasm-detector/`、`webpack.config.js`、`eslint.config.mjs`、`dprint.json`、`tsconfig.json`、`tsconfig.test.json`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`.gitignore`、`.zed/`、`plugin.json`、`LICENSE`、两份 README、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
 
-- **`inline-elements` 迁入，`widget` preset 第一次实跑**：挂件产物是「一个自包含的 HTML」，按约定入口放在包根，旧仓库的 `src/index.html` 因此挪到 `widgets/inline-elements/index.html`（`<script src>` 改成 `./src/index.ts`），旧的 `scripts/build-package.js` 由 kit 的打 zip 取代。旧 `package.zip` 是 7/5 的、HEAD 是 9/24，按 9.1 ① 用旧工具链（vite 8.1.3 + vite-plugin-singlefile）重建基线（zip 48177B、`index.html` 16869B）再对拍，`verify` 报「与基线一致」。产物 `index.html` 从 16869 到 16880 字节（+0.07%），22 条 CSS 规则与 `<script>` 外的 DOM 完全一致，acorn 取 Literal + TemplateElement 后 280→280 且**集合无差异**；`icon.png` / `preview.png` 与基线 **SHA-256 相同**，`widget.json`、两份 README 只差 CRLF→LF 与 oxfmt 空白（`README.zh-CN.md` 仅少一个末尾空行）
+- **`inline-elements` 迁入，`widget` preset 第一次实跑**：挂件产物是「一个自包含的 HTML」，按约定入口放在包根，旧仓库的 `src/index.html` 因此挪到 `widgets/inline-elements/index.html`（`<script src>` 改成 `./src/index.ts`），旧的 `scripts/build-package.js` 由 kit 的打 zip 取代。旧 `package.zip` 是 7/5 的、HEAD 是 9/24，按 9.1 ① 用旧工具链（vite 8.1.3 + vite-plugin-singlefile）重建基线（zip 48177B、`index.html` 16869B）再对拍，清单与基线一致。产物 `index.html` 从 16869 到 16880 字节（+0.07%），22 条 CSS 规则与 `<script>` 外的 DOM 完全一致，acorn 取 Literal + TemplateElement 后 280→280 且**集合无差异**；`icon.png` / `preview.png` 与基线 **SHA-256 相同**，`widget.json`、两份 README 只差 CRLF→LF 与 oxfmt 空白（`README.zh-CN.md` 仅少一个末尾空行）
 - **`inline-elements` 给 kit 补了 `dropConsole`**：旧仓库的生产构建打开了 `rolldownOptions.output.minify.compress.dropConsole`——源码里保留 7 处 `console.warn` / `console.error` 用于定位问题，发出去的产物一句都不打印。只写 `build.minify: true` 会把这 7 处与 9 条专属字面量留在产物里，所以 `BuildOptions` 新增 `dropConsole`（挂件 preset 把它转成 `output.minify = { compress: { dropConsole: true } }`，只在非 dev 生效），本包用 `build.config.ts` 打开
 - **`inline-elements` 的运行时行为在 jsdom 里对拍过**：桩掉 `window.frameElement` / `window.parent.siyuan` / `fetch` / `CSS.escape` / `requestIdleCallback`，分别加载新旧产物，6 个场景的记录**逐字节相同**——无 `frameElement` 的「无法获取必要元素」错误提示；编辑器正常模式（14 个类型下拉的 value 与文案、嵌入块下拉、`refreshList.title`、主题 `<link>` 重写、`#siyuanStyle` 复制、列表 HTML、点刷新、切类型后 `setBlockAttrs` 的载荷、点列表项走 `parent.open("siyuan://blocks/...")`）；导出预览（挂件块被替换成 `<ul>`）；导出图片；导出 PDF（`inline-elements-export-list` 与 `*` 锚点）。只归一化了渲染时随机生成的块 ID 后缀
 - **`inline-elements` 只动了类型层与 lint 等价重写**：新增 `src/declarations.d.ts` 声明 `*.scss`（通配符环境模块不能与 import 同文件，同 `code-languages`）；`src/types.d.ts` 去掉多余的 `export {}`（文件本身已有 `import type`，已经是模块）；`new Array<string>(n)` 改成 `string[]`、`!!x` 去掉取反、注释里的全角空格换成普通空格，都是 oxlint error 级规则的等价重写。旧仓库没有单测，本包也未新增
 - **`inline-elements` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`（commit `3b5d068`，未 push），`.github/`、`src/`、`scripts/`、`vite.config.ts` / `vite.config.d.ts`、`tsconfig.json` / `tsconfig.node.json`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`.gitignore`、`DEVELOPMENT.md`、`widget.json`、`LICENSE`、两份 README、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同时是测试空间里在用的挂件，现在在思源里失效属预期，恢复走集市 release 重装
-- **`Whisper` 迁入，`theme` preset 第一次实跑**：主题产物就是一份 CSS，不为它启动 vite（理由见第 3 节）。旧仓库的 `package.zip` 是 10/28 的、HEAD 是 11/8，按 9.1 ① 用旧工具链（`pnpm install --frozen-lockfile` + `pnpm build`，sass 1.102）重建基线再对拍，`verify` 报「与基线一致」。`icon.png` / `preview.png` / 四份 README 与基线 **SHA-256 相同**；`theme.json` 只被 oxfmt 补了两处对象内的空格；`theme.css` 75927→75939 字节，407 条规则一条不少、8 个内联 SVG 图标全在，归一化后**逐字符相同**——差异只有 sass 1.102 → 1.108 对小于 1 的小数补前导零（`.5`→`0.5`，出现在 `rgba()` 与 `cubic-bezier()` 里）
+- **`Whisper` 迁入，`theme` preset 第一次实跑**：主题产物就是一份 CSS，不为它启动 vite（理由见第 3 节）。旧仓库的 `package.zip` 是 10/28 的、HEAD 是 11/8，按 9.1 ① 用旧工具链（`pnpm install --frozen-lockfile` + `pnpm build`，sass 1.102）重建基线再对拍，清单与基线一致。`icon.png` / `preview.png` / 四份 README 与基线 **SHA-256 相同**；`theme.json` 只被 oxfmt 补了两处对象内的空格；`theme.css` 75927→75939 字节，407 条规则一条不少、8 个内联 SVG 图标全在，归一化后**逐字符相同**——差异只有 sass 1.102 → 1.108 对小于 1 的小数补前导零（`.5`→`0.5`，出现在 `rgba()` 与 `cubic-bezier()` 里）
 - **`Whisper` 的图标内联搬进了 kit**：旧仓库由 `builder/compile.mjs` 在编译后把 8 个 `url(../../../icons/...)` 换成 data URI，因为 `icons/` 只存在于源码、不进产物。这条规则属于「主题 preset 的产物契约」而不是某个主题的私事，现落在 `kit/src/sass.ts` 的 `runSassStep`：`themeSteps` 检测到包根有 `icons/` 就传 `iconDir`，按「若干层 `../` + 目录名」匹配后替换；找不到文件时**保留原 `url()`**，让它在浏览器里显式 404 而不是静默消失。dev 模式的 `theme.css.map` 与末尾 `sourceMappingURL` 也一并搬进来（旧仓库 `compile.mjs` 的行为）
 - **`Whisper` 只改了一处文件名**：`styles/theme.scss` → `styles/index.scss`（preset 的入口约定，与 `plugin` 的 `src/index.ts` 对齐），内容里的 15 条 `@use` 一行未动。旧的 `builder/`（`build.mjs` / `compile.mjs` / `config.mjs` / `link.mjs` / `zip-package.mjs` / `eslint.config.mjs`）全部作废：watch 由 `siyuan-kit dev` 负责，链接/镜像由 workspace 同步负责，eslint 由仓库根的 oxlint 取代
 - **`Whisper` 的 `dev` 只跑一遍 sass，不监听源码变化**：sass 没有 watch 钩子，同步靠 cli 在非 vite step 后补的那一次。要边改边看，本地另开 `sass --watch themes/Whisper/styles/index.scss:dist/Whisper/theme.css` 即可

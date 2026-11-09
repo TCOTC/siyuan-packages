@@ -10,5 +10,3 @@ export type { BuildStep, Plan } from "./plan.ts";
 export { copyAssets, copyExtras, zipDir } from "./pack.ts";
 export { CONFIG_FILE, loadWorkspaceConfig, mirrorDirectory, syncToWorkspace, workspaceTarget } from "./workspace.ts";
 export type { WorkspaceConfig } from "./workspace.ts";
-
-export { diffZip, formatDiff, readZip } from "./verify.ts";

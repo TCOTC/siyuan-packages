@@ -9,7 +9,6 @@
     "test": "vitest run"
   },
   "devDependencies": {
-    "@babel/runtime": "catalog:",
     "@codemirror/autocomplete": "catalog:",
     "@codemirror/commands": "catalog:",
     "@codemirror/lang-css": "catalog:",

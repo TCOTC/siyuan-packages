@@ -18,26 +18,23 @@ catalog:
 
   # 只在编译期用到、不随包发布的依赖
   # electron：install-package 仅用 `typeof import("electron")` 的两个成员（ipcRenderer / shell）做类型
-  electron: "40.8.3"
+  electron: "45.2.3"
   # install-package 用来给 GitHub API 响应补类型
-  "@octokit/openapi-types": "^27.0.0"
+  "@octokit/openapi-types": "^29.0.1"
 
   # snippets 的编辑器与格式化运行时（会被打包进 index.js）。
   # 这里刻意写精确版本而不是 ^：它们直接进产物，版本漂移会让「与旧产物对拍」失去意义。
-  "@codemirror/autocomplete": "6.20.3"
-  "@codemirror/commands": "6.11.0"
+  "@codemirror/autocomplete": "6.20.4"
+  "@codemirror/commands": "6.11.1"
   "@codemirror/lang-css": "6.3.1"
   "@codemirror/lang-javascript": "6.2.5"
-  "@codemirror/language": "6.12.4"
+  "@codemirror/language": "6.13.1"
   "@codemirror/search": "6.7.2"
-  "@codemirror/state": "6.7.2"
-  "@codemirror/view": "6.43.11"
-  "@uiw/codemirror-theme-vscode": "4.25.11"
-  # @uiw/codemirror-theme-vscode 4.25.11 的 ESM 产物 import 了 @babel/runtime/helpers/extends，
-  # 却没有把它写进自己的 dependencies（幽灵依赖）；旧仓库靠顶层声明兜住，这里也一样。
-  "@babel/runtime": "8.0.0"
-  acorn: "8.18.0"
-  prettier: "3.9.6"
+  "@codemirror/state": "6.7.6"
+  "@codemirror/view": "6.43.15"
+  "@uiw/codemirror-theme-vscode": "4.25.12"
+  acorn: "8.19.0"
+  prettier: "3.9.10"
 
   # 构建工具链
   vite: "^8.3.6"
@@ -45,8 +42,6 @@ catalog:
   sass: "^1.108.1"
   archiver: "^8.0.0"
   "@types/archiver": "^8.0.0"
-  # 只用来读 zip 做产物对拍（verify），不参与构建
-  fflate: "^0.8.3"
 
   # 代码质量
   typescript: "^6.0.3"
@@ -60,27 +55,6 @@ catalog:
   vitest: "^5.1.0"
   # 插件里有直接操作 DOM 的纯函数，用 jsdom 提供 document
   jsdom: "^31.0.0"
-
-# snippets 打包进 index.js 的 CodeMirror / lezer 版本固定成旧仓库 lockfile 的解析结果。
-# 只写 catalog 不够：pnpm 会为同一依赖的嵌套范围再解析一份更新的版本，
-# tsc 会把两份 @codemirror/state 的私有字段当成不同类型而直接报错，
-# 产物里也会出现两套 parser 表。这些包目前只有 snippets 在用。
-overrides:
-  "@codemirror/autocomplete": "6.20.3"
-  "@codemirror/commands": "6.11.0"
-  "@codemirror/lang-css": "6.3.1"
-  "@codemirror/lang-javascript": "6.2.5"
-  "@codemirror/language": "6.12.4"
-  "@codemirror/lint": "6.9.7"
-  "@codemirror/search": "6.7.2"
-  "@codemirror/state": "6.7.2"
-  "@codemirror/view": "6.43.11"
-  "@lezer/common": "1.5.2"
-  "@lezer/css": "1.3.6"
-  "@lezer/highlight": "1.2.1"
-  "@lezer/javascript": "1.5.1"
-  "@lezer/lr": "1.4.10"
-  "@uiw/codemirror-themes": "4.25.11"
 
 allowBuilds:
   # sass 的可选原生依赖，用于 --watch

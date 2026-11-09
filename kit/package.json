@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "archiver": "catalog:",
-    "fflate": "catalog:",
     "sass": "catalog:",
     "vite": "catalog:",
     "vite-plugin-singlefile": "catalog:"
