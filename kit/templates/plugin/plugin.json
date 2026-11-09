@@ -1,0 +1,22 @@
+{
+  "name": "{{name}}",
+  "author": "{{author}}",
+  "url": "{{url}}",
+  "version": "1.0.0",
+  "minAppVersion": "3.8.3",
+  "backends": ["windows", "linux", "darwin", "ios", "android", "harmony", "docker", "all"],
+  "frontends": ["desktop", "mobile", "browser-desktop", "browser-mobile", "desktop-window", "all"],
+  "disabledInPublish": false,
+  "displayName": {
+    "default": "{{displayName}}",
+    "zh-CN": "{{displayNameZhCN}}"
+  },
+  "description": {
+    "default": "{{description}}",
+    "zh-CN": "{{descriptionZhCN}}"
+  },
+  "readme": {
+    "default": "README.md",
+    "zh-CN": "README.zh-CN.md"
+  }
+}

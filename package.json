@@ -9,6 +9,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
+    "create:plugin": "siyuan-kit create",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
@@ -18,6 +19,7 @@
     "verify": "pnpm -r --if-present verify"
   },
   "devDependencies": {
+    "@jeffrey-chen/siyuan-kit": "workspace:*",
     "@types/node": "catalog:",
     "oxfmt": "catalog:",
     "oxlint": "catalog:",

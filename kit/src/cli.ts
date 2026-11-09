@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
+import { createPlugin, parseCreateArgs } from "./create.ts";
 import type { BuildOptions } from "./define.ts";
 import { cleanOutput, copyAssets, copyExtras, zipDir } from "./pack.ts";
 import { plan, type BuildStep } from "./plan.ts";
@@ -17,6 +18,9 @@ const USAGE = `siyuan-kit — 思源集市包统一构建
   siyuan-kit dev                  监听构建，每次产物落盘后同步进思源工作空间
   siyuan-kit verify --against <基线 zip> [--current <新 zip>]
                                   与基线产物对拍（迁移时用）
+  siyuan-kit create <name> [--display-name <显示名>] [--zh-name <中文显示名>]
+        [--description <描述>] [--zh-description <中文描述>] [--author <作者>] [--url <仓库地址>]
+                                  基于 templates/plugin 生成 plugins/<name>（随后执行 pnpm install）
 
 产物位置（不写进包目录）：
   build: <仓库>/dist/<name>/       解包内容（清单、README、图标、i18n、代码）
@@ -48,6 +52,16 @@ async function main(): Promise<void> {
   }
   if (command === "verify") {
     await runVerify(root, rest);
+    return;
+  }
+  if (command === "create") {
+    const values = parseCreateArgs(rest);
+    const target = createPlugin(findRepoRoot(root), values);
+    console.log(`已创建 ${target}`);
+    console.log("");
+    console.log("下一步：");
+    console.log("  pnpm install                  # 把新包接进 workspace");
+    console.log(`  pnpm --filter ${values.name} dev`);
     return;
   }
   throw new Error(`未知命令：${command}\n\n${USAGE}`);

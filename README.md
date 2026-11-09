@@ -86,14 +86,17 @@ siyuan-packages/
 │   ├── token-vault/      # siyuan-token-vault：加密 Token 存储
 │   └── vconsole/         # Tencent vConsole 的官方预编译产物（vendored）
 ├── kit/                  # 构建内核 @jeffrey-chen/siyuan-kit
-│   └── src/
-│       ├── define.ts     # 公开契约：BuildOptions / PassOptions
-│       ├── resolve.ts    # 约定推断：包类型、清单、静态资源
-│       ├── plan.ts       # 按包类型生成 BuildStep[]
-│       ├── presets/      # plugin / widget / theme
-│       ├── pack.ts       # 复制静态资源、打 zip
-│       ├── verify.ts     # 与基线产物对拍
-│       └── cli.ts        # build / dev / verify
+│   ├── src/
+│   │   ├── define.ts     # 公开契约：BuildOptions / PassOptions
+│   │   ├── resolve.ts    # 约定推断：包类型、清单、静态资源
+│   │   ├── plan.ts       # 按包类型生成 BuildStep[]
+│   │   ├── presets/      # plugin / widget / theme
+│   │   ├── pack.ts       # 复制静态资源、打 zip
+│   │   ├── verify.ts     # 与基线产物对拍
+│   │   ├── create.ts     # 基于模板生成新包
+│   │   └── cli.ts        # build / dev / verify / create
+│   └── templates/        # 新建包的骨架（不在 workspace 里，不参与构建）
+│       └── plugin/       # pnpm create:plugin <name> 复制这一份
 ├── pnpm-workspace.yaml   # catalog：依赖版本唯一真相源
 ├── tsconfig.base.json
 ├── .oxfmtrc.json         # 格式化规则（oxfmt）
@@ -123,6 +126,18 @@ plugins/move-doc/
 ```
 
 目录名同时也是发布时目标仓库的默认名（`TCOTC/<name>`）。
+
+新建插件不用手抄这套结构：
+
+```bash
+pnpm create:plugin my-plugin \
+  --display-name "My Plugin" --zh-name "我的插件" \
+  --description "What it does" --zh-description "它做什么"
+```
+
+它把 `kit/templates/plugin/` 复制成 `plugins/my-plugin/` 并替换 `{{name}}` / `{{displayName}}` / `{{author}}` / `{{year}}` 等占位符（清单、两份 README、`LICENSE` 与 `package.json` 都会带上新名字）。缺省的显示名由包名转成 Title Case，作者默认 `Jeffrey Chen`，`url` 默认 `https://github.com/TCOTC/<name>`。
+
+模板与生成器一起放在 `kit/` 下，所以根目录不新增目录；模板不是 workspace 成员，也不会被 `kit/tsconfig.json` 扫到，`pnpm -r build` / `typecheck` / `test` 都不会碰它。生成后执行一次 `pnpm install` 把新包接进 workspace，再 `pnpm --filter <name> dev` 即可。占位符清单见 `kit/templates/README.md`。
 
 ---
 

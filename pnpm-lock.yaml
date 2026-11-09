@@ -94,6 +94,9 @@ importers:
 
   .:
     devDependencies:
+      '@jeffrey-chen/siyuan-kit':
+        specifier: workspace:*
+        version: link:kit
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2
