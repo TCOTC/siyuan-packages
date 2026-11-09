@@ -1,0 +1,12 @@
+{
+  "name": "Whisper",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "siyuan-kit build",
+    "dev": "siyuan-kit dev"
+  },
+  "devDependencies": {
+    "@jeffrey-chen/siyuan-kit": "workspace:*"
+  }
+}

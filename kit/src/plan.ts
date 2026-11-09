@@ -5,6 +5,7 @@ import { pluginSteps } from "./presets/plugin.ts";
 import { themeSteps } from "./presets/theme.ts";
 import { widgetSteps } from "./presets/widget.ts";
 import { findRepoRoot, type ResolvedPackage } from "./resolve.ts";
+import type { SassStep } from "./sass.ts";
 
 /**
  * 一次构建要执行的最小单元。
@@ -14,7 +15,7 @@ import { findRepoRoot, type ResolvedPackage } from "./resolve.ts";
  *   - 纯 CSS 形态（主题）直接交给 sass 编译，不必为了让工具统一而套一层 vite
  * 两种 runner 产出的东西都落到同一个地方（dist/<name>/），后续的复制与打包完全一致。
  */
-export type BuildStep = { runner: "vite"; label: string; config: InlineConfig } | { runner: "sass"; label: string; input: string; output: string; style: "expanded" | "compressed" };
+export type BuildStep = { runner: "vite"; label: string; config: InlineConfig } | SassStep;
 
 export interface Plan {
   pkg: ResolvedPackage;

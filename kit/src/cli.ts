@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
 import { createPlugin, parseCreateArgs } from "./create.ts";
@@ -8,6 +8,7 @@ import type { BuildOptions } from "./define.ts";
 import { cleanOutput, copyAssets, copyExtras, zipDir } from "./pack.ts";
 import { plan, type BuildStep } from "./plan.ts";
 import { findRepoRoot, resolvePackage } from "./resolve.ts";
+import { runSassStep } from "./sass.ts";
 import { diffZip, formatDiff, readZip } from "./verify.ts";
 import { CONFIG_FILE, loadWorkspaceConfig, syncToWorkspace } from "./workspace.ts";
 
@@ -127,13 +128,7 @@ async function runStep(step: BuildStep): Promise<void> {
     return;
   }
 
-  const { compileAsync } = await import("sass");
-  const result = await compileAsync(step.input, {
-    style: step.style,
-    loadPaths: [dirname(step.input)],
-  });
-  mkdirSync(dirname(step.output), { recursive: true });
-  writeFileSync(step.output, result.css);
+  await runSassStep(step);
 }
 
 /**

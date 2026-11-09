@@ -109,9 +109,31 @@ export function resolvePackage(root: string, kindOverride?: PackageKind): Resolv
     throw new Error(`${manifestFile} 的 version 不能带 v 前缀（集市会拒绝）：${version}`);
   }
 
+  // 目录名必须与清单 name 逐字符相同（含大小写）。
+  //
+  // name 决定三件事：产物目录 dist/<name>、思源安装目录 data/<类型>/<name>、
+  // 以及归档旧仓库 README 里 `.../tree/main/<类型>/<name>` 那条链接。
+  // 目录名一旦各自漂移（Whisper-Plus 曾写成 whisper-plus、Whisper 曾写成 whisper），
+  // 同一个包就在四个地方有不同写法，看目录的人无从判断哪个是真实身份。
+  // 这里拦成硬错误，而不是警告：改名成本在这次构建里就该付掉。
+  const dirName = basename(root);
+  if (dirName !== name) {
+    throw new Error(`包目录名必须与 ${manifestFile} 的 name 一致：目录是 ${dirName}，清单是 ${name}。\n请执行 git mv ${dirName} ${name}（同时改包内 package.json 的 name），而不是让构建去猜。`);
+  }
+
+  // package.json 的 name 也钉成同一个字符串：它是 pnpm --filter 的唯一入口，
+  // 与目录名不同就会变成「目录叫 Whisper-Plus、--filter 要写 whisper-plus」这种双写记忆。
+  const packageJsonPath = join(root, "package.json");
+  if (existsSync(packageJsonPath)) {
+    const npmName = (JSON.parse(readFileSync(packageJsonPath, "utf8")) as { name?: unknown }).name;
+    if (npmName !== name) {
+      throw new Error(`${packageJsonPath} 的 name 必须与 ${manifestFile} 的 name 一致：package.json 是 ${String(npmName)}，清单是 ${name}。`);
+    }
+  }
+
   return {
     root,
-    dirName: basename(root),
+    dirName,
     kind,
     name,
     version,

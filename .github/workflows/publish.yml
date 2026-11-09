@@ -69,7 +69,11 @@ jobs:
           # 集市要求清单里的 version 不带 v 前缀且单调递增，这里先拦住前缀问题
           case "$VERSION" in v*|V*) echo "::error::清单 version 不能带 v 前缀: $VERSION"; exit 1;; esac
 
+          # 产物目录与 zip 用的是清单里的 name，不一定等于包目录名（主题 Whisper 就是如此）
+          NAME=$(node -p "require('./$MANIFEST').name")
+
           echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: 构建
@@ -78,8 +82,8 @@ jobs:
       - name: 产物与清单一致性检查
         run: |
           set -euo pipefail
-          PKG="${{ inputs.package }}"
-          ZIP="dist/$PKG.zip"
+          NAME="${{ steps.meta.outputs.name }}"
+          ZIP="dist/$NAME.zip"
           test -f "$ZIP" || { echo "::error::没有产出 $ZIP"; exit 1; }
 
           # 集市要求清单在 zip 根目录（不能多一层包装目录），且上传的资产名必须恰好是 package.zip
@@ -101,10 +105,10 @@ jobs:
           VERSION="${{ steps.meta.outputs.version }}"
           TAG="v$VERSION"
           TARGET="${{ inputs.target }}"
-          PKG="${{ inputs.package }}"
+          NAME="${{ steps.meta.outputs.name }}"
 
           # 本地叫 <name>.zip，但集市按资产名找 package.zip，所以上传前改名
-          cp "dist/$PKG.zip" package.zip
+          cp "dist/$NAME.zip" package.zip
 
           # 幂等：已存在就只补传资产
           if gh release view "$TAG" --repo "$TARGET" > /dev/null 2>&1; then

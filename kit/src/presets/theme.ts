@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { BuildOptions } from "../define.ts";
 import type { BuildStep } from "../plan.ts";
@@ -14,9 +15,12 @@ import type { ResolvedPackage } from "../resolve.ts";
  * 产物里多出无意义文件。统一的是契约和产物，不是打包器。
  */
 export function themeSteps(pkg: ResolvedPackage, options: BuildOptions, dev: boolean, outDir: string): BuildStep[] {
-  // Whisper 现在的源码入口在 styles/ 下（builder/compile.mjs 负责编译）。
-  // TODO(P3)：确认实际入口文件名与是否需要多个 scss 入口，再固化约定。
+  // 主题只有一个入口：styles/index.scss 编译成最终产物 theme.css。
+  // 需要第二个入口时再让 build.config.ts 提供 entry，不做「自动找任意 scss」这种猜测。
   const input = resolve(pkg.root, options.entry ?? "styles/index.scss");
+
+  // icons/ 不进产物：样式以相对 url() 引用它们，编译后由 runner 内联成 data URI。
+  const icons = join(pkg.root, "icons");
 
   return [
     {
@@ -25,6 +29,8 @@ export function themeSteps(pkg: ResolvedPackage, options: BuildOptions, dev: boo
       input,
       output: join(outDir, "theme.css"),
       style: dev ? "expanded" : "compressed",
+      sourceMap: dev,
+      ...(existsSync(icons) ? { iconDir: icons } : {}),
     },
   ];
 }
