@@ -95,7 +95,8 @@ function checkPackage(root: string, issues: CheckIssue[]): void {
   checkTests(root, push);
   checkTsconfig(root, push);
   checkBuildConfig(pkg, push);
-  checkReadmeNames(pkg, push);
+  checkLocales(pkg, push);
+  checkI18nFileNames(pkg, push);
   checkForbiddenEntries(root, push);
   checkEntry(pkg, push);
 }
@@ -166,18 +167,64 @@ function checkBuildConfig(pkg: ResolvedPackage, push: (message: string) => void)
 }
 
 /**
- * 集市按清单里的 readme 字段读文件，kit 的约定只认 `README.md` / `README.<locale>.md`。
- * 下划线写法（`README_zh_CN.md`）会让 collectStaticAssets 静默漏掉，只能靠 copy 兜底——
- * 那是历史包袱，不允许再扩大到新包。
+ * 思源现在用 BCP 47 作为 locale 标识（`kernel/util/lang.go` 的 LangLegacyToBCP47）。
+ * 运行期 `util.Lang` 一定是 BCP 47 形式（`Conf.Lang` 在落盘前就被 `LangToBCP47` 归一），
+ * 清单的 displayName / description / readme、以及 i18n/ 目录的文件名都按它查表；
+ * 历史下划线写法只是回退链里的兼容分支，不该出现在新代码里。
  */
-function checkReadmeNames(pkg: ResolvedPackage, push: (message: string) => void): void {
+const BCP47_LOCALES = new Set(["zh-CN", "zh-TW", "en", "de", "fr", "es", "pt-BR", "it", "ja", "ko", "ru", "uk", "pl", "nl", "ar", "he", "hi", "id", "th", "tr", "sk", "sr"]);
+
+/** 清单里所有「key 是 locale」的对象字段。 */
+const LOCALE_FIELDS = ["displayName", "description", "readme", "title"] as const;
+
+/**
+ * 集市按清单里的 readme 字段读文件，而 kit 的 `collectStaticAssets` 按 `README.<locale>.md`
+ * 的约定复制。两边同时漂移就会静默漏文件，所以这里做两条互相印证的检查：
+ *   - locale key 必须是 BCP 47
+ *   - readme 声明的每个文件都必须真实存在（哪怕靠 copy 兜底，也不能指向不存在的名字）
+ */
+function checkLocales(pkg: ResolvedPackage, push: (message: string) => void): void {
+  for (const field of LOCALE_FIELDS) {
+    const map = pkg.manifest[field];
+    if (typeof map !== "object" || map === null) {
+      continue;
+    }
+    for (const locale of Object.keys(map as Record<string, unknown>)) {
+      if (locale === "default") {
+        continue;
+      }
+      if (!BCP47_LOCALES.has(locale)) {
+        push(`清单 ${field} 的 key ${locale} 不是 BCP 47 标识（应为 ${locale.replace(/_/g, "-")} 对应形式，如 zh-CN / zh-TW / en / ja）`);
+      }
+    }
+  }
+
   const readme = pkg.manifest["readme"];
   if (typeof readme !== "object" || readme === null) {
     return;
   }
   for (const [locale, file] of Object.entries(readme as Record<string, unknown>)) {
-    if (typeof file === "string" && file.startsWith("README_")) {
-      push(`清单 readme.${locale} 用了下划线命名 ${file}，应改成 README.<locale>.md 以走默认约定`);
+    if (typeof file !== "string") {
+      continue;
+    }
+    if (!existsSync(join(pkg.root, file))) {
+      push(`清单 readme.${locale} 指向不存在的 ${file}`);
+    }
+  }
+}
+
+/** i18n 目录里的文件名同样是 locale，思源按 `Conf.Lang` → 历史下划线 → en 的顺序查。 */
+function checkI18nFileNames(pkg: ResolvedPackage, push: (message: string) => void): void {
+  if (!pkg.hasI18n) {
+    return;
+  }
+  for (const file of readdirSync(join(pkg.root, "src", "i18n"))) {
+    const locale = /^(.+)\.json$/.exec(file)?.[1];
+    if (locale === undefined) {
+      continue;
+    }
+    if (!BCP47_LOCALES.has(locale)) {
+      push(`src/i18n/${file} 的文件名不是 BCP 47 标识（如 zh-CN / zh-TW / en / ja）`);
     }
   }
 }

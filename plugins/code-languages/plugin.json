@@ -9,15 +9,15 @@
   "disabledInPublish": true,
   "displayName": {
     "default": "Code Languages Manager",
-    "zh_CN": "代码语言管理器"
+    "zh-CN": "代码语言管理器"
   },
   "description": {
     "default": "Sorting, adding, and deleting language lists in code blocks",
-    "zh_CN": "代码块语言列表的排序、新增、删除"
+    "zh-CN": "代码块语言列表的排序、新增、删除"
   },
   "readme": {
     "default": "README.md",
-    "zh_CN": "README.zh-CN.md"
+    "zh-CN": "README.zh-CN.md"
   },
   "funding": {
     "custom": ["https://bento.me/jeffff"]

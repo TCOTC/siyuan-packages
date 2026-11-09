@@ -1,5 +1,5 @@
 import { Plugin, Dialog, exitSiYuan, getBackend } from "siyuan";
-import type zhCN from "./i18n/zh_CN.json";
+import type zhCN from "./i18n/zh-CN.json";
 import "./index.scss";
 
 export default class ExitConfirm extends Plugin {
