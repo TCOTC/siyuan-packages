@@ -2,8 +2,8 @@
 
 把散在 27 个目录、25 个 GitHub 仓库里的思源集市包收进一个源码仓库：**统一构建，各自发布**。
 
-> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package` 与 `plugins/snippets`，四个旧仓库均已归档（只剩 `README.md`）。**
-> 四者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写），单测 / 类型检查 / lint 均已接入仓库根的那一套。
+> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package`、`plugins/snippets` 与 `plugins/select-opened-doc`，五个旧仓库均已归档（只剩 `README.md`）。**
+> 五者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写；`select-opened-doc` 的 `index.js` 小 20%，静态资源逐字节相同，字符串字面量只差 webpack 运行时的三个），单测 / 类型检查 / lint 均已接入仓库根的那一套。
 > **共享库 `siyuan-token-vault` 已迁入 `libs/token-vault`**，`install-package` 与 `snippets` 改用 `workspace:*` 直接从源码导入，不再依赖 GitHub 上的 git 哈希。
 > 其余包仍按 README 末尾的迁移计划逐个搬。**每个包的迁移任务只有在旧仓库归档后才算完成**，规则见 9.1 ⑧。
 
@@ -402,6 +402,10 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **`snippets` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，原型成员（12 个）与 `onload` 期间的动作序列（35 条：`addCommand` 两个、`Setting.addItem` 28 项、`loadData`、`eventBus.on("ws-main")` 等）完全一致；`onload` 结束后再等 50ms 让异步分支跑完，`onunload` 同样无差异
 - **`snippets` 的单测迁到 vitest**：439 条用例全过（31 个文件），仍用 `tests/mocks/siyuan.ts` 作 `siyuan` 的 alias；`@vitest-environment jsdom` 文件头继续生效
 - **`snippets` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`、`src/`、`tests/`、`docs/`、`webpack.config.js`、`package.json`、`plugin.json`、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
+- **`select-opened-doc` 迁入，不需要 `build.config.ts`**：`plugin.json` / 三份 README / `LICENSE` / 图标 / 预览图 / `i18n/*.json` 与旧产物**逐字节相同**（SHA-256 全部一致）；`index.js` 从 5618 降到 4483 字节，用 acorn 解析后比对字符串字面量，差异只有 webpack 运行时带来的 `use strict` / `Module` / `__esModule` 三条，其余 52 条一一对应
+- **`select-opened-doc` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，覆盖桌面 / 移动端、有配置 / 无配置、无打开文档、无文件树模型五种场景；设置项的默认值、三个控件生成的 HTML、`saveData` 的载荷、`aria-label` 的改写与还原、左键 / 右键 / 轻触 / 长按四条交互（含长按后吞掉一次 `click`）、`collapseAll` 与 `selectItem` 的调用序列、`onunload` / `uninstall` 全部一致
+- **`select-opened-doc` 只改了两处类型层代码**：`declare i18n: Record<string, string>` 收窄（1.2.9 把 `Plugin.i18n` 声明成 `Record<string, JSONValue>`）与四个生命周期方法的 `override`，运行期代码原样保留
+- **`select-opened-doc` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`、`src/`、`eslint.config.mjs`、`webpack.config.js`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`plugin.json`、`LICENSE`、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
 
 **实测踩到的两个坑（已写进 preset 注释，迁移时不用再踩）**
 

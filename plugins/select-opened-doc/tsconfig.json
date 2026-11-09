@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // 原仓库没有开 strict，只要求 noImplicitAny。收紧类型属于独立重构，
+    // 不和「换构建系统」混在一起做；这里显式记录本包当前的严格度。
+    "strict": false,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": false,
+    // 依赖 strictNullChecks，本包当前关着
+    "exactOptionalPropertyTypes": false
+  },
+  "include": ["src/**/*.ts"]
+}
