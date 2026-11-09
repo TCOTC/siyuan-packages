@@ -2,8 +2,8 @@
 
 把散在 27 个目录、25 个 GitHub 仓库里的思源集市包收进一个源码仓库：**统一构建，各自发布**。
 
-> **当前状态：已迁入第一个试点包 `plugins/highlight-search`。**
-> 它由 `pnpm --filter highlight-search build` 构建，产物与旧仓库的 `package.zip` 对拍一致，单测 / 类型检查 / lint 均已接入仓库根的那一套。
+> **当前状态：已迁入 `plugins/highlight-search` 与 `plugins/move-doc`。**
+> 两者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异，已用桩模块证明运行时行为一致），单测 / 类型检查 / lint 均已接入仓库根的那一套。
 > 其余包仍按 README 末尾的迁移计划逐个搬。
 
 ---
@@ -309,7 +309,20 @@ new toolchain × new source   ← 差集 B = 你改的代码
 
 **⑦ 不要拿源码目录当 `dev` 的同步目标。** `siyuan-kit dev` 会镜像并**删除**产物里没有的文件，指向 checkout 会清掉 `src/` 和 `.git`。
 
-**⑧ 旧仓库归档后仍要保留。** 集市按**旧仓库**的 `releases/latest` 取包，所以旧仓库不是「搬走就删」：源码清空、只留几行 README 指向 `plugins/<name>/`，但继续承接后续 release。另外 `package.zip` 落后一个版本时，别继续用它做基线。
+**⑧ 旧仓库归档：仓库树与目录都只剩 `README.md`（`.git` 除外），不留任何源码与产物。**
+集市按**旧仓库**的 `releases/latest` 取包（`util.FetchLatestReleaseZip` 走 `/releases/latest`，`plugins.txt` 只有 `owner/repo` 一行），所以旧仓库**不能删**；但仓库里的东西它一个都不用，因此也不必留。
+`move-doc` 归档后 `git ls-tree -r HEAD` 与工作区目录两边都只有 `README.md`，每个包都按这个走：
+
+1. 删掉受控的源码与工具链：`src/`、`webpack.config.js`（或 `vite.config.ts` / `build.config.ts`）、`eslint.config.mjs`、`tsconfig.json`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`.gitignore`
+2. **删掉 `.github/workflows/release.yml`**：发版会在目标仓库建 tag，`on: push: tags` 的旧工作流会再构建一遍并覆盖 release 资产（第 8 节第 2 条）
+3. 删掉清单与静态资源：`plugin.json`（`theme.json` / `widget.json`）、`icon.png`、`preview.png`、`LICENSE`、多语言 README（`README.zh-CN.md` 等）。集市是**解压 zip 之后**从包里读清单 / README / 图标（`actions/stage/index.go`），仓库树里的副本不参与分发
+4. 删掉产物与本地垃圾：`dist/`、`node_modules/`、`i18n/`、`index.js`、`index.css`、`package.zip`、`.idea/`。这些通常本来就没被跟踪，`git rm` 删不到，要单独 `Remove-Item`
+5. README 按 ⑨ 的模板重写，提交（`.git` 必须留着：仓库本身和这条提交都在里面）
+
+两个坑：
+
+- **这个目录常常同时是正在运行的那个插件。** 迁移时正是从 `<工作空间>/data/plugins/<name>` 起手的，清完之后思源里这个插件立刻失效。要恢复只能卸载重装（走集市 release）或把 `dist/<name>/` 装进去。归档前先确认「源码仓库」和「在用插件」这两个角色能不能分开，分不开就先别清磁盘上的运行时文件。
+- **`package.zip` 同时也是 `verify` 的基线。** 删掉后想再对拍就从 GitHub release 重新下载；但它会停在归档时的版本，源码已经比它新，别当成基线用（见 ①）。
 
 **⑨ 归档后的 README 就按这个模板写**，把 `<...>` 换掉即可（`highlight-search` 已是这个形态）：
 
@@ -320,6 +333,18 @@ Source code: [TCOTC/siyuan-packages](https://github.com/TCOTC/siyuan-packages/tr
 ```
 
 三条要求：标题用清单里 `displayName.default` 的原文；链接必须指向 `plugins/<name>` 目录而不是仓库根；只讲「源码在哪、本仓库干什么」，不写迁移过程——过程记录留在本 README 的 9.1 节。
+
+**⑩ 已发布的 `siyuan` 类型包可能落后于 petal 仓库 main。**
+`move-doc` 用到的三处声明（`open-menu-doctree` 的 `effectiveSortMode` / `childrenSortMode`、`Title.getText()`、`Plugin.i18n` 是 `Record<string, string>`）在 npm 的 `siyuan@1.2.9` 里都没有，旧仓库是靠 `github:siyuan-note/petal#67d2f50` 拿到的。
+按第 7 节的依赖治理**不要**把 catalog 换回 git 短哈希：把缺口收进包内的 `src/compat.ts`（只补实际用到的成员，注明对应的 petal 提交），并在 i18n 取值处用一次转换。catalog 升级后再删掉该文件、重新 typecheck 即可确认。
+
+**⑪ 入口 import 了样式、但编译后没有任何规则时，vite 不产出 CSS 文件。**
+典型是整份 SCSS 都是注释（`move-doc` 就是这样），旧 webpack 会留下 1 字节的 `index.css`。
+**dev 与 build 这里刻意不同**：dev 补一个空 `index.css`（工作空间里看到的目录结构与真实插件一致，避免来回切换时文件忽有忽无）；build 不补——没有有效样式就不应有这个文件。
+这也意味着 `move-doc` 的 `verify --against` 会把 `index.css` 报成「缺少文件」并退出 1，**这是预期偏差**，不是迁移失败。新包不要再为了让产物「有文件」去加无用样式规则。
+
+**⑫ dev 与 build 的产物形态只有两处不同，不要合并。**
+dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；build：压缩 + 无 sourcemap（思源用 `eval` 加载，外链 `.map` 也解析不到）。其余（`base`、`external`、CSS 固定命名）两边一致，否则「本地能跑、装了包不行」。
 
 ---
 
@@ -336,6 +361,10 @@ Source code: [TCOTC/siyuan-packages](https://github.com/TCOTC/siyuan-packages/tr
 - **`verify` 可用**：自比对报「与基线一致」，非法 zip 明确报错并退出 1
 - **`highlight-search` 原样迁入，不需要 `build.config.ts`**：旧 vite 配置只做三件事——注入 `process.env.*`、把 `style.css` 改名成 `index.css`、复制清单 / README / 图标与 `src/i18n`，三者分别由 preset 的 `define`、`assetFileNames` 和 `collectStaticAssets` 覆盖。`verify --against <旧 package.zip>` 报「与基线一致」，`index.css` 体积完全相同，`index.js` 只差 0.3%（vite 8.1.5 → 8.3.6），产物仍以 `require("siyuan")` 开头、`module.exports` 结尾
 - **迁移没有顺手改代码**：包内 `tsconfig.json` 保留原来的 `strict: false`（收紧类型属于独立重构），只补了 `override` 修饰符与一个 `new Array(n)` 写法以满足仓库基线；单测 90 条全过
+- **`move-doc` 标准插件迁入，不需要 `build.config.ts`**：`plugin.json` / README / 图标 / `i18n/*.json` 与旧产物逐字节相同（清单只被 oxfmt 重排空白）；`index.js` 从 7115 降到 5635 字节，多出来的只有 webpack 运行时（`use strict` / `Module` / `__esModule`）三个字符串字面量，其余 76 个新旧一一对应。`index.css` 是 1 字节空样式，按设计**不再产出**（见 9.1 ⑪），所以 `verify` 会报这一个缺失文件并退出 1——预期偏差，其余清单一致
+- **dev 与 build 的形态差异已实测**：dev 产物 41504 字节、不压缩、末尾带 inline sourcemap，并额外补一个空 `index.css`；build 产物 5635 字节、压缩、无 sourcemap、无 `index.css`。`highlight-search`（样式有真实内容）两种模式都正常产出 `index.css`，说明这段补丁只作用于「编译结果为空」的情况
+- **`move-doc` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` 下分别加载新旧 `index.js`，`onload`（事件订阅、两个设置项与下拉选项）、三种 `open-menu-doctree`（自定义排序 / 非自定义排序 / 笔记本）、`moveDocBeside` 与 `moveDocAsChild` 的 API 调用序列、`onunload` / `uninstall` 全部一致；只有 `src/compat.ts` 新增的 `?? ""` 多出一个空字符串字面量
+- **归档后的旧仓库确实只剩 README**：`move-doc` 清完以后 `git ls-tree -r HEAD` 只输出 `README.md`，工作区目录也只有 `README.md` 与 `.git`，`git status` 干净；`plugin.json` / 图标 / `LICENSE` / 运行时文件都已从树与磁盘移除（顺序与坑见 9.1 ⑧）
 
 **实测踩到的两个坑（已写进 preset 注释，迁移时不用再踩）**
 

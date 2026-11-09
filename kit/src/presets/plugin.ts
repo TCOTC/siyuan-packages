@@ -1,5 +1,6 @@
-import { resolve } from "node:path";
-import type { InlineConfig } from "vite";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import type { InlineConfig, Plugin } from "vite";
 import type { BuildOptions, PassOptions } from "../define.ts";
 import type { BuildStep } from "../plan.ts";
 import type { ResolvedPackage } from "../resolve.ts";
@@ -34,6 +35,11 @@ function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, dev: boolean, out
     configFile: false,
     logLevel: "warn",
 
+    // 样式 import 存在、但编译后没有任何规则时（例如整份 SCSS 都是注释），
+    // vite 不会产出 CSS 资产。dev 下补个空的 index.css，让工作空间里看到的结构
+    // 与真实插件一致；build 不补——没有有效样式就不该产出这个文件。
+    plugins: dev ? [ensureStyleAsset(pkg, pass.entry, outDir)] : [],
+
     // 插件装进内核后位于 /plugins/<name>/ 下。静态资源、Worker、wasm 的相对路径
     // 都以它为基准；开发时从包根加载，结构一致，所以同一个 base 两边都能用。
     // image-squeeze 之前手写 publicPath 就是因为 webpack 的自动推断会多叠一层目录。
@@ -54,7 +60,9 @@ function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, dev: boolean, out
       // 而不是让 vite 清空（dev 模式下 outDir 是包根，绝不能清空）
       emptyOutDir: false,
       ...(dev ? { watch: {} } : {}),
-      // 思源通过 eval 方式加载插件，外链 .map 无法解析
+      // dev 与 build 的产物形态刻意不同，只有 build 的结果会进 package.zip：
+      //   dev   —— 不压缩、inline sourcemap（贴着源码调试，行号要对得上）
+      //   build —— 压缩、无 sourcemap（思源用 eval 加载，外链 .map 也解析不到）
       sourcemap: dev ? "inline" : false,
       minify: !dev,
       lib: {
@@ -81,6 +89,28 @@ function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, dev: boolean, out
           ...(pass.inlineDynamicImports ? { inlineDynamicImports: true } : {}),
         },
       },
+    },
+  };
+}
+
+/** dev 专用：入口引用了样式、但编译结果为空时，补一个空 index.css。 */
+function ensureStyleAsset(pkg: ResolvedPackage, entry: string, outDir: string): Plugin {
+  const source = readFileSync(resolve(pkg.root, entry), "utf8");
+  if (!/import\s+["'][^"']+\.(css|scss|sass|less|styl)["']/.test(source)) {
+    return { name: "siyuan-kit:style-absent" };
+  }
+
+  return {
+    name: "siyuan-kit:ensure-style-asset",
+    // 必须在产物写完后检查：vite 的 CSS 产物由内部的 post 插件在 generateBundle
+    // 阶段才 emit，提前检查看到的是「还没有 CSS」，自己 emit 会与它同名冲突。
+    closeBundle() {
+      const file = join(outDir, "index.css");
+      if (existsSync(file)) {
+        return;
+      }
+      // 与旧 webpack 的 dev 产物同形：1 字节换行，内容是空样式表
+      writeFileSync(file, "\n");
     },
   };
 }
