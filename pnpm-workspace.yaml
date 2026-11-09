@@ -2,6 +2,7 @@ packages:
   - "plugins/*"
   - "themes/*"
   - "widgets/*"
+  - "libs/*"
   - "kit"
 
 # 升级思源 API 或构建工具时只改这里，所有包统一使用。
@@ -14,8 +15,6 @@ catalog:
   electron: "40.8.3"
   # install-package 用来给 GitHub API 响应补类型
   "@octokit/openapi-types": "^27.0.0"
-  # 尚未发布到 npm 的内部共享包：沿用旧仓库的提交哈希，保证密文格式与旧版一致
-  siyuan-token-vault: "git+https://github.com/TCOTC/siyuan-token-vault.git#8b666168a554f3038b58f0aed9823dd74a5a185d"
 
   # snippets 的编辑器与格式化运行时（会被打包进 index.js）。
   # 这里刻意写精确版本而不是 ^：它们直接进产物，版本漂移会让「与旧产物对拍」失去意义。

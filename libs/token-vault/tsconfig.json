@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // 原仓库是 strict: true，没有开这两项。迁移不顺手收紧类型，
+    // 这也与两个消费方包（install-package / snippets）的设置一致：
+    // 本包源码会被它们的 tsc 程序一并检查。
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false
+  },
+  "include": ["src", "vitest.config.ts"]
+}

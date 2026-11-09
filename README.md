@@ -4,6 +4,7 @@
 
 > **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package` 与 `plugins/snippets`，四个旧仓库均已归档（只剩 `README.md`）。**
 > 四者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写），单测 / 类型检查 / lint 均已接入仓库根的那一套。
+> **共享库 `siyuan-token-vault` 已迁入 `libs/token-vault`**，`install-package` 与 `snippets` 改用 `workspace:*` 直接从源码导入，不再依赖 GitHub 上的 git 哈希。
 > 其余包仍按 README 末尾的迁移计划逐个搬。**每个包的迁移任务只有在旧仓库归档后才算完成**，规则见 9.1 ⑧。
 
 ---
@@ -81,6 +82,8 @@ siyuan-packages/
 ├── plugins/              # 23 个插件，一个包一个目录
 ├── themes/               # 主题
 ├── widgets/              # 挂件
+├── libs/                 # 不发布到集市的共享库（源码被消费方直接打包）
+│   └── token-vault/      # siyuan-token-vault：加密 Token 存储
 ├── kit/                  # 构建内核 @jeffrey-chen/siyuan-kit
 │   └── src/
 │       ├── define.ts     # 公开契约：BuildOptions / PassOptions
@@ -98,7 +101,9 @@ siyuan-packages/
 └── dist/                 # 所有产物（生成，gitignore）
 ```
 
-根目录的规则很简单：三个类型目录装「要发布的东西」，`kit/` 装「把前者变成 `package.zip` 的那个程序」。没有 `packages/`、也没有 `tooling/` 这类外层容器——每个都只有一个成员时，那层只增加路径长度，不承载任何语义。
+根目录的规则很简单：三个类型目录装「要发布的东西」，`libs/` 装「会被打进别人产物、但自己不发布的库」，`kit/` 装「把前者变成 `package.zip` 的那个程序」。没有 `packages/`、也没有 `tooling/` 这类外层容器——每个都只有一个成员时，那层只增加路径长度，不承载任何语义。
+
+`libs/*` 不是集市包：没有清单、没有 `build` 脚本、不进 `dist/`，`exports` 直接指向 `src/index.ts`（与 `kit` 一样不预编译）。消费方写 `workspace:*`，构建时由 vite 把它的 TS 源码一并编译进自己的 bundle，运行时没有额外加载。
 
 包放在哪个类型目录下就决定它的类型：`plugins/*` → `plugin`，`themes/*` → `theme`，`widgets/*` → `widget`。类型决定清单文件名（`plugin.json` / `theme.json` / `widget.json`），与集市规则一一对应。
 
@@ -208,6 +213,7 @@ kit 从同目录的清单读 `name` / `version` / `icon` / `preview` / `readme`�
 - **一份 lockfile**：`pnpm-lock.yaml` 只有根目录一份
 - **catalog 是唯一真相源**：升级思源 API 或构建工具只改 `pnpm-workspace.yaml` 里的 catalog，25 个包一起动
 - **`siyuan` 用已发布版本，不用 git 短哈希**：19 种 pin 收敛成 1 行，lockfile 可复现、可缓存
+- **仓内共享库用 `workspace:*`，不进 catalog、不用 git 依赖**：`libs/*` 的版本号只作记录，解析结果永远是 `link:../../libs/<name>`，不存在「两个消费方锁在不同提交」的可能
 - **关闭 `shamefully-hoist`**：原 Whisper 开了，其余 24 个没开。合仓后 `.npmrc` 只有根一份，开了等于把全部插件的依赖解析拍平，幽灵依赖会被静默解析成功。保持 pnpm 默认的隔离式 `node_modules`，让幽灵依赖在构建期就报错
 - **machine 相关的配置不进仓库**：registry、`store-dir` 留在用户级 `~/.npmrc`；CI 跑在 ubuntu-latest，仓库里硬编码 Windows 路径会直接把 CI 弄坏
 - **仓库里没有 `.npmrc`，这是刻意的**：pnpm 默认就是隔离式 `node_modules`，不需要任何配置。不要为了图快加 `shamefully-hoist=true`——那会把全部插件的依赖解析拍平，让幽灵依赖在构建期静默通过，最后表现为「本地能构建、换台机器解析不到」
@@ -389,7 +395,8 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **`install-package` 迁入，不需要 `build.config.ts`**：清单 / 两版 README / 图标 / 预览图 / `i18n/*.json` 与旧产物**逐字节相同**（跑过 oxfmt 之后只剩换行与空白差异，JSON 解析后完全相等）；`index.css` 的规则与声明集合一致，差异只有 minifier 的等价重写（`flex:1 1 auto`→`flex:auto`、`column-gap`+`row-gap`→`gap`、`rgba(0,0,0,0)`→`#0000`、`@media(max-width: 860px)`→`@media(width<=860px)`）；`index.js` 从 373909 降到 133775 字节——旧产物经过 `webpack-obfuscator`，**体积与词元都对拍不了**，只能靠行为对拍
 - **`install-package` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，导出的键、4640 个图标的集合、三个自定义页签、两个事件订阅、顶栏按钮与四个命令、`onload` / `onunload` 全部一致
 - **`install-package` 的单测保留 Node 自带 runner**：97 条用例都不需要 DOM，继续用 `node --test` + `tests/tsResolve.mjs` 的解析钩子（补无扩展名的相对导入），没有为了统一而改写成 vitest
-- **未发布到 npm 的共享依赖可以进 catalog**：`siyuan-token-vault` 以 `git+https://…#<提交>` 写进 catalog，包内照常写 `catalog:`，lockfile 固定到 codeload 的 tar.gz；`electron` 只用于取类型（`window.require("electron")`），必须在 `allowBuilds` 里显式写 `electron: false`，否则被跳过的构建脚本会让 `pnpm install` 直接退出 1
+- **内部共享库改为源码直连**：`siyuan-token-vault` 已从 `git+https://…#<提交>` 迁入 `libs/token-vault`，`exports` 指向 `src/index.ts`，消费方（`install-package` / `snippets`）写 `workspace:*`；`electron` 只用于取类型（`window.require("electron")`），必须在 `allowBuilds` 里显式写 `electron: false`，否则被跳过的构建脚本会让 `pnpm install` 直接退出 1
+- **`siyuan-token-vault` 迁入后产物是语义等价的**：两个插件的 `index.js` 分别从 1324566 / 133775 降到 1323035 / 132238 字节（约 -1.5 KB），字符串字面量集合的差异**只有两类**——旧产物里由 ESM 模块包装带来的 `__esModule`、7 个导出名（`CURRENT_VERSION` / `KDF_ITERATIONS` / `encryptToken` 等）与一个空串/`"."` 消失，以及 `` `${CURRENT_VERSION}.` `` 被常量折叠成 `"v1."`；密文格式 / 种子拼接顺序 / 文件名派生均未改动，25 条库单测与 439 + 97 条消费方单测全过
 - **`install-package` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`（含 `release.yml`）、`src/`、`tests/`、`tools/`、`webpack.config.js`、`package.json`、`plugin.json`、图标与产物全部移除，磁盘目录同样只有 `.git` 与 `README.md`；该目录同时是测试空间里在用的插件，因此它现在在思源里失效——按规则这是预期结果，恢复走集市 release 重装
 - **`snippets` 迁入，不需要 `build.config.ts`**：`plugin.json` / 四份 README / 图标 / 预览图解析后与旧产物**完全相等**（只有 oxfmt 的空白/换行差异）；`index.css` 的规则集合一致，差异只有 minifier 的等价重写（属性重排、`translateX(0)`→`translate(0)`、`transition: .25s`→`transition: all .25s`、`rgba(0,0,0,0)`→`#0000`、`::after`→`:after`、补 `-webkit-user-select`、**4 条相同的 `display:none!important` 规则被合并成 1 条选择器列表**）；`index.js` 从 1404110 降到 1324566 字节（-5.7%，webpack 运行时与重复模块消失），26 个新增字符串字面量是 rolldown 的模块包装标记、`siyuan-token-vault` 的导出名与 lezer 表的常量折叠结果
 - **`snippets` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，原型成员（12 个）与 `onload` 期间的动作序列（35 条：`addCommand` 两个、`Setting.addItem` 28 项、`loadData`、`eventBus.on("ws-main")` 等）完全一致；`onload` 结束后再等 50ms 让异步分支跑完，`onunload` 同样无差异

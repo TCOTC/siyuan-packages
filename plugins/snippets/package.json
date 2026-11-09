@@ -24,7 +24,7 @@
     "jsdom": "catalog:",
     "prettier": "catalog:",
     "siyuan": "catalog:",
-    "siyuan-token-vault": "catalog:",
+    "siyuan-token-vault": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

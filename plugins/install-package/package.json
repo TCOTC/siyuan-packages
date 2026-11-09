@@ -14,7 +14,7 @@
     "@octokit/openapi-types": "catalog:",
     "electron": "catalog:",
     "siyuan": "catalog:",
-    "siyuan-token-vault": "catalog:",
+    "siyuan-token-vault": "workspace:*",
     "typescript": "catalog:"
   }
 }
