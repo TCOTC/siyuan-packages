@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // 目标与 lib 沿用旧仓库的设置，收紧目标版本属于独立改动
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+
+    // 旧仓库已开 strict，但没开这两项；基线的默认值比它严，这里显式记录本包当前的严格度
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -18,12 +18,12 @@ export function widgetSteps(pkg: ResolvedPackage, options: BuildOptions, dev: bo
     {
       runner: "vite",
       label: "widget:html",
-      config: widgetConfig(pkg, dev, outDir, options.define),
+      config: widgetConfig(pkg, dev, outDir, options),
     },
   ];
 }
 
-function widgetConfig(pkg: ResolvedPackage, dev: boolean, outDir: string, extraDefine: Record<string, string> | undefined): InlineConfig {
+function widgetConfig(pkg: ResolvedPackage, dev: boolean, outDir: string, options: BuildOptions): InlineConfig {
   return {
     root: pkg.root,
     configFile: false,
@@ -33,7 +33,7 @@ function widgetConfig(pkg: ResolvedPackage, dev: boolean, outDir: string, extraD
     define: {
       "process.env.NODE_ENV": JSON.stringify(dev ? "development" : "production"),
       "process.env": "{}",
-      ...extraDefine,
+      ...options.define,
     },
 
     plugins: [
@@ -51,6 +51,9 @@ function widgetConfig(pkg: ResolvedPackage, dev: boolean, outDir: string, extraD
       rollupOptions: {
         // 挂件入口是 HTML，不是 JS。源文件按约定放在包根。
         input: resolve(pkg.root, "index.html"),
+        // output.minify 一旦给出就整体替换 vite 由 build.minify 推导出的默认值，
+        // 所以只在真的要丢 console 时才写，其余情况仍走 vite 的默认压缩。
+        ...(options.dropConsole && !dev ? { output: { minify: { compress: { dropConsole: true } } } } : {}),
       },
     },
   };
