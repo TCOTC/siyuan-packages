@@ -2,8 +2,8 @@
 
 把散在 27 个目录、25 个 GitHub 仓库里的思源集市包收进一个源码仓库：**统一构建，各自发布**。
 
-> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc` 与 `plugins/install-package`，三个旧仓库均已归档（只剩 `README.md`）。**
-> 三者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致），单测 / 类型检查 / lint 均已接入仓库根的那一套。
+> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package` 与 `plugins/snippets`，四个旧仓库均已归档（只剩 `README.md`）。**
+> 四者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写），单测 / 类型检查 / lint 均已接入仓库根的那一套。
 > 其余包仍按 README 末尾的迁移计划逐个搬。**每个包的迁移任务只有在旧仓库归档后才算完成**，规则见 9.1 ⑧。
 
 ---
@@ -352,6 +352,21 @@ Source code: [TCOTC/siyuan-packages](https://github.com/TCOTC/siyuan-packages/tr
 **⑫ dev 与 build 的产物形态只有两处不同，不要合并。**
 dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；build：压缩 + 无 sourcemap（思源用 `eval` 加载，外链 `.map` 也解析不到）。其余（`base`、`external`、CSS 固定命名）两边一致，否则「本地能跑、装了包不行」。
 
+**⑬ 打包进产物的依赖要同时写 catalog 与 overrides（`snippets` 实测）。**
+`@codemirror/*` / `@lezer/*` 这类库既在 `dependencies` 里、又会带一串同族传递依赖。只写 catalog（哪怕是精确版本）时，pnpm 会为嵌套范围再解析一份更新的副本：
+`tsc` 会把两份 `@codemirror/state` 的私有字段当成不同类型直接报错，产物里也会出现两套 parser 表。做法是把旧仓库 lockfile 的解析结果写进根 `pnpm-workspace.yaml` 的 `overrides`（目前只有 `snippets` 用这些包），升级时改一处即可。
+另外 `@uiw/codemirror-theme-vscode@4.25.11` 的 ESM 产物 import 了 `@babel/runtime/helpers/extends` 却没声明该依赖（幽灵依赖），旧仓库靠顶层声明兜住，迁移时也要照写。
+
+**⑭ 已发布 `siyuan` 类型升级后，旧代码可能只在类型层报错（`snippets` 实测）。**
+`siyuan@1.2.6 → 1.2.9` 有两处破坏性类型变化：
+
+- `Plugin.i18n` 从 `Record<string, string>` 变成 `Record<string, JSONValue>`。本插件有 200 余处 `this.i18n.xxx`，逐个 `as string` 不现实；在派生类里用 `declare i18n: Record<string, string>` 收窄一次即可（`Record<string,string>` 仍可赋给基类类型）。
+- `fetchPost` 从返回 `void` 变成返回 `Promise`。单测里的同步回调桩需要在 `vi.mocked(fetchPost)` 处放宽一次类型（`as unknown as ReturnType<typeof vi.fn>`），运行期行为不变。
+  这两项都是**只改类型断言、不改运行期代码**；`postReloadUI` 把回调放在 data 位的旧写法也原样保留（内核不读该参数），要修它属于另一次改动。
+
+**⑮ oxfmt 重排会让静态资源与旧产物不再逐字节相同，按 ② 的方式复核。**
+`plugin.json` / `README*.md` 只需 `git diff --no-index --ignore-all-space`；`i18n/*.json` 因为数组折行会产生成片行级差异，直接 `JSON.parse` 后比较更可靠。
+
 ---
 
 ## 10. 已验证 / 仍待验证
@@ -376,6 +391,10 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **`install-package` 的单测保留 Node 自带 runner**：97 条用例都不需要 DOM，继续用 `node --test` + `tests/tsResolve.mjs` 的解析钩子（补无扩展名的相对导入），没有为了统一而改写成 vitest
 - **未发布到 npm 的共享依赖可以进 catalog**：`siyuan-token-vault` 以 `git+https://…#<提交>` 写进 catalog，包内照常写 `catalog:`，lockfile 固定到 codeload 的 tar.gz；`electron` 只用于取类型（`window.require("electron")`），必须在 `allowBuilds` 里显式写 `electron: false`，否则被跳过的构建脚本会让 `pnpm install` 直接退出 1
 - **`install-package` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`（含 `release.yml`）、`src/`、`tests/`、`tools/`、`webpack.config.js`、`package.json`、`plugin.json`、图标与产物全部移除，磁盘目录同样只有 `.git` 与 `README.md`；该目录同时是测试空间里在用的插件，因此它现在在思源里失效——按规则这是预期结果，恢复走集市 release 重装
+- **`snippets` 迁入，不需要 `build.config.ts`**：`plugin.json` / 四份 README / 图标 / 预览图解析后与旧产物**完全相等**（只有 oxfmt 的空白/换行差异）；`index.css` 的规则集合一致，差异只有 minifier 的等价重写（属性重排、`translateX(0)`→`translate(0)`、`transition: .25s`→`transition: all .25s`、`rgba(0,0,0,0)`→`#0000`、`::after`→`:after`、补 `-webkit-user-select`、**4 条相同的 `display:none!important` 规则被合并成 1 条选择器列表**）；`index.js` 从 1404110 降到 1324566 字节（-5.7%，webpack 运行时与重复模块消失），26 个新增字符串字面量是 rolldown 的模块包装标记、`siyuan-token-vault` 的导出名与 lezer 表的常量折叠结果
+- **`snippets` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，原型成员（12 个）与 `onload` 期间的动作序列（35 条：`addCommand` 两个、`Setting.addItem` 28 项、`loadData`、`eventBus.on("ws-main")` 等）完全一致；`onload` 结束后再等 50ms 让异步分支跑完，`onunload` 同样无差异
+- **`snippets` 的单测迁到 vitest**：439 条用例全过（31 个文件），仍用 `tests/mocks/siyuan.ts` 作 `siyuan` 的 alias；`@vitest-environment jsdom` 文件头继续生效
+- **`snippets` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`、`src/`、`tests/`、`docs/`、`webpack.config.js`、`package.json`、`plugin.json`、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
 
 **实测踩到的两个坑（已写进 preset 注释，迁移时不用再踩）**
 

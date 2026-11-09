@@ -1,0 +1,31 @@
+{
+  "name": "snippets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "siyuan-kit build",
+    "dev": "siyuan-kit dev",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@babel/runtime": "catalog:",
+    "@codemirror/autocomplete": "catalog:",
+    "@codemirror/commands": "catalog:",
+    "@codemirror/lang-css": "catalog:",
+    "@codemirror/lang-javascript": "catalog:",
+    "@codemirror/language": "catalog:",
+    "@codemirror/search": "catalog:",
+    "@codemirror/state": "catalog:",
+    "@codemirror/view": "catalog:",
+    "@jeffrey-chen/siyuan-kit": "workspace:*",
+    "@uiw/codemirror-theme-vscode": "catalog:",
+    "acorn": "catalog:",
+    "jsdom": "catalog:",
+    "prettier": "catalog:",
+    "siyuan": "catalog:",
+    "siyuan-token-vault": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
