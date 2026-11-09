@@ -5,7 +5,7 @@
  * 因此弹出后把菜单贴到同侧边栏（右侧栏的左边缘 / 左侧栏的右边缘）。
  *
  * 贴哪一边必须**按锚点当前的实际位置**判断：顶栏项可以被拖动到工具栏任意位置
- * （`app/src/layout/topBarDrag.ts`，插件图标带 `data-topbar-entry` 因而可拖），
+ * （siyuan 仓库 `app/src/layout/topBarDrag.ts`，插件图标带 `data-topbar-entry` 因而可拖），
  * 按插件自己声明的 `position` 或某个配置项来判断会在拖过之后把菜单弹到对面去
  */
 

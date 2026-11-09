@@ -3,7 +3,7 @@
 // 触发场景：数据同步合并 /snippets/conf.json、他实例或思源"外观 - 代码片段"修改片段/全局开关后，
 // 内核经 util.BroadcastByType 推送 setSnippet（kernel/util/websocket.go），思源前端在自身消息分发
 // （case "setSnippet" 更新 config + renderSnippet）之前先 emitToPlugins("ws-main", data)
-// （app/src/index.ts），插件经 Plugin.eventBus 订阅即可收到。注入元素的增删改由思源自身
+// （siyuan 仓库 `app/src/index.ts`），插件经 Plugin.eventBus 订阅即可收到。注入元素的增删改由思源自身
 // renderSnippet 全量 diff 重渲接管，本服务不触碰注入元素，只同步片段列表与菜单 UI。
 // 与 services/sync.ts（插件自有 broadcast 通道）互补：sync.ts 承载插件自身业务消息，
 // 本服务消费思源原生 ws-main 消息，覆盖插件未参与的片段变更（数据同步/思源原生修改），

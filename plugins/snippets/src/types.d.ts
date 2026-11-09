@@ -38,7 +38,7 @@ type SnippetType = "css" | "js";
 
 /**
  * 代码片段类型
- * 参考 app/src/types/index.d.ts 的 ISnippet
+ * 参考 siyuan 仓库 `app/src/types/index.d.ts` 的 ISnippet
  */
 interface Snippet {
   id: string;

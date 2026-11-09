@@ -81,7 +81,7 @@ export const getDialogKeyHandler = (element: HTMLElement): DialogKeyHandler | un
  * 当前焦点是否为对话框内的按钮
  * 用于回车键处理：焦点在按钮上时交还浏览器默认行为触发该按钮的 click（对应按钮的鼠标路径处理），
  * 而不是执行对话框的默认确认动作——与思源原生 confirm 对话框的 Enter 语义一致
- * （app/src/boot/globalEvent/keydown.ts：activeElement 为对话框内按钮时直接 click 它）。
+ * （siyuan 仓库 `app/src/boot/globalEvent/keydown.ts`：activeElement 为对话框内按钮时直接 click 它）。
  * @param element 对话框元素（dialog.element）
  * @returns 焦点是否在对话框内的按钮上
  */

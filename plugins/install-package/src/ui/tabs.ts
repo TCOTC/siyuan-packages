@@ -28,7 +28,7 @@ export function focusCustomTab(tab: Tab): void {
 /**
  * 新建一个自定义页签，不查找、不复用已有页签
  *
- * 显式传 `openNewTab: true`：`openTab` 自身也有一条判重（`app/src/editor/util.ts` 的 `isSameCustomTab`），
+ * 显式传 `openNewTab: true`：`openTab` 自身也有一条判重（siyuan 仓库 `app/src/editor/util.ts` 的 `isSameCustomTab`），
  * 它按 `custom.data` 比较，而页签内的面板会把 `custom.data` 换成规范化后的对象，
  * 与这里传入的空对象不再相等，行为不可预期；置位后「新建还是复用」完全由本模块决定
  */

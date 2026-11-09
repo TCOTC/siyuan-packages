@@ -650,7 +650,7 @@ export class SnippetManager {
    * - 同内核其他前端实例导入广播（origin 为 remote）：广播窗口已落库，本窗口不落库、不广播，
    *   仅自拉权威列表（协议不含片段原文）后对齐注入元素/Store/已打开菜单。
    * 内核 /api/snippet/setSnippet 不触发 ws-main setSnippet 广播（仅 /api/setting/setSnippet 与
-   * 数据同步触发，见 kernel/api/snippet.go 与 kernel/model/push_reload.go），因此导入后的注入元素
+   * 数据同步触发，见 siyuan 仓库 `kernel/api/snippet.go` 与 `kernel/model/push_reload.go`），因此导入后的注入元素
    * 对齐必须由本插件自身完成，不能依赖思源 renderSnippet。
    * @param snippetsList 导入后的权威列表（origin 为 remote 时忽略，以自拉结果为准）
    * @param origin 变更来源：local（本窗口导入）| remote（其他窗口导入广播）
@@ -689,7 +689,7 @@ export class SnippetManager {
    * 将注入元素与给定列表对齐（导入整表替换后使用）
    * 逐个对列表片段执行 updateSnippetElement（幂等：内容一致不重建、禁用则移除元素）；
    * 对 document.head 中已注入但不在列表中的旧片段元素执行移除（思源原生 renderSnippet 与
-   * 本插件共用 snippetCSS/snippetJS + 片段 ID 的元素 id 规则，见 app/src/config/util/snippets.ts
+   * 本插件共用 snippetCSS/snippetJS + 片段 ID 的元素 id 规则，见 siyuan 仓库 `app/src/config/util/snippets.ts`
    * renderSnippet 与 snippetElementId）
    * @param snippetsList 目标片段列表
    */

@@ -74,8 +74,9 @@ const createSwitch = (checked: boolean) => {
 };
 
 const joinDataPath = (...segments: string[]): string => {
-  // config 在 window.siyuan 初始化后、loadPlugins 之前由 getConf 写入（app/src/index.ts），
-  // 插件运行时一定存在；类型里写成可选只是启动早期的形状。
+  // config 在 window.siyuan 初始化后、loadPlugins 之前由 getConf 写入
+  // （siyuan 仓库 `app/src/index.ts`），插件运行时一定存在；
+  // 类型里写成可选只是启动早期的形状。
   const dataDir = window.siyuan.config!.system.dataDir ?? "";
   if (!dataDir) {
     return "";

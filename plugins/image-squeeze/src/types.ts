@@ -1,5 +1,5 @@
 /**
- * 内核资源引用查询与重链接口的类型声明，与 kernel/apicontract/asset_relink.go 对应。
+ * 内核资源引用查询与重链接口的类型声明，与 siyuan 仓库 `kernel/apicontract/asset_relink.go` 对应。
  */
 
 export interface IAssetReference {

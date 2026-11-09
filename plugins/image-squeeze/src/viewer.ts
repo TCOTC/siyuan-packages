@@ -2,7 +2,7 @@
  * 全屏图片查看。
  *
  * 思源的 `previewImages` 没有暴露给插件 API，但它依赖的 Viewer.js 由内核本地提供
- * （/stage/protyle/js/viewerjs/viewer.js，同 app/src/protyle/preview/image.ts 使用的路径与版本），
+ * （/stage/protyle/js/viewerjs/viewer.js，同 siyuan 仓库 `app/src/protyle/preview/image.ts` 使用的路径与版本），
  * 因此这里按需加载该脚本并直接使用其全局 Viewer 类，得到与思源一致的缩放、旋转、翻转、
  * 鼠标滚轮缩放、拖拽平移与键盘导航行为。
  *

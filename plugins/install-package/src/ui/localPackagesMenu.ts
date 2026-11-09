@@ -441,7 +441,7 @@ export class LocalPackagesMenu {
    * 才会重画列表纠正。
    *
    * **同步只能改被操作的那一行，且只能改元素状态而不能换元素**：思源在点击事件的冒泡里会检查点击目标是否还在菜单里
-   * （`app/src/menus/menuClick.ts` 的 `globalClickHideMenu`），一旦被点的按钮已被摘除，它会当作“点了菜单外面”
+   * （siyuan 仓库 `app/src/menus/menuClick.ts` 的 `globalClickHideMenu`），一旦被点的按钮已被摘除，它会当作“点了菜单外面”
    * 顺手收起整个菜单。总开关与其它行属于结构性变化，放到下一个任务里重画
    */
   private applyCurrentState(pkg: InstalledPackage, current: boolean): void {

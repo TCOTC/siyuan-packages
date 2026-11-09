@@ -168,10 +168,10 @@ plugins/move-doc/           源码  {plugin.json, README*.md, icon.png, preview.
 
 包内 `tsconfig.json` 只写 `extends` 与 `include`（必要时再补个别「更严」的开关），不许自创第三份基线：
 
-| 基线                   | 严格度                                                                       | 谁用                             |
-| ---------------------- | ---------------------------------------------------------------------------- | -------------------------------- |
-| `tsconfig.base.json`   | `strict` + `noImplicitOverride` + `verbatimModuleSyntax`                     | 全部 21 个发布包 + 新包模板      |
-| `tsconfig.strict.json` | base 之上再开 `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`      | `kit`、`libs/*`                  |
+| 基线                   | 严格度                                                                  | 谁用                        |
+| ---------------------- | ----------------------------------------------------------------------- | --------------------------- |
+| `tsconfig.base.json`   | `strict` + `noImplicitOverride` + `verbatimModuleSyntax`                | 全部 21 个发布包 + 新包模板 |
+| `tsconfig.strict.json` | base 之上再开 `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` | `kit`、`libs/*`             |
 
 默认档就是严格档：`strict` 全仓开启，没有「宽松档」。加强档只给那些「一个错误会扩散到很多包」的代码——kit 自身出错会让 21 个包的构建一起崩，`libs/*` 会被多个消费方的 tsc 程序一并检查。某个发布包整体重构时可以临时改成 `../../../tsconfig.strict.json` 收紧，`pnpm typecheck` 会列出要收的全部位置。
 
@@ -195,7 +195,7 @@ plugins/move-doc/           源码  {plugin.json, README*.md, icon.png, preview.
 | 身份一致    | 目录名 == 清单 `name` == `package.json` 的 `name`（逐字符，含大小写）                                        |
 | 脚本入口    | `build` 必须是 `siyuan-kit build`，`dev` 必须是 `siyuan-kit dev`                                             |
 | 测试        | 有 `src/**/*.test.ts` 或 `tests/` 就必须有 `test` 脚本且为 `vitest run`                                      |
-| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.strict.json`，且不得覆盖基线管辖的选项 |
+| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.strict.json`，且不得覆盖基线管辖的选项               |
 | 配置白名单  | 有 `build.config.ts` 就必须在 `ALLOWED_BUILD_CONFIG` 里                                                      |
 | locale      | 清单的 `displayName` / `description` / `readme` / `title` key 与 `src/i18n/*.json` 文件名必须是 BCP 47       |
 | README 存在 | 清单 `readme` 声明的每个文件都必须存在                                                                       |

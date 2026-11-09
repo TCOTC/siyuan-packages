@@ -12,7 +12,7 @@ import { isMobile } from "./utils";
 export function openBlockInEditor(app: App, blockId: string, afterOpen?: () => void): void {
   fetchPost("/api/block/checkBlockFold", { id: blockId }, (foldResponse) => {
     const isFolded = !!foldResponse?.data?.isFolded;
-    // 与 app/src/util/noRelyPCFunction.ts checkFold 一致
+    // 与 siyuan 仓库 `app/src/util/noRelyPCFunction.ts` 的 checkFold 一致
     const action: TProtyleAction[] = isFolded ? ["cb-get-focus", "cb-get-all"] : ["cb-get-focus", "cb-get-context", "cb-get-rootscroll"];
     if (isDebugEnabled()) {
       console.log("[jchs locate] 思源 openTab", { blockId, isFolded, action, zoomIn: isFolded });

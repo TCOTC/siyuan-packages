@@ -87,7 +87,7 @@ export default class ImageSqueezePlugin extends Plugin {
 
   private open() {
     // 全库改写引用需要写权限，只读工作区与发布态直接拒绝
-    // config 在插件加载前已由 getConf 写入（app/src/index.ts），运行时一定存在。
+    // config 在插件加载前已由 getConf 写入（siyuan 仓库 `app/src/index.ts`），运行时一定存在。
     if (window.siyuan.config!.readonly || window.siyuan.isPublish) {
       showMessage(this.i18n.readonly);
       return;

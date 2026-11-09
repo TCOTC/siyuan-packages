@@ -43,7 +43,7 @@ export class EditorFontSizeWheelZoom {
       this.accumDeltaY = 0;
     }
     this.accumDeltaY += event.deltaY;
-    // config 在插件加载前已由 getConf 写入（app/src/index.ts），运行时一定存在。
+    // config 在插件加载前已由 getConf 写入（siyuan 仓库 `app/src/index.ts`），运行时一定存在。
     const fontSize = window.siyuan.config!.editor.fontSize;
     let stepped = false;
     if (this.accumDeltaY <= -ZOOM_THRESHOLD && fontSize < EDITOR_FONT_SIZE_MAX) {

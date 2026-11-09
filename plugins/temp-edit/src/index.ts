@@ -32,7 +32,7 @@ interface ITempEditor {
 
 // 与内核 genEmptyElement(false, false) 保持一致，用于初始化可编辑空段落
 // 传入 id 可复用已有块 ID，供清空操作在撤销栈中保持锚点有效
-// 参照 protyle/util/onGet.ts 的写法补上空段落占位提示，由 .protyle-wysiwyg--empty:empty::before 显示
+// 参照 siyuan 仓库 `app/src/protyle/util/onGet.ts` 的写法补上空段落占位提示，由 .protyle-wysiwyg--empty:empty::before 显示
 const genEmptyParagraph = (id?: string) => {
   const element = document.createElement("div");
   element.setAttribute("data-node-id", id || window.Lute.NewNodeID());
@@ -124,7 +124,7 @@ export default class TempEditPlugin extends Plugin {
     // .temp-edit__body 刚由上面的 innerHTML 写入，必然存在
     const instance = new Protyle(this.app, panel.querySelector<HTMLElement>(".temp-edit__body")!, EDITOR_OPTIONS);
     const protyle = instance.protyle;
-    // Protyle 构造期就同步创建了 wysiwyg（app/src/protyle/index.ts），这里不会为空
+    // Protyle 构造期就同步创建了 wysiwyg（siyuan 仓库 `app/src/protyle/index.ts`），这里不会为空
     protyle.wysiwyg!.element.setAttribute("data-readonly", "false");
 
     this.resetContent(instance);

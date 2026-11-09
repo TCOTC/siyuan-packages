@@ -2,7 +2,7 @@
  * 内核推送的集市包变更（`ws-main`）
  *
  * 内核在集市包落盘或删除之后只推两条通知，都不是「集市包变更」专用事件：
- * - `bazaarChanged`：安装、更新、卸载**都会**推（`kernel/model/bazaar.go` 的 `pushBazaarChanged`），
+ * - `bazaarChanged`：安装、更新、卸载**都会**推（siyuan 仓库 `kernel/model/bazaar.go` 的 `pushBazaarChanged`），
  *   载荷是受影响的类型名数组（如 `["themes"]`）。它有安装与卸载之分，但**没有包名**
  * - `reloadPlugin`：插件被卸载时额外推一次，`uninstallPlugins` 是**被卸载的包名**；
  *   同一载荷里的 `unloadPlugins` 是**禁用**（含全局关闭插件开关、插件被禁用），不能当成卸载

@@ -9,8 +9,8 @@ export default class ExitConfirm extends Plugin {
   private backend!: string;
   /**
    * 只有 windows / darwin 注册了全局按键。
-   * 其余 backend（linux / docker / android / ios / harmony，见 `app/src/util/functions.ts`
-   * 的 getBackend）没有退出快捷键，保持 null，不注册监听。
+   * 其余 backend（linux / docker / android / ios / harmony）没有退出快捷键，保持 null，不注册监听。
+   * backend 的取值域见 siyuan 仓库的 `app/src/util/functions.ts` 的 getBackend。
    */
   private boundKeyDownHandler: ((event: KeyboardEvent) => void) | null = null;
 
