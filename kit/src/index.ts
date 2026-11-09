@@ -7,7 +7,7 @@ export type { ResolvedPackage, StaticAsset } from "./resolve.ts";
 export { plan } from "./plan.ts";
 export type { BuildStep, Plan } from "./plan.ts";
 
-export { copyAssets, zipDir } from "./pack.ts";
+export { copyAssets, copyExtras, zipDir } from "./pack.ts";
 export { CONFIG_FILE, loadWorkspaceConfig, mirrorDirectory, syncToWorkspace, workspaceTarget } from "./workspace.ts";
 export type { WorkspaceConfig } from "./workspace.ts";
 

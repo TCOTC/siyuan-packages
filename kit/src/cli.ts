@@ -4,7 +4,7 @@ import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
 import type { BuildOptions } from "./define.ts";
-import { cleanOutput, copyAssets, zipDir } from "./pack.ts";
+import { cleanOutput, copyAssets, copyExtras, zipDir } from "./pack.ts";
 import { plan, type BuildStep } from "./plan.ts";
 import { findRepoRoot, resolvePackage } from "./resolve.ts";
 import { diffZip, formatDiff, readZip } from "./verify.ts";
@@ -89,6 +89,12 @@ async function runBuild(root: string, dev: boolean, rest: string[]): Promise<voi
   }
 
   copyAssets(pkg, current.outDir);
+
+  // `copy` 是约定之外的静态资源（字体、wasm）：清单、README、图标、i18n 之外的
+  // 大文件都靠它，条数与体积都不适合塞进 preset。
+  if (options.copy && options.copy.length > 0) {
+    copyExtras(pkg, options.copy, current.outDir);
+  }
 
   // vite 的 step 通过插件钩子同步；sass 之类没有钩子的，在这里补一次
   if (sync && current.steps.every((step) => step.runner !== "vite")) {

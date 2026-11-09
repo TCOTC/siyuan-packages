@@ -1,0 +1,17 @@
+{
+  "name": "siyuan-ttf-LXGWWenKaiGB-and-Twemoji",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "siyuan-kit build",
+    "dev": "siyuan-kit dev",
+    "typecheck": "tsc -p .",
+    "strip-wenkai-glyphs": "python3 scripts/strip-wenkai-emoji-glyphs.py",
+    "strip-wenkai-glyphs:dry-run": "python3 scripts/strip-wenkai-emoji-glyphs.py --dry-run"
+  },
+  "devDependencies": {
+    "@jeffrey-chen/siyuan-kit": "workspace:*",
+    "siyuan": "catalog:",
+    "typescript": "catalog:"
+  }
+}

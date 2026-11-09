@@ -1,6 +1,6 @@
 import { ZipArchive } from "archiver";
-import { createWriteStream, existsSync, mkdirSync, readdirSync, copyFileSync, rmSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { createWriteStream, existsSync, mkdirSync, readdirSync, copyFileSync, rmSync, globSync, statSync } from "node:fs";
+import { dirname, join, resolve, sep } from "node:path";
 import { collectStaticAssets, type ResolvedPackage } from "./resolve.ts";
 
 /** 构建前清空输出目录。dev 模式下 outDir 是包根，调用方不应调用本函数。 */
@@ -28,6 +28,64 @@ export function copyAssets(pkg: ResolvedPackage, outDir: string): void {
   if (pkg.hasI18n) {
     copyDirectory(join(pkg.root, "src", "i18n"), join(outDir, "i18n"));
   }
+}
+
+/**
+ * 复制 `build.config.ts` 里 `copy` 声明的额外静态资源（字体、wasm 这类大文件）。
+ *
+ * 每一项是相对包根的 glob，`!` 前缀表示排除（用于跳过字体剥离脚本留下的 .bak）。
+ * 命中的目录整体递归复制，目标保持包内相对路径：运行时的绝对路径由清单 name
+ * 决定的 `/plugins/<name>/` 负责，样式里直接写绝对 URL，vite 既不改写也不会
+ * 把它们当模块再打包一份。
+ */
+export function copyExtras(pkg: ResolvedPackage, patterns: string[], outDir: string): void {
+  const root = resolve(pkg.root);
+  const excluded = new Set<string>();
+  for (const pattern of patterns) {
+    if (!pattern.startsWith("!")) {
+      continue;
+    }
+    for (const match of globSync(pattern.slice(1), { cwd: root })) {
+      excluded.add(resolve(root, match));
+    }
+  }
+
+  const copied = new Set<string>();
+  for (const pattern of patterns) {
+    if (pattern.startsWith("!")) {
+      continue;
+    }
+    for (const match of globSync(pattern, { cwd: root })) {
+      copyExtra(root, match, outDir, excluded, copied);
+    }
+  }
+}
+
+function copyExtra(root: string, relativePath: string, outDir: string, excluded: Set<string>, copied: Set<string>): void {
+  const source = resolve(root, relativePath);
+  if (excluded.has(source)) {
+    return;
+  }
+  if (!source.startsWith(root + sep)) {
+    throw new Error(`copy 里的路径越出了包目录：${relativePath}`);
+  }
+
+  if (statSync(source).isDirectory()) {
+    for (const entry of readdirSync(source)) {
+      copyExtra(root, join(relativePath, entry), outDir, excluded, copied);
+    }
+    return;
+  }
+
+  // 同一个文件可能被多条 glob 命中，重复 copyFileSync 只是浪费
+  if (copied.has(source)) {
+    return;
+  }
+  copied.add(source);
+
+  const dest = join(outDir, relativePath);
+  mkdirSync(dirname(dest), { recursive: true });
+  copyFileSync(source, dest);
 }
 
 function copyDirectory(from: string, to: string): void {
