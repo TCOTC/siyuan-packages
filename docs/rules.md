@@ -55,7 +55,7 @@ kit/              构建内核 @jeffrey-chen/siyuan-kit
 | `src/i18n/*.json` 的文件名                           | `zh-CN.json`、`ja.json`                     |
 | `src/index.ts` 里对 i18n JSON 的导入路径             | `import type zhCN from "./i18n/zh-CN.json"` |
 
-`pnpm check` 校验前两项，并检查清单声明的每个 README 都真实存在。
+`pnpm check` 校验前两项，并比对包根的 README 文件与清单 `readme` 声明是否逐项一致（声明了却没被复制、复制了却没声明都会报错）。
 
 ### 2.4 一个插件包的最小结构
 
@@ -190,19 +190,19 @@ plugins/move-doc/           源码  {plugin.json, README*.md, icon.png, preview.
 
 `siyuan-kit check` 遍历 `{plugins,themes,widgets}/*`，把能在构建阶段判定的约定变成一条会变红的检查：
 
-| 检查项      | 具体规则                                                                                                     |
-| ----------- | ------------------------------------------------------------------------------------------------------------ |
-| 身份一致    | 目录名 == 清单 `name` == `package.json` 的 `name`（逐字符，含大小写）                                        |
-| 脚本入口    | `build` 必须是 `siyuan-kit build`，`dev` 必须是 `siyuan-kit dev`                                             |
-| 测试        | 有 `src/**/*.test.ts` 或 `tests/` 就必须有 `test` 脚本且为 `vitest run`                                      |
-| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.strict.json`，且不得覆盖基线管辖的选项               |
-| 配置白名单  | 有 `build.config.ts` 就必须在 `ALLOWED_BUILD_CONFIG` 里                                                      |
-| locale      | 清单的 `displayName` / `description` / `readme` / `title` key 与 `src/i18n/*.json` 文件名必须是 BCP 47       |
-| README 存在 | 清单 `readme` 声明的每个文件都必须存在                                                                       |
-| 产物位置    | 包目录里不允许出现 `dist/` / `package.zip` / `index.js` / `index.css` / `i18n/`                              |
-| 许可副本    | 包根不允许出现 `LICENSE` / `LICENSE.md` / `LICENSE.txt`，许可只在仓库根声明                                  |
-| 第三方通知  | 包根只能有 `THIRD_PARTY-NOTICES.md`，其它 `THIRD_PARTY*` 文件一律报错（它们不会进产物）                      |
-| 约定入口    | 没有 `build.config.ts` 时，`src/index.ts`（插件）/ `index.html`（挂件）/ `styles/index.scss`（主题）必须存在 |
+| 检查项      | 具体规则                                                                                                                                                                         |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 身份一致    | 目录名 == 清单 `name` == `package.json` 的 `name`（逐字符，含大小写）                                                                                                            |
+| 脚本入口    | `build` 必须是 `siyuan-kit build`，`dev` 必须是 `siyuan-kit dev`                                                                                                                 |
+| 测试        | 有 `src/**/*.test.ts` 或 `tests/` 就必须有 `test` 脚本且为 `vitest run`                                                                                                          |
+| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.strict.json`，且不得覆盖基线管辖的选项                                                                                   |
+| 配置白名单  | 有 `build.config.ts` 就必须在 `ALLOWED_BUILD_CONFIG` 里                                                                                                                          |
+| locale      | 清单的 `displayName` / `description` / `readme` / `title` key 与 `src/i18n/*.json` 文件名必须是 BCP 47                                                                           |
+| README 一致 | 包根被复制的 README（`README.md` / `README.<locale>.md`）与清单 `readme` 声明逐项相等（清单没写时按 `README.md` 回退）；`README_zh_CN.md` 这类下划线命名不匹配，会报“不会被复制” |
+| 产物位置    | 包目录里不允许出现 `dist/` / `package.zip` / `index.js` / `index.css` / `i18n/`                                                                                                  |
+| 许可副本    | 包根不允许出现 `LICENSE` / `LICENSE.md` / `LICENSE.txt`，许可只在仓库根声明                                                                                                      |
+| 第三方通知  | 包根只能有 `THIRD_PARTY-NOTICES.md`，其它 `THIRD_PARTY*` 文件一律报错（它们不会进产物）                                                                                          |
+| 约定入口    | 没有 `build.config.ts` 时，`src/index.ts`（插件）/ `index.html`（挂件）/ `styles/index.scss`（主题）必须存在                                                                     |
 
 CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错的输入上。
 

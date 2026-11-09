@@ -146,12 +146,18 @@ export interface StaticAsset {
  */
 export const THIRD_PARTY_NOTICES = "THIRD_PARTY-NOTICES.md";
 
+/**
+ * 包根里会被复制进产物的 README 文件名。
+ * 集市按清单 `readme` 字段取文件、缺省回退 README.md，kit 则按这个通配全收；
+ * `check.ts` 用同一份规则比对两个集合，避免两边漂移静默漏文件。
+ */
+export const README_FILE_PATTERN = /^README(\.[\w-]+)?\.md$/;
+
 export function collectStaticAssets(pkg: ResolvedPackage): StaticAsset[] {
   const assets: StaticAsset[] = [{ from: join(pkg.root, pkg.manifestFile), to: pkg.manifestFile }];
 
-  // 集市按清单 readme 字段查找，默认回退 README.md
   for (const file of readdirSync(pkg.root)) {
-    if (/^README(\.[\w-]+)?\.md$/.test(file)) {
+    if (README_FILE_PATTERN.test(file)) {
       assets.push({ from: join(pkg.root, file), to: file });
     }
   }

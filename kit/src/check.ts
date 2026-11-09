@@ -1,6 +1,6 @@
 import { existsSync, globSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
-import { resolvePackage, THIRD_PARTY_NOTICES, type ResolvedPackage } from "./resolve.ts";
+import { README_FILE_PATTERN, resolvePackage, THIRD_PARTY_NOTICES, type ResolvedPackage } from "./resolve.ts";
 
 /**
  * 仓库级契约门禁：把 README 里的约定变成 CI 会变红的检查。
@@ -86,6 +86,7 @@ function checkPackage(root: string, issues: CheckIssue[]): void {
   checkTsconfig(root, push);
   checkBuildConfig(pkg, push);
   checkLocales(pkg, push);
+  checkReadmeFiles(pkg, push);
   checkI18nFileNames(pkg, push);
   checkForbiddenEntries(root, push);
   checkLicenseCopy(root, push);
@@ -185,10 +186,7 @@ const BCP47_LOCALES = new Set(["zh-CN", "zh-TW", "en", "de", "fr", "es", "pt-BR"
 /** 清单里所有「key 是 locale」的对象字段。 */
 const LOCALE_FIELDS = ["displayName", "description", "readme", "title"] as const;
 
-/**
- * 集市按清单 readme 字段读文件，kit 按 README.<locale>.md 复制；两边漂移会静默漏文件。
- * 因此同时检查 locale key 是 BCP 47，且 readme 指向的文件真实存在。
- */
+/** 清单里所有以 locale 为 key 的字段，其 key 必须是 BCP 47。 */
 function checkLocales(pkg: ResolvedPackage, push: (message: string) => void): void {
   for (const field of LOCALE_FIELDS) {
     const map = pkg.manifest[field];
@@ -204,18 +202,33 @@ function checkLocales(pkg: ResolvedPackage, push: (message: string) => void): vo
       }
     }
   }
+}
+
+/**
+ * 集市的 README 来自清单 `readme` 字段（缺省回退 README.md），产物里的 README 来自包根文件通配。
+ * 两套规则各自独立，所以两个集合必须逐项相等：
+ * 声明了但复制不到 → 产物缺文件；复制到了但没声明 → 集市根本看不到它。
+ */
+function checkReadmeFiles(pkg: ResolvedPackage, push: (message: string) => void): void {
+  const copied = readdirSync(pkg.root).filter((file) => README_FILE_PATTERN.test(file));
 
   const readme = pkg.manifest["readme"];
-  if (typeof readme !== "object" || readme === null) {
-    return;
+  const declared: [string, string][] = typeof readme === "object" && readme !== null ? Object.entries(readme as Record<string, unknown>).flatMap(([locale, file]) => (typeof file === "string" ? [[locale, file] as [string, string]] : [])) : [["default", "README.md"]];
+
+  const copiedSet = new Set(copied);
+  const declaredFiles = new Set(declared.map(([, file]) => file));
+
+  for (const file of copied) {
+    if (!declaredFiles.has(file)) {
+      push(`${file} 会被复制进产物，但清单 readme 没有声明它；补上对应 locale，或删掉这个文件`);
+    }
   }
-  for (const [locale, file] of Object.entries(readme as Record<string, unknown>)) {
-    if (typeof file !== "string") {
+
+  for (const [locale, file] of declared) {
+    if (copiedSet.has(file)) {
       continue;
     }
-    if (!existsSync(join(pkg.root, file))) {
-      push(`清单 readme.${locale} 指向不存在的 ${file}`);
-    }
+    push(existsSync(join(pkg.root, file)) ? `清单 readme.${locale} 的 ${file} 不匹配复制规则 ${README_FILE_PATTERN.source}，产物里不会有它（请改成 README.<locale>.md）` : `清单 readme.${locale} 指向不存在的 ${file}`);
   }
 }
 
