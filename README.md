@@ -2,8 +2,8 @@
 
 把散在 27 个目录、25 个 GitHub 仓库里的思源集市包收进一个源码仓库：**统一构建，各自发布**。
 
-> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package`、`plugins/snippets` 与 `plugins/select-opened-doc`，五个旧仓库均已归档（只剩 `README.md`）。**
-> 五者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写；`select-opened-doc` 的 `index.js` 小 20%，静态资源逐字节相同，字符串字面量只差 webpack 运行时的三个），单测 / 类型检查 / lint 均已接入仓库根的那一套。
+> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package`、`plugins/snippets`、`plugins/select-opened-doc` 与 `plugins/heatmap`，六个旧仓库均已归档（只剩 `README.md`）。**
+> 六者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写；`select-opened-doc` 的 `index.js` 小 20%，静态资源逐字节相同，字符串字面量只差 webpack 运行时的三个；`heatmap` 的 `index.js` 小 10.6%，字符串字面量同样只差那三个，CSS 只有 minifier 等价重写），单测 / 类型检查 / lint 均已接入仓库根的那一套。
 > **共享库 `siyuan-token-vault` 已迁入 `libs/token-vault`**，`install-package` 与 `snippets` 改用 `workspace:*` 直接从源码导入，不再依赖 GitHub 上的 git 哈希。
 > 其余包仍按 README 末尾的迁移计划逐个搬。**每个包的迁移任务只有在旧仓库归档后才算完成**，规则见 9.1 ⑧。
 
@@ -406,6 +406,10 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **`select-opened-doc` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，覆盖桌面 / 移动端、有配置 / 无配置、无打开文档、无文件树模型五种场景；设置项的默认值、三个控件生成的 HTML、`saveData` 的载荷、`aria-label` 的改写与还原、左键 / 右键 / 轻触 / 长按四条交互（含长按后吞掉一次 `click`）、`collapseAll` 与 `selectItem` 的调用序列、`onunload` / `uninstall` 全部一致
 - **`select-opened-doc` 只改了两处类型层代码**：`declare i18n: Record<string, string>` 收窄（1.2.9 把 `Plugin.i18n` 声明成 `Record<string, JSONValue>`）与四个生命周期方法的 `override`，运行期代码原样保留
 - **`select-opened-doc` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`、`src/`、`eslint.config.mjs`、`webpack.config.js`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`plugin.json`、`LICENSE`、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
+- **`heatmap` 迁入，不需要 `build.config.ts`**：旧仓库的 `package.zip` 生成于 7 月、早于 11 月的 HEAD，按 9.1 ① 先用旧工具链重建基线再对拍。`plugin.json` / 图标 / 预览图与基线**逐字节相同**；四份 README 被 oxfmt 重排（表格对齐），其中的截图地址同时改指向 monorepo 的 `plugins/heatmap/pic`，否则旧仓库归档后图片会 404；`index.js` 从 70463 降到 62962 字节，用 acorn 取字符串字面量（含模板字符串）后差异只有 webpack 运行时的 `use strict` / `Module` / `__esModule` 三条，其余 577 条一一对应；`index.css` 的 113 条规则全部保留，32 条声明差异全是 minifier 等价重写（属性重排、`overflow-x`+`overflow-y`→`overflow`、`container-type`+`container-name`→`container`、`::before`→`:before`、`@container (min-width: N)`→`(width>=N)`、`flex:1 1 auto`→`flex:auto`、省略 `transition` 的默认 `ease`、补 `-webkit-user-select`）
+- **`heatmap` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` 下分别加载新旧 `index.js`，导出的键、37 个原型方法与 `onload` / `onLayoutReady` / `onunload` / `uninstall` 的 7 条可观察调用（图标、`loadData`/`removeData` 的 `config.json`、顶栏按钮、命令、`ws-main` 订阅与退订）完全一致；唯一差异是 `eventBus` 回调的函数名——webpack 压成 `anonymous`，vite 保留 `onWsMain`
+- **`heatmap` 的单测迁到 vitest**：95 条用例（7 个文件）全部通过，断言仍用 `node:assert`；`siyuan` 只有 `.d.ts`、没有可运行 JS，在 `vitest.config.ts` 里 alias 到 `test/siyuan-stub.ts`（沿用原 `test/preload-siyuan.cjs` 的 `__heatmapSiyuanStub` 约定）
+- **`heatmap` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`（commit `3246602`），`.github/`、`src/`、`test/`、`pic/`、`webpack.config.js`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`dprint.json`、`eslint.config.mjs`、`plugin.json`、`LICENSE`、四份 README、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
 
 **实测踩到的两个坑（已写进 preset 注释，迁移时不用再踩）**
 

@@ -1,0 +1,17 @@
+{
+  "name": "heatmap",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "siyuan-kit build",
+    "dev": "siyuan-kit dev",
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@jeffrey-chen/siyuan-kit": "workspace:*",
+    "siyuan": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

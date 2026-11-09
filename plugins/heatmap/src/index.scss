@@ -1,0 +1,847 @@
+/* 覆盖 flex 子项默认 min-height:auto，否则 max-height 压不住内容，居中后向下溢出 */
+.b3-dialog.jchm-dialog-host {
+  align-items: safe center;
+}
+
+.jchm-dialog__container {
+  background-color: var(--b3-menu-background);
+  min-height: 0;
+  max-height: 90vh;
+  /* 不能 overflow:hidden：思源 resize 手柄定位在容器外 -8px，会被裁掉导致无法拖拽改尺寸 */
+
+  > .b3-dialog__body {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.jchm-dialog {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* 取消左右 padding，让 jchm__scroll 滚动条贴 dialog 边缘；内容由内层补回 24px */
+  padding: 16px 0 8px;
+  overflow: hidden;
+  /* 内容水平边距 24px；滚动条宽 10px，配合 scrollbar-gutter 时右侧 padding 减掉以免叠宽 */
+  --jchm-pad-x: 24px;
+  --jchm-scrollbar: 10px;
+
+  .jchm-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    /* 略大于纯文案，避免 max-content 弹窗塌成一条细条 */
+    min-width: 320px;
+    min-height: 140px;
+    padding: 24px var(--jchm-pad-x);
+
+    > img {
+      display: block;
+      width: 48px;
+      height: 48px;
+    }
+  }
+
+  .jchm-panel {
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    &__chart {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    &--day {
+      min-width: min(420px, 80vw);
+    }
+
+    &--loading {
+      opacity: 0.55;
+      pointer-events: none;
+      cursor: wait;
+      transition: opacity 0.12s ease;
+    }
+
+    .jchm-day {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-sizing: border-box;
+      color: var(--b3-theme-on-surface);
+
+      &__header {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 28px;
+        padding: 0 24px;
+        box-sizing: border-box;
+      }
+
+      &__back {
+        flex-shrink: 0;
+        margin: 0;
+      }
+
+      &__title {
+        flex: 1;
+        min-width: 0;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 20px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      &__summary {
+        flex-shrink: 0;
+        font-size: 12px;
+        color: var(--b3-theme-on-surface-light);
+        line-height: 16px;
+        white-space: nowrap;
+      }
+
+      &__body {
+        flex: 1;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        /* 与 .jchm__scroll 一致：左 24px，右 14px + gutter 10px = 24px */
+        padding: 0 var(--jchm-pad-x);
+        padding-right: calc(var(--jchm-pad-x) - var(--jchm-scrollbar));
+        box-sizing: border-box;
+        scrollbar-gutter: stable;
+
+        &--loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          overflow: hidden;
+
+          > .jchm-loading {
+            min-width: 0;
+            width: 100%;
+            padding-left: 0;
+            padding-right: 0;
+          }
+        }
+      }
+
+      &__empty {
+        padding: 24px 0;
+        text-align: center;
+        color: var(--b3-theme-on-surface-light);
+        font-size: 13px;
+      }
+
+      &__truncated {
+        padding: 12px 0 8px;
+        text-align: center;
+        color: var(--b3-theme-on-surface-light);
+        font-size: 12px;
+        line-height: 16px;
+      }
+
+      &__list {
+        margin: 0;
+        padding: 0;
+      }
+
+      &__item {
+        .b3-list-item__text {
+          cursor: pointer;
+        }
+
+        .b3-list-item__icon {
+          flex-shrink: 0;
+
+          img,
+          svg {
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+          }
+        }
+
+        .counter {
+          flex-shrink: 0;
+          margin-left: 8px;
+        }
+      }
+    }
+
+    .jchm {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      color: var(--b3-theme-on-surface);
+      font-size: 12px;
+      /* 热力主色，可由配置覆盖为自定义十六进制 */
+      --jchm-heat: var(--b3-theme-primary);
+      /* 热力图格子边长；间隙随比例变化（默认 11px / 3px） */
+      --jchm-cell: 11px;
+      --jchm-gap: calc(var(--jchm-cell) * 3 / 11);
+
+      /* 外层只负责纵向滚动；左右 padding 让内容对齐原位置，滚动条在 padding 外侧贴边 */
+      &__scroll {
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        /*
+         * 上下各 2px：给 hover outline（1px + offset 1px）留出绘制空间，
+         * 避免贴滚动视口上下边时被 overflow 裁切。
+         * 左 24px；右 14px + scrollbar-gutter 10px = 24px，与 footer 对齐且避免有无滚动条时跳动。
+         */
+        padding: 2px var(--jchm-pad-x);
+        padding-right: calc(var(--jchm-pad-x) - var(--jchm-scrollbar));
+        box-sizing: border-box;
+        scrollbar-gutter: stable;
+      }
+
+      /* 内层横滑：缩到下限仍溢出时由 overflow:auto 自然出现滚动条 */
+      &__scroll-x {
+        overflow-x: auto;
+        overflow-y: hidden;
+        /* 上/右 2px 留给 hover outline；左侧靠星期列间隙已够；底 4px 兼顾横条 */
+        padding: 2px 2px 4px 0;
+      }
+
+      /*
+       * 热力图自适应：
+       * 1) width:100% + min-width:0 — 随弹窗拉宽/压窄；缩到 cell 下限仍溢出时由 scroll-x 出横条
+       * 2) ::before 按 11px 格子给出固有宽，供 max-content 弹窗首开（height:0 不占位；gap 改由 footer margin）
+       * 3) 在已定宽的 scroll 上建容器，用 cqw 算 cell（下限 7px，随容器变大可超过 11px）
+       * 不可把 container-type 建在“靠内容撑宽”的节点上，否则 inline-size 遏制会压扁弹窗。
+       * 不可用 min-width:max(100%, 固有宽)：父级更窄时会抬高 max-width，根节点撑出后被裁切且无滚动条。
+       */
+      &--heatmap {
+        flex: 1 1 auto;
+        box-sizing: border-box;
+        width: 100%;
+        min-width: 0;
+        gap: 0;
+        /*
+         * 月份标签盒只有一格宽，末月文案必然向右溢出。
+         * 在宽度公式里预留这段（文案宽 - 最小 cell 7px），由 .jchm__months 的右侧 padding 承接，
+         * 这样末月文案能完整显示，且总宽度不变（不会多出横向条）。JS 会按实际语言覆写。
+         */
+        --jchm-month-reserve: 19px;
+
+        /* 24px * 2 外边距 + scroll-x 右侧 2px（hover outline）+ 星期列 + 末月文案留白 + 周数 * (11px cell + 3px gap) */
+        &::before {
+          content: "";
+          display: block;
+          height: 0;
+          overflow: hidden;
+          width: calc(50px + var(--jchm-weekday-col, 18px) + var(--jchm-month-reserve) + var(--jchm-weeks, 53) * 14px);
+        }
+
+        .jchm__scroll {
+          container-type: inline-size;
+        }
+
+        .jchm__scroll-x {
+          box-sizing: border-box;
+          width: 100%;
+          min-width: 0;
+          /* 100cqw 含 scroll-x 右侧 padding 2px，再扣掉星期列与末月文案留白，然后算 cell */
+          --jchm-cell: max(7px, calc((100cqw - 2px - var(--jchm-weekday-col, 18px) - var(--jchm-month-reserve)) * 11 / (var(--jchm-weeks, 53) * 14)));
+          --jchm-gap: calc(var(--jchm-cell) * 3 / 11);
+        }
+
+        .jchm__footer {
+          margin-top: 12px;
+        }
+      }
+
+      &__track {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: max-content;
+      }
+
+      &__period {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      &__months,
+      &__body {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--jchm-gap);
+      }
+
+      &__months {
+        /* 右侧留白承接末月文案的溢出；在此之内的越界一律裁掉，避免撑出几乎无法滚动的横向条 */
+        padding-right: var(--jchm-month-reserve, 0px);
+        overflow: hidden;
+
+        .jchm__months-spacer {
+          position: sticky;
+          left: 0;
+          z-index: 2;
+          width: var(--jchm-weekday-col, 18px);
+          flex: 0 0 var(--jchm-weekday-col, 18px);
+          background-color: var(--b3-menu-background);
+        }
+
+        .jchm__month {
+          width: var(--jchm-cell);
+          flex: 0 0 var(--jchm-cell);
+          height: 18px;
+          line-height: 18px;
+          white-space: nowrap;
+          overflow: visible;
+          color: var(--b3-theme-on-surface-light);
+        }
+      }
+
+      &__body {
+        align-items: stretch;
+
+        .jchm__weekdays {
+          position: sticky;
+          left: 0;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          gap: var(--jchm-gap);
+          width: var(--jchm-weekday-col, 18px);
+          flex: 0 0 var(--jchm-weekday-col, 18px);
+          margin-right: 0;
+          background-color: var(--b3-menu-background);
+
+          .jchm__weekday {
+            width: 100%;
+            height: var(--jchm-cell);
+            line-height: var(--jchm-cell);
+            text-align: right;
+            white-space: nowrap;
+            color: var(--b3-theme-on-surface-light);
+          }
+        }
+
+        .jchm__grid {
+          display: flex;
+          gap: var(--jchm-gap);
+
+          .jchm__week {
+            display: flex;
+            flex-direction: column;
+            gap: var(--jchm-gap);
+            width: var(--jchm-cell);
+          }
+        }
+      }
+
+      &__cell {
+        width: var(--jchm-cell);
+        height: var(--jchm-cell);
+        border-radius: 2px;
+        box-sizing: border-box;
+        background-color: var(--jchm-cell-bg);
+
+        &--empty {
+          visibility: hidden;
+        }
+
+        &--clickable {
+          cursor: pointer;
+
+          &:hover {
+            outline: 1px solid var(--b3-theme-on-surface);
+            outline-offset: 1px;
+          }
+        }
+
+        &--l0 {
+          --jchm-cell-bg: var(--b3-theme-surface-lighter);
+        }
+
+        &--l1 {
+          --jchm-cell-bg: color-mix(in srgb, var(--jchm-heat) 28%, var(--b3-theme-surface));
+        }
+
+        &--l2 {
+          --jchm-cell-bg: color-mix(in srgb, var(--jchm-heat) 48%, var(--b3-theme-surface));
+        }
+
+        &--l3 {
+          --jchm-cell-bg: color-mix(in srgb, var(--jchm-heat) 72%, var(--b3-theme-surface));
+        }
+
+        &--l4 {
+          --jchm-cell-bg: var(--jchm-heat);
+        }
+      }
+
+      /* 传统日历：固定 1/2/3/6/12 列（容器查询），避免 auto-fit 折叠空列导致末行月块被拉宽 */
+      &--calendar {
+        flex: 1 1 auto;
+        box-sizing: border-box;
+        /*
+         * 与热力图同理：width:100% 随弹窗伸缩；::before 给出 6 列固有宽供 max-content 首开；
+         * container-type 只建在已定宽的 scroll 上，避免 inline-size 遏制压扁弹窗。
+         * 1004 = 6×154 + 5×16（满行 6 列）
+         */
+        width: 100%;
+        min-width: 0;
+        gap: 0;
+
+        &::before {
+          content: "";
+          display: block;
+          height: 0;
+          overflow: hidden;
+          width: calc(1004px + 2 * var(--jchm-pad-x, 24px));
+        }
+
+        .jchm__footer {
+          margin-top: 12px;
+        }
+
+        .jchm__scroll {
+          overflow-x: hidden;
+          overflow-y: auto;
+          container-type: inline-size;
+          container-name: jchm-cal;
+        }
+
+        .jchm__cal-track {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          width: 100%;
+          min-width: 0;
+        }
+
+        .jchm__cal-year {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .jchm__cal-year-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--b3-theme-on-surface);
+        }
+
+        .jchm__cal-months {
+          display: grid;
+          gap: 12px 16px;
+          width: 100%;
+          min-width: 0;
+          /* 默认 1 列；更宽时见下方 @container */
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        /* 阈值按 scroll 内容区宽度（已扣除 padding）；≈ n×154px + (n-1)×16px */
+        @container jchm-cal (min-width: 324px) {
+          .jchm__cal-months {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @container jchm-cal (min-width: 494px) {
+          .jchm__cal-months {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+        }
+
+        @container jchm-cal (min-width: 1004px) {
+          .jchm__cal-months {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+          }
+        }
+
+        @container jchm-cal (min-width: 2024px) {
+          .jchm__cal-months {
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+          }
+        }
+
+        .jchm__cal-month {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          min-width: 0;
+        }
+
+        .jchm__cal-month-title {
+          text-align: center;
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 18px;
+          color: var(--b3-theme-on-surface);
+        }
+
+        .jchm__cal-weekdays,
+        .jchm__cal-week {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 2px;
+        }
+
+        .jchm__cal-grid {
+          display: flex;
+          flex-direction: column;
+          gap: 2px;
+        }
+
+        .jchm__cal-weekday {
+          height: 16px;
+          line-height: 16px;
+          text-align: center;
+          font-size: 10px;
+          color: var(--b3-theme-on-surface-light);
+        }
+
+        /*
+         * 日历有日期文字：铺满着色但压低饱和，全程用 on-surface；
+         * 热力主色在选色时已按 OKLCH 远离字色。贡献热力图仍用满强度色阶。
+         */
+        .jchm__cell--l1 {
+          --jchm-cell-bg: color-mix(in srgb, var(--jchm-heat) 18%, var(--b3-theme-surface));
+        }
+
+        .jchm__cell--l2 {
+          --jchm-cell-bg: color-mix(in srgb, var(--jchm-heat) 30%, var(--b3-theme-surface));
+        }
+
+        .jchm__cell--l3 {
+          --jchm-cell-bg: color-mix(in srgb, var(--jchm-heat) 42%, var(--b3-theme-surface));
+        }
+
+        .jchm__cell--l4 {
+          --jchm-cell-bg: color-mix(in srgb, var(--jchm-heat) 55%, var(--b3-theme-surface));
+        }
+
+        .jchm__cal-day {
+          /* 覆盖 .jchm__cell 的 11×11，否则会压扁 aspect-ratio */
+          width: 100%;
+          height: auto;
+          aspect-ratio: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 10px;
+          border-radius: 3px;
+          box-sizing: border-box;
+          color: var(--b3-theme-on-surface);
+          user-select: none;
+
+          &--empty {
+            visibility: hidden;
+          }
+
+          &--future {
+            color: var(--b3-theme-on-surface-light);
+            opacity: 0.45;
+          }
+        }
+      }
+
+      /* 在滚动区外，始终贴弹窗内容底部；左右补回与滚动区一致的边距 */
+      &__footer {
+        flex-shrink: 0;
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 0 24px;
+        color: var(--b3-theme-on-surface-light);
+
+        .jchm__legend {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin-left: auto;
+
+          .jchm__cell {
+            flex: 0 0 auto;
+            width: 11px;
+            height: 11px;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* 主弹窗标题栏：左侧标题 + 居中范围切换 + 右侧设置 */
+.jchm-dialog__header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.jchm-dialog__title {
+  position: relative;
+  z-index: 2;
+  margin-right: auto;
+  white-space: nowrap;
+}
+
+.jchm-range-nav {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 1;
+  max-width: calc(100% - 72px);
+  box-sizing: border-box;
+
+  &__btn {
+    flex-shrink: 0;
+    margin: 0;
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+  }
+
+  &__label {
+    min-width: 5.5em;
+    padding: 0 4px;
+    text-align: center;
+    line-height: 20px;
+    white-space: nowrap;
+    user-select: none;
+  }
+}
+
+/* 挂在 Dialog 标题栏，关闭按钮左侧 */
+.jchm-dialog__setting {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+/* 筛选笔记本：勾选 Dialog */
+.jchm-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(60vh, 420px);
+  min-height: 120px;
+  box-sizing: border-box;
+  overflow: hidden;
+  /* 取消左右 padding，让列表滚动条贴边；内容由内层补回 24px（与热力图一致） */
+  padding-left: 0;
+  padding-right: 0;
+  --jchm-pad-x: 24px;
+  --jchm-scrollbar: 10px;
+
+  &__loading,
+  &__empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    padding: 0 var(--jchm-pad-x);
+    color: var(--b3-theme-on-surface-light);
+  }
+
+  &__loading > img {
+    display: block;
+    width: 32px;
+    height: 32px;
+  }
+
+  &__list {
+    flex: 1;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* 左 24px；右 14px + scrollbar-gutter 10px = 24px */
+    padding: 0 var(--jchm-pad-x);
+    padding-right: calc(var(--jchm-pad-x) - var(--jchm-scrollbar));
+    box-sizing: border-box;
+    scrollbar-gutter: stable;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 6px 0;
+    border-radius: var(--b3-border-radius);
+    cursor: pointer;
+    color: var(--b3-theme-on-background);
+    box-sizing: border-box;
+
+    &--master {
+      flex-shrink: 0;
+      font-weight: 500;
+      border-bottom: 1px solid var(--b3-border-color);
+      border-radius: 0;
+      padding-left: var(--jchm-pad-x);
+      padding-right: var(--jchm-pad-x);
+      margin-bottom: 2px;
+    }
+  }
+
+  &__check {
+    flex-shrink: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 1.2em;
+    height: 1.2em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+    font-variant-emoji: emoji;
+
+    > img {
+      width: 16px;
+      height: 16px;
+      object-fit: contain;
+    }
+  }
+
+  &__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* 颜色：色相滑条 + 色块预览 + 使用主题色 */
+.jchm-color {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__swatch {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--b3-border-color);
+    border-radius: var(--b3-border-radius);
+    box-sizing: border-box;
+  }
+
+  &__slider {
+    flex: 1 1 auto;
+    min-width: 120px;
+  }
+
+  &__reset {
+    flex-shrink: 0;
+  }
+
+  &__hint {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--b3-theme-on-surface-light);
+  }
+}
+
+/* 格子档位：模式 + 三档上限 */
+.jchm-levels {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__mode {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__label {
+    color: var(--b3-theme-on-surface);
+    font-size: 14px;
+  }
+
+  &__select {
+    width: 100%;
+  }
+
+  &__hint {
+    color: var(--b3-theme-on-surface-light);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  &__cuts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  &__cut {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  &__cut-label {
+    color: var(--b3-theme-on-surface-light);
+    font-size: 12px;
+  }
+
+  &__input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  &__reset {
+    align-self: flex-start;
+  }
+}
