@@ -1,6 +1,4 @@
-// 代码片段管理
-// 职责：代码片段的创建/保存/删除/自拉/落库/注入元素更新与移除（含跨窗口 origin 分支）。
-// 运行态经插件实例访问；纯工具逻辑（ID 生成/预览判断）在 ../utils，纯领域判断在 ../domain。
+// 代码片段管理：创建/保存/删除/自拉/落库/注入元素更新与移除（含跨窗口 origin 分支）。
 import { fetchPost, fetchSyncPost } from "siyuan";
 import type PluginSnippets from "../index";
 import { deepClone, isSnippetsTypeEnabled, isValidCssSnippetContent, isValidJavaScriptCode, snippetTitle } from "../domain/snippet";
@@ -9,16 +7,8 @@ import { unassignSnippetFromGroup } from "../domain/snippet-groups";
 import type { Snippet, SnippetType } from "../types";
 import type { BroadcastHandlers } from "./sync";
 
-/**
- * 注入元素 id 拼接（<style>/<script> 元素的定位键）
- */
 const snippetElementId = (snippetType: string, snippetId: string): string => `snippet${snippetType.toUpperCase()}${snippetId}`;
 
-/**
- * 代码片段管理器
- * 承接代码片段的创建/保存/删除/自拉/落库/注入元素更新与移除（含跨窗口 origin 分支），
- * 以及跨窗口广播业务消息分发注册表的构建（buildSyncHandlers）。
- */
 export class SnippetManager {
   private readonly plugin: PluginSnippets;
 
@@ -26,9 +16,6 @@ export class SnippetManager {
     this.plugin = plugin;
   }
 
-  /**
-   * 创建代码片段
-   */
   createSnippet() {
     const snippet: Snippet = {
       id: genNewSnippetId(this.plugin.snippetsList),
@@ -87,8 +74,6 @@ export class SnippetManager {
           // 问题案例: 先禁用整体状态，再在对话框中启用，然后预览，然后保存。会在整体禁用的情况下启用代码片段，或者说没有移除预览时添加的元素
           //  应该始终执行 updateSnippetElement
           await this.updateSnippetElement(snippet);
-
-          // TODO功能: 跨窗口同步时，如果有打开对应的代码片段编辑器，需要更新编辑器的内容
         }
       } else {
         // 本窗口原本没有该片段：新增（列表已按权威顺序就位）
@@ -111,13 +96,10 @@ export class SnippetManager {
     let hasChanges = false;
     let copySnippet: Snippet | undefined = undefined;
     if (isCopy) {
-      // 深拷贝 snippet 对象，避免副本和原对象引用同一内存
       copySnippet = deepClone(snippet);
-      // 生成新的代码片段
       copySnippet.id = genNewSnippetId(this.plugin.snippetsList);
       copySnippet.name = snippet.name + ` (${this.plugin.i18n.duplicate} ${new Date().toLocaleString()})`;
 
-      // 把副本创建在当前代码片段的上面（菜单计数由 Store 变更回调统一刷新）
       this.plugin.snippetStore.insertBefore(copySnippet, snippet.id);
       hasChanges = true;
 
@@ -126,15 +108,12 @@ export class SnippetManager {
 
       this.plugin.console.log("saveSnippet: copySnippet", copySnippet);
     } else {
-      // 在 snippetsList 中查找是否存在该代码片段
       const oldSnippet = await this.getSnippetById(snippet.id);
       if (oldSnippet === false) {
-        // false 是自拉列表失败（getSnippetsList 已弹错误提示）
         this.plugin.showErrorMessage(this.plugin.i18n.getSnippetFailed);
         return;
       }
       if (oldSnippet) {
-        // 如果存在，则更新该代码片段
         // 比较对象属性值而不是对象引用
         const nameChanged = oldSnippet.name !== snippet.name;
         // 判等口径与远程分支保持一致：content/enabled 变化才刷新注入元素
@@ -192,7 +171,6 @@ export class SnippetManager {
    * @param remotePreviewState 广播窗口是否正在实时预览该片段（仅远程使用，用于跳过注入元素移除）
    */
   async deleteSnippet(id: string, snippetType: SnippetType, origin: "local" | "remote" = "local", remotePreviewState = false) {
-    // TODO: 有个 "/api/snippet/removeSnippet" 看看能不能用上
     this.plugin.console.log("deleteSnippet", { id, snippetType, origin });
 
     if (!id || !snippetType) {

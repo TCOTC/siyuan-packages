@@ -1,13 +1,8 @@
 import type { BuildOptions } from "@jeffrey-chen/siyuan-kit";
 
 /**
- * 两个入口，两种格式：
- *   - 主线程 index：思源插件运行时，CommonJS
- *   - codecWorker：Web Worker，挂到全局名 `isqCodecWorker` 上
- *
- * Worker 里没有 `document`，无法用脚本注入的方式按需加载 chunk，
- * 因此把动态 import 内联进同一个文件——旧 webpack 用 `import-scripts`
- * 输出 `chunk/*.js` 绕开这个问题，这里不需要那份产物。
+ * 主线程入口用 cjs，Worker 用 iife 并挂到全局名 `isqCodecWorker`。
+ * Worker 里没有 document，无法按需加载 chunk，因此内联动态 import。
  */
 const options: BuildOptions = {
   passes: [

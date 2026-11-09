@@ -10,9 +10,6 @@ function buildSettingBlockAttrs(ctx: WidgetContext): Record<string, string> {
   return attrs;
 }
 
-/**
- * 将当前配置持久化到块属性
- */
 export async function persistSettings(ctx: WidgetContext): Promise<void> {
   await setBlockAttrs(ctx.widgetBlockId, buildSettingBlockAttrs(ctx));
 }

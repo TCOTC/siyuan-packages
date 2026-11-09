@@ -21,7 +21,6 @@ describe("seedFromSiyuanSystem", () => {
   });
 
   it("缺省字段以空串占位，保持分隔符数量一致", () => {
-    // 字段顺序：workspaceDir|platform|language|timeZone|memory|cores|deviceId|deviceName|devicePlatform
     expect(seedFromSiyuanSystem(undefined, {}).split("|")).toEqual(["", "", "", "", "", "", "", "", ""]);
     expect(seedFromSiyuanSystem({ workspaceDir: "w" }, {}).split("|")).toEqual(["w", "", "", "", "", "", "", "", ""]);
     expect(seedFromSiyuanSystem({ id: "d" }, { timeZone: "UTC" }).split("|")).toEqual(["", "", "", "UTC", "", "", "d", "", ""]);

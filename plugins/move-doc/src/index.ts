@@ -6,23 +6,18 @@ const STORAGE_NAME = "move-doc-config.json";
 /** 自定义排序模式，使 listDocsByPath 按自定义顺序返回，首个 / 末个文档即为真实首尾 */
 const SORT_MODE_CUSTOM = 6;
 
-/** 移动文档到目标子文档列表中的位置 */
 type MoveDocPosition = "follow" | "top" | "bottom";
 
-/** 相对锚点文档的排序位置，与 reorderDocs 的 position 取值一致 */
 type SortPosition = "before" | "after";
 
-/** 相对目标文档的位置 */
 type RelativeSortPosition = "above" | "below";
 
-/** 移动目标：笔记本，或该笔记本中的一个文档 */
+/** 目标文档路径同时是子文档列表的 listPath；省略 docPath 时按笔记本根处理。 */
 type MoveDocTarget = {
   notebookId: string;
-  /** 目标文档路径，同时也是其子文档列表的 listPath；省略时按笔记本根目录处理 */
   docPath?: string;
-  /** 目标文档 ID，目标列表为空时用于直接移动 */
+  /** 目标列表为空时用于直接移动 */
   docId?: string;
-  /** 目标子文档列表当前生效的排序方式 */
   listSortMode: number | undefined;
 };
 
@@ -55,7 +50,6 @@ export default class PluginSample extends Plugin {
     });
 
     this.setting.addItem({
-      // 移动文档之后展开文档树
       title: i18n.expandDocTreeAfterMoveDoc,
       direction: "column",
       createActionElement: () => {
@@ -69,7 +63,6 @@ export default class PluginSample extends Plugin {
     });
 
     this.setting.addItem({
-      // 移动文档到目标位置的子文档列表中的位置
       title: i18n.moveDocPosition,
       description: i18n.moveDocPositionDesc,
       direction: "column",
@@ -119,7 +112,6 @@ export default class PluginSample extends Plugin {
 
     const currentDoc = this.getCurrentDoc();
     if (!currentDoc) {
-      // 当前文档不存在
       return;
     }
 
@@ -135,11 +127,9 @@ export default class PluginSample extends Plugin {
         return;
       }
       if (targetDocId === currentDoc.id) {
-        // 排除当前文档
         return;
       }
       if (targetDocPath.includes(currentDoc.id)) {
-        // 排除子文档
         return;
       }
 
@@ -177,7 +167,6 @@ export default class PluginSample extends Plugin {
 
       const isParent = currentDoc.path.slice(-48).includes(targetDocId);
       if (!isParent) {
-        // 移动为该文档的子文档（排除父文档：已在其下时移动无效）
         menu.addItem({
           id: "move-doc_to-this-doc",
           icon: "iconMove",
@@ -213,7 +202,6 @@ export default class PluginSample extends Plugin {
     }
   };
 
-  /** 移动为子文档，并按配置调整排序 */
   moveDocAsChild = async (fromID: string, target: MoveDocTarget): Promise<void> => {
     const moved = await this.placeDocInList(fromID, target.notebookId, target.docPath ?? "/", target.docId ?? target.notebookId, target.listSortMode);
     if (moved) {
@@ -221,7 +209,6 @@ export default class PluginSample extends Plugin {
     }
   };
 
-  /** 移动到目标文档所在层级，并按配置调整排序 */
   moveDocToSameLevel = async (fromID: string, targetDocPath: string, targetNotebookId: string, listSortMode: number | undefined): Promise<void> => {
     const parentListPath = this.getParentListPath(targetDocPath);
     const parentId = this.getParentTargetId(targetDocPath, targetNotebookId);
@@ -231,7 +218,6 @@ export default class PluginSample extends Plugin {
     }
   };
 
-  /** 移动到目标文档的上方或下方，仅在目标层使用自定义排序时提供 */
   moveDocBeside = async (fromID: string, targetDocId: string, position: RelativeSortPosition): Promise<void> => {
     const moved = await this.reorderDocs([fromID], targetDocId, position === "above" ? "before" : "after");
     if (moved) {
@@ -239,10 +225,7 @@ export default class PluginSample extends Plugin {
     }
   };
 
-  /**
-   * 把文档移入目标列表。列表已使用自定义排序时按设置放到开头或末尾，
-   * 其他排序规则下位置由规则决定，只移动、不改动排序方式。
-   */
+  /** 目标列表为空时直接移动；已在目标位置时无需调整。 */
   placeDocInList = async (fromID: string, notebookId: string, listPath: string, fallbackTargetId: string, listSortMode: number | undefined): Promise<boolean> => {
     if (listSortMode !== SORT_MODE_CUSTOM) {
       return await this.moveDocByID(fromID, fallbackTargetId);
@@ -254,11 +237,9 @@ export default class PluginSample extends Plugin {
       return false;
     }
     if (!anchor.anchorId) {
-      // 目标列表为空，开头与末尾没有差别，直接移动
       return await this.moveDocByID(fromID, fallbackTargetId);
     }
     if (anchor.anchorId === fromID) {
-      // 已在目标位置，无需调整
       return true;
     }
     return await this.reorderDocs([fromID], anchor.anchorId, placeAtTop ? "before" : "after");
@@ -271,7 +252,6 @@ export default class PluginSample extends Plugin {
     }
   };
 
-  /** 将文档移动到目标文档或笔记本下 */
   moveDocByID = async (fromID: string, toID: string): Promise<boolean> => {
     const res = await fetchSyncPost("/api/filetree/moveDocsByID", {
       fromIDs: [fromID],
@@ -284,7 +264,6 @@ export default class PluginSample extends Plugin {
     return true;
   };
 
-  /** 是否将移动后的文档放到目标列表开头 */
   shouldPlaceAtTop = (): boolean => {
     const position: MoveDocPosition = this.data[STORAGE_NAME].moveDocPosition ?? "follow";
     if (position === "top") {
@@ -297,7 +276,6 @@ export default class PluginSample extends Plugin {
     return !!window.siyuan.config.fileTree.createDocAtTop;
   };
 
-  /** 从文档路径得到 listDocsByPath 所需的父列表路径 */
   getParentListPath = (docPath: string): string => {
     const lastSlash = docPath.lastIndexOf("/");
     if (lastSlash <= 0) {
@@ -306,7 +284,6 @@ export default class PluginSample extends Plugin {
     return docPath.substring(0, lastSlash) + ".sy";
   };
 
-  /** 从文档路径得到其父文档 ID 或笔记本 ID（供 moveDocsByID 使用） */
   getParentTargetId = (docPath: string, notebookId: string): string => {
     const parentListPath = this.getParentListPath(docPath);
     if (parentListPath === "/") {
@@ -316,10 +293,7 @@ export default class PluginSample extends Plugin {
     return parentListPath.substring(parentListPath.lastIndexOf("/") + 1, parentListPath.length - 3);
   };
 
-  /**
-   * 一次调用完成移动与相对排序，由内核按完整同级列表计算位置。
-   * 仅在目标列表已使用自定义排序时调用，不会改动排序方式。
-   */
+  /** 一次调用完成移动与相对排序；仅在目标列表已使用自定义排序时调用。 */
   reorderDocs = async (sourceIDs: string[], targetID: string, position: SortPosition): Promise<boolean> => {
     const res = await fetchSyncPost("/api/filetree/reorderDocs", {
       sourceIDs,
@@ -339,7 +313,6 @@ export default class PluginSample extends Plugin {
     return true;
   };
 
-  /** 取目标列表的第一个或最后一个文档作为排序锚点 */
   getChildAnchor = async (notebookId: string, listPath: string, first: boolean): Promise<ChildAnchor> => {
     const res = await fetchSyncPost("/api/filetree/listDocsByPath", {
       notebook: notebookId,

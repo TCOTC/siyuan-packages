@@ -1,7 +1,4 @@
-// 顶栏菜单 UI
-// 职责：代码片段管理器顶栏按钮的创建与点击打开、菜单的打开/绘制/事件委托（含键盘）、CSS/JS 切换、搜索、呼吸动画、
-// 菜单项生成与计数/选中/编辑按钮高亮、菜单位置、关闭回调（含自动重载界面联动）、拖拽排序（见 menu-drag-sort.ts）、
-// 以及菜单 + 对话框的全局键盘协调（Esc/Enter/方向键按 zIndex 与开合状态分发）。
+// 顶栏菜单：打开/绘制/事件委托/搜索/分组/拖拽排序，以及菜单与对话框的全局键盘协调。
 import { Menu, platformUtils } from "siyuan";
 import { escapeHtml, genSnippetSwitchHtml, getDialogKeyHandler, hideTooltip, htmlToElement, isInputElementActive, moveElementToTop, PLUGIN_NAME, showElementTooltip, SNIPPET_DIALOG_SELECTOR } from "../utils";
 import { filterSnippetsByKeyword, isSnippetsTypeEnabled, snippetTitle, sortSnippets } from "../domain/snippet";
@@ -10,24 +7,14 @@ import { MenuDragSort } from "./menu-drag-sort";
 import type PluginSnippets from "../index";
 import type { Snippet, SnippetType } from "../types";
 
-/** 菜单当前选中项类名（方向键/回车定位用） */
 const CURRENT_ITEM_CLASS = "b3-menu__item--current";
 
-/** 滚动定位菜单项到可视区的最大重试次数（布局未稳定/分组刚展开时逐帧重试，防止停在可视区外） */
+/** 布局未稳定/分组刚展开时逐帧重试，防止停在可视区外 */
 const SCROLL_TO_VISIBLE_MAX_RETRY = 8;
 
-/**
- * 顶栏菜单管理器
- * 菜单状态（menu/menuItems/呼吸标志）为本类内部状态，拖拽交互与拖拽状态见 MenuDragSort（src/ui/menu-drag-sort.ts）；
- * 展示配置（snippetSearchType/snippetSortType/snippetOptionClickBehavior/show* 等）收敛在插件 config 对象
- * （src/config/config.ts），经 plugin.config 类型化读取；业务动作调用 plugin.snippetManager/plugin.snippetsDialog 等模块方法。
- */
 export class SnippetsMenu {
   private readonly plugin: PluginSnippets;
 
-  /**
-   * 拖拽排序交互（桌面鼠标 + 移动端长按触摸，实现见 src/ui/menu-drag-sort.ts）
-   */
   private readonly dragSort: MenuDragSort;
 
   constructor(plugin: PluginSnippets) {
@@ -35,40 +22,21 @@ export class SnippetsMenu {
     this.dragSort = new MenuDragSort(this.plugin);
   }
 
-  /**
-   * 顶栏菜单对象（关闭后为 undefined；打开期间的调用点均先经 new Menu 赋值或守卫）
-   */
   menu: Menu | undefined;
 
-  /**
-   * 菜单列表容器 #commonMenu > .b3-menu__items
-   */
   menuItems!: HTMLElement;
 
-  /**
-   * 顶栏按钮元素（原插件实例字段迁入本类——仅菜单模块创建/读取/移除，属菜单专属 DOM）
-   */
-  // addTopBar 在移动端、独立窗口、图标无效时返回 undefined；这里保留 `!` 的
+  // addTopBar 在移动端、独立窗口、图标无效时返回 undefined；保留 `!` 的
   // definite assignment 语义（不生成 class field），只把类型写成可空
   private topBarElement!: HTMLElement | undefined;
 
-  /**
-   * 是否为触摸设备（原插件实例字段迁入本类——仅本类 genMenuSnippetsItems 使用，
-   * 构造时按设备能力一次性检测即可，无需经插件实例共享）
-   */
   private readonly isTouchDevice = "ontouchstart" in window && navigator.maxTouchPoints > 1;
 
-  /**
-   * 关闭菜单（供插件生命周期等在需要时主动关闭；Menu 关闭会触发关闭回调）
-   */
   close() {
     this.menu?.close();
   }
 
-  /**
-   * 注册顶栏按钮图标 symbol
-   * iconJcsm 供顶栏按钮与设置项按钮引用（svg use），注册一次即可，须先于 initTopBar 调用。
-   */
+  /** iconJcsm 供顶栏按钮与设置项按钮引用，须先于 initTopBar 调用。 */
   initIcons() {
     this.plugin.addIcons(`
             <symbol id="iconJcsm" viewBox="0 0 32 32">
@@ -79,20 +47,11 @@ export class SnippetsMenu {
         `);
   }
 
-  /**
-   * 通过命令名称获取用户自定义快捷键
-   * @param command 命令名称
-   * @returns 用户自定义快捷键
-   */
   private getCustomKeymapByCommand(command: string): string {
     return window.siyuan.config.keymap.plugin?.[PLUGIN_NAME]?.[command]?.custom || "";
   }
 
-  /**
-   * 初始化顶栏按钮
-   * 顶栏按钮即菜单入口，由插件生命周期在布局就绪时调用；按钮位置由思源顶栏的自由拖拽记忆决定，
-   * 这里不传 position（默认插入到顶栏右侧），实际位置与菜单展开方向在打开菜单时按按钮位置计算。
-   */
+  /** 不传 position：位置与展开方向在打开菜单时按按钮位置计算。 */
   async initTopBar() {
     const title = this.buildTitle(this.plugin.displayName, "openSnippetsManager");
     this.topBarElement = this.plugin.addTopBar({
@@ -104,37 +63,22 @@ export class SnippetsMenu {
     });
   }
 
-  /**
-   * 拼接带快捷键提示的标题（桌面端命令配置了快捷键时附加快捷键；移动端不显示）
-   * @param base 基础文案
-   * @param command 命令 langKey（用于查询用户自定义快捷键）
-   * @returns 完整标题
-   */
   private buildTitle(base: string, command: string): string {
     const keymap = this.getCustomKeymapByCommand(command);
     return !this.plugin.isMobile && keymap ? base + " " + platformUtils.updateHotkeyTip(keymap) : base;
   }
 
-  /**
-   * 顶栏按钮点击/命令回调：打开代码片段管理器
-   * 快捷键唤起菜单时，如果菜单已经打开，要先关闭再重新打开，所以直接执行就好，会自动关闭菜单再重开。
-   */
   async openSnippetsManager() {
     if (this.plugin.snippetsDialog.getAllModalElements().length > 0) return;
     await this.open();
   }
 
-  /**
-   * 打开顶栏菜单
-   */
   async open() {
     const menu = new Menu("PluginSnippets", () => {
-      // 此处会在菜单被关闭（this.menu.close();）时执行
       this.closeMenuCallback();
     });
     this.menu = menu;
 
-    // 如果菜单已存在，再次点击按钮就会移除菜单，此时直接返回
     if (menu.isOpen) {
       this.menu = undefined;
       if (!this.plugin.isMobile && this.topBarElement && this.topBarElement.matches(":hover")) {
@@ -193,8 +137,6 @@ export class SnippetsMenu {
 <span class="fn__space"></span>
 <input class="jcsm-switch jcsm-all-snippets-switch b3-switch fn__flex-center" type="checkbox">
         `;
-
-    // TODO功能: 加一个全局的 publishSwitch 开关，批量修改代码片段的 disabledInPublish 字段
 
     const radio = menuTop.querySelector(`[data-snippet-type="${this.plugin.snippetsType}"]`) as HTMLInputElement;
     radio.checked = true;
@@ -640,7 +582,6 @@ export class SnippetsMenu {
         } else if (buttonType === "edit") {
           // 编辑代码片段，打开编辑对话框
           void this.plugin.snippetsDialog.openEditDialog(snippet);
-          // TODO自定义页签: 编辑页签，等其他功能稳定之后再做
         } else if (buttonType === "delete") {
           // 删除代码片段
           this.plugin.snippetsDialog.openDeleteDialog(snippet.name, () => {

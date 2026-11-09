@@ -47,7 +47,6 @@ export function replaceWidgetWithList(ctx: WidgetContext, mergedItems: MergedIte
   widgetBlock.outerHTML = buildListHtml(parentDoc, mergedItems, widgetBlockId, useHashLinks);
 }
 
-/** 导出 PDF 预览页注入列表星号链接样式 */
 function addExportListStyle(parentDoc: Document): void {
   if (parentDoc.getElementById(EXPORT_LIST_STYLE_ID)) {
     // 同页多挂件时只插入一次

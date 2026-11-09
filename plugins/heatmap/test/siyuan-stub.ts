@@ -1,9 +1,6 @@
 /**
- * `siyuan` 模块的最小运行时替身。
- *
- * 该包只发布类型声明，没有可执行的 JS；测试通过 vitest 的 alias 指到这里。
- * 状态挂在 globalThis 上，是因为原仓库的单测就是靠 `__heatmapSiyuanStub`
- * 在各用例之间替换 `fetchSyncPost` 的实现，这里保持同一套约定。
+ * `siyuan` 模块的最小运行时替身：该包只发布类型声明，测试通过 alias 指到这里。
+ * 状态挂在 globalThis 上，便于用例之间替换 fetchSyncPost。
  */
 
 export type FetchSyncPost = (url: string, data: { stmt: string }) => Promise<{ code: number; msg: string; data: unknown }>;

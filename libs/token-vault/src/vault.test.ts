@@ -34,7 +34,6 @@ describe("createTokenVault", () => {
     const storage = createMemoryStorage();
     const vault = createTokenVault({ seed, storage });
     const payload = await vault.saveToken("ghp_secret");
-    // 落盘的是密文，不含明文
     expect(storage.store.get(await vault.fileName())).toBe(payload);
     expect(payload).not.toContain("ghp_secret");
     expect(vault.cachedToken).toBe("ghp_secret");
@@ -78,16 +77,15 @@ describe("createTokenVault", () => {
     expect(await vault.hasStoredToken()).toBe(false);
     expect(await vault.loadToken()).toBeNull();
 
-    // 已保存（密文存在）
     await vault.saveToken("ghp_secret");
     expect(await vault.hasStoredToken()).toBe(true);
 
-    // 密文文件被损坏/篡改：hasStoredToken 仍为 true（文件有内容），loadToken 为 null
+    // 密文损坏时文件仍有内容，loadToken 才返回 null
     storage.store.set(await vault.fileName(), "v1.!!!.xx.yy");
     expect(await vault.hasStoredToken()).toBe(true);
     expect(await vault.loadToken()).toBeNull();
 
-    // 换 seed（换设备/工作空间语义）：文件名随之不同 → 找不到文件 → 与从未保存一致
+    // 换 seed 后文件名随之不同，与从未保存一致
     const vaultB = createTokenVault({ seed: "other|seed", storage });
     expect(await vaultB.hasStoredToken()).toBe(false);
     expect(await vaultB.loadToken()).toBeNull();

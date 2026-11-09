@@ -10,23 +10,18 @@ export default class ExitConfirm extends Plugin {
   private boundKeyDownHandler: (event: KeyboardEvent) => void;
 
   override onload() {
-    // 获取后端平台信息
     this.backend = getBackend();
-    // 根据平台绑定不同的处理函数
     if (this.backend === "windows") {
       this.boundKeyDownHandler = this.handleKeyDownWindows.bind(this);
     } else if (this.backend === "darwin") {
       this.boundKeyDownHandler = this.handleKeyDownMac.bind(this);
     }
-    // 监听键盘事件，拦截退出快捷键
     document.addEventListener("keydown", this.boundKeyDownHandler, true);
     console.log(this.displayName, "plugin loaded");
   }
 
   override onunload() {
-    // 移除事件监听器
     document.removeEventListener("keydown", this.boundKeyDownHandler, true);
-    // 清理对话框
     if (this.exitDialog) {
       this.exitDialog.destroy();
     }
@@ -34,8 +29,7 @@ export default class ExitConfirm extends Plugin {
   }
 
   private handleKeyDownWindows(event: KeyboardEvent) {
-    // Windows 退出: Alt + F4 / Alt + Shift + F4
-    // 不会退出：Ctrl + Alt + F4
+    // Windows 退出：Alt + F4 / Alt + Shift + F4；Ctrl + Alt + F4 不退出
     if (event.key === "F4" && event.altKey && !event.ctrlKey) {
       event.preventDefault();
       event.stopPropagation();
@@ -48,8 +42,7 @@ export default class ExitConfirm extends Plugin {
   }
 
   private handleKeyDownMac(event: KeyboardEvent) {
-    // macOS 退出: Command + Q / Command + Option + Q
-    // 使用 code 判断物理按键，因为 Option 键会改变 key 的值（如 Option+Q 变成 "œ"）
+    // 用 code 判断物理按键：Option 会改变 key 的值（如 Option+Q 变成 "œ"）
     if (event.code === "KeyQ" && event.metaKey) {
       event.preventDefault();
       event.stopPropagation();
@@ -62,12 +55,10 @@ export default class ExitConfirm extends Plugin {
   }
 
   private showExitConfirmDialog(event: KeyboardEvent) {
-    // 如果对话框已经打开，则不再重复打开
     if (this.exitDialog) {
       return;
     }
 
-    // 根据实际按键组合生成快捷键文本
     let shortcutText = "";
     if (this.backend === "windows") {
       const parts: string[] = [];
@@ -83,10 +74,8 @@ export default class ExitConfirm extends Plugin {
       shortcutText = parts.join("+");
     }
 
-    // 替换提示文本中的快捷键占位符
     const contentText = this.i18n.exitConfirmContent.replace("{shortcut}", shortcutText);
 
-    // 监听键盘事件的处理函数
     let handleDialogKeyDown: (e: KeyboardEvent) => void;
 
     const dialog = new Dialog({
@@ -103,7 +92,6 @@ export default class ExitConfirm extends Plugin {
 </div>`,
       hideCloseIcon: true,
       destroyCallback: () => {
-        // 对话框销毁时清理事件监听器
         if (handleDialogKeyDown) {
           dialog.element.removeEventListener("keydown", handleDialogKeyDown, true);
         }
@@ -116,35 +104,28 @@ export default class ExitConfirm extends Plugin {
     const cancelBtn = dialog.element.querySelector("#exit-cancel-btn") as HTMLButtonElement;
     const confirmBtn = dialog.element.querySelector("#exit-confirm-btn") as HTMLButtonElement;
 
-    // 取消按钮点击事件
     cancelBtn.addEventListener("click", () => {
       dialog.destroy();
     });
 
-    // 确认按钮点击事件
     confirmBtn.addEventListener("click", () => {
       this.confirmExit();
     });
 
-    // 监听键盘事件
     handleDialogKeyDown = (e: KeyboardEvent) => {
-      // Esc 键取消退出
       if (e.key === "Escape") {
         e.preventDefault();
         e.stopPropagation();
         dialog.destroy();
       }
-      // Enter 键：根据当前焦点决定行为
+      // Enter：按当前焦点决定确认还是取消
       else if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
         e.preventDefault();
         e.stopPropagation();
-        // 检查当前焦点在哪个按钮上
         const activeElement = document.activeElement;
         if (activeElement === cancelBtn) {
-          // 焦点在取消按钮上，执行取消
           dialog.destroy();
         } else {
-          // 焦点在确认按钮上或其他位置，执行确认退出
           this.confirmExit();
         }
       }
@@ -152,12 +133,10 @@ export default class ExitConfirm extends Plugin {
 
     dialog.element.addEventListener("keydown", handleDialogKeyDown, true);
 
-    // 聚焦到确认按钮
     confirmBtn.focus();
   }
 
   private confirmExit() {
-    // 移除事件监听器，防止重复处理
     document.removeEventListener("keydown", this.boundKeyDownHandler, true);
     if (this.exitDialog) {
       this.exitDialog.destroy();

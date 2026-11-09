@@ -77,7 +77,7 @@ async function runBuild(root: string, dev: boolean, rest: string[]): Promise<voi
   const repoRoot = findRepoRoot(pkg.root);
   const config = loadWorkspaceConfig(repoRoot);
 
-  // dev 才能同步进工作空间；没有配置就只构建、并明确提示
+  // dev 才能同步进工作空间；没有配置就只构建
   let sync: ((outDir: string) => void) | undefined;
   if (dev) {
     if (config) {
@@ -92,7 +92,7 @@ async function runBuild(root: string, dev: boolean, rest: string[]): Promise<voi
 
   const current = plan(pkg, options, dev, sync);
 
-  // 产物目录在 <仓库>/dist/ 下，源码和产物完全分离，构建前可以放心清空
+  // 产物目录在 <仓库>/dist/ 下，源码与产物分离，构建前可以放心清空
   cleanOutput(current.outDir);
 
   for (const step of current.steps) {
@@ -104,8 +104,6 @@ async function runBuild(root: string, dev: boolean, rest: string[]): Promise<voi
 
   copyAssets(pkg, current.outDir);
 
-  // `copy` 是约定之外的静态资源（字体、wasm）：清单、README、图标、i18n 之外的
-  // 大文件都靠它，条数与体积都不适合塞进 preset。
   if (options.copy && options.copy.length > 0) {
     copyExtras(pkg, options.copy, current.outDir);
   }
@@ -130,12 +128,7 @@ async function runStep(step: BuildStep): Promise<void> {
   await runSassStep(step);
 }
 
-/**
- * 校验仓库里所有包是否遵守统一契约。
- *
- * 只报告不修复：修复一定涉及「这个包到底该不该有这份配置」的判断，
- * 写进 README 的规则不如写成一条会变红的检查。
- */
+/** 校验仓库里所有包是否遵守统一契约。只报告，不修复。 */
 function runCheck(repoRoot: string): void {
   const { packages, issues } = checkWorkspace(repoRoot);
 
@@ -151,10 +144,7 @@ function runCheck(repoRoot: string): void {
 }
 
 /**
- * 读取可选的 build.config.ts。
- *
- * 用动态 import 而不是自己解析：文件就是普通 TS，Node 24 原生剥离类型后可直接加载，
- * 不需要为 kit 先编一遍再跑。
+ * 读取可选的 build.config.ts。用动态 import：Node 24 能直接加载 TS，无需预编译。
  */
 async function loadOptions(root: string): Promise<BuildOptions> {
   const file = join(root, "build.config.ts");

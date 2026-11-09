@@ -1,19 +1,3 @@
-// mark        标记
-// strong      粗体
-// tag         标签
-// em          斜体
-// u           下划线
-// s           删除线
-// inline-memo 备注
-// a           超链接
-// block-ref   块引用
-// code        行级代码
-// inline-math 行级公式
-// sup         上标
-// sub         下标
-// kbd         键盘
-
-/** 简体中文文案 */
 export const zhCN = {
   "text-mark": "标记",
   "text-strong": "粗体",

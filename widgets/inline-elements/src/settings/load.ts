@@ -4,13 +4,9 @@ import { sleep } from "../util";
 import { persistSettings } from "./persist";
 import { SETTING_ATTR_DEFS, SETTING_KEYS, loadSettingAttr } from "./settingAttrs";
 
-/**
- * 从块属性加载挂件配置
- */
 export function loadSettings(ctx: WidgetContext): void {
   const { widgetBlock, settings, mode } = ctx;
   let needsPersistDefaults = false;
-  // 加载挂件配置
   for (const key of SETTING_KEYS) {
     const def = SETTING_ATTR_DEFS[key];
     const raw = widgetBlock.getAttribute(WIDGET_ATTR_PREFIX + def.attrName);

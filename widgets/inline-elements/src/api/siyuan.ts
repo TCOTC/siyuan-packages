@@ -1,11 +1,8 @@
 import { WIDGET_ATTR_PREFIX } from "../util";
 
-/**
- * 设置块属性（用于保存挂件块配置）
- */
 export async function setBlockAttrs(blockId: string | null, attrs: Record<string, string>) {
   if (window.parent.siyuan.isPublish) {
-    // 发布服务，不写入数据
+    // 发布服务不写入数据
     return;
   }
   if (!blockId) {
@@ -46,11 +43,6 @@ export async function setBlockAttrs(blockId: string | null, attrs: Record<string
   }
 }
 
-/**
- * 执行 SQL 查询
- * @param sql SQL 语句
- * @returns 查询结果
- */
 export async function querySQL(sql: string) {
   try {
     const response = await fetch("/api/query/sql", {
@@ -66,7 +58,7 @@ export async function querySQL(sql: string) {
     const result = await response.json();
 
     if (result.code === 0) {
-      return result.data; // 返回查询结果
+      return result.data;
     } else {
       throw new Error(result.msg);
     }
@@ -76,12 +68,6 @@ export async function querySQL(sql: string) {
   }
 }
 
-/**
- * 获取块 DOM
- * @param blockId 块 ID
- * @param withEmbed 是否展开嵌入块内容
- * @returns 块 DOM
- */
 export async function getBlockDOM(blockId: string, withEmbed: boolean) {
   const api = withEmbed ? "/api/block/getBlockDOMWithEmbed" : "/api/block/getBlockDOM";
   try {

@@ -8,12 +8,8 @@ import { findRepoRoot, type ResolvedPackage } from "./resolve.ts";
 import type { SassStep } from "./sass.ts";
 
 /**
- * 一次构建要执行的最小单元。
- *
- * kit 统一的是「契约 + 产物」，不是「所有包共用同一个打包器」：
- *   - 需要打包的形态（插件、挂件）走 vite
- *   - 纯 CSS 形态（主题）直接交给 sass 编译，不必为了让工具统一而套一层 vite
- * 两种 runner 产出的东西都落到同一个地方（dist/<name>/），后续的复制与打包完全一致。
+ * 一次构建的最小单元。需要打包的形态走 vite，纯 CSS 形态直接交给 sass；
+ * 两种 runner 的产物都落到 dist/<name>/，后续复制与打包完全一致。
  */
 export type BuildStep = { runner: "vite"; label: string; config: InlineConfig } | SassStep;
 
@@ -21,9 +17,8 @@ export interface Plan {
   pkg: ResolvedPackage;
   repoRoot: string;
   dev: boolean;
-  /** 产物目录：<repoRoot>/dist/<name>。绝不写进包目录，源码和产物完全分离。 */
+  /** 产物目录：<repoRoot>/dist/<name>。绝不写进包目录。 */
   outDir: string;
-  /** 发布用压缩包：<repoRoot>/dist/<name>.zip */
   zipPath: string;
   steps: BuildStep[];
   /** build 模式下是否产出 zip。 */
@@ -31,8 +26,7 @@ export interface Plan {
 }
 
 /**
- * @param onBundle 每次产物落盘后的回调，参数是产物目录（dev 模式下用来同步进思源工作空间）。
- *   vite 走插件钩子，所以 watch 每次重建都会触发。
+ * @param onBundle 每次产物落盘后的回调，参数是产物目录（dev 模式下用来同步工作空间）。
  */
 export function plan(pkg: ResolvedPackage, options: BuildOptions, dev: boolean, onBundle?: (outDir: string) => void): Plan {
   const repoRoot = findRepoRoot(pkg.root);

@@ -1,9 +1,6 @@
 import { markWidgetDocument } from "../util";
 import { isExportMode, isExportPDF, type RuntimeMode } from "../context/types";
 
-/**
- * 复制外部的主题样式到挂件块内部
- */
 export async function copyThemeStyle(htmlElement: HTMLElement, mode: RuntimeMode): Promise<void> {
   // 复制属性，因为主题的样式选择器依赖这些属性
   syncElementAttributes(htmlElement, document.documentElement);
@@ -37,7 +34,6 @@ export async function copyThemeStyle(htmlElement: HTMLElement, mode: RuntimeMode
 
 /** 将 source 上的属性同步到 target，并移除 target 上多余的属性 */
 function syncElementAttributes(source: Element, target: Element): void {
-  // 获取所有属性
   const staleNames = new Set(target.getAttributeNames());
 
   for (const attr of source.attributes) {
@@ -47,7 +43,6 @@ function syncElementAttributes(source: Element, target: Element): void {
     staleNames.delete(attr.name);
   }
 
-  // 移除多余属性
   for (const name of staleNames) {
     target.removeAttribute(name);
   }
@@ -57,12 +52,10 @@ function syncElementAttributes(source: Element, target: Element): void {
 async function replaceStylesheetLink(id: string, externalElement: HTMLLinkElement | null, internalElement: HTMLLinkElement | null, mode: RuntimeMode): Promise<void> {
   const href = externalElement?.getAttribute("href");
   if (href) {
-    // 创建新的样式元素
     const newElement = document.createElement("link");
     newElement.rel = "stylesheet";
     newElement.type = "text/css";
 
-    // 插入新样式元素
     if (internalElement) {
       internalElement.parentNode?.insertBefore(newElement, internalElement);
     } else {
@@ -71,15 +64,12 @@ async function replaceStylesheetLink(id: string, externalElement: HTMLLinkElemen
 
     await loadStylesheet(newElement, resolveStylesheetHref(href, mode));
 
-    // 移除旧样式元素
     internalElement?.remove();
-    // 设置新样式元素的 ID
     newElement.id = id;
     return;
   }
 
   if (internalElement) {
-    // 如果没有对应的主题样式，挂件块内保持一致
     internalElement.href = "";
   }
 }

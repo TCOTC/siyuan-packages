@@ -17,9 +17,6 @@ export class TooltipHandler {
     }
   }
 
-  /**
-   * 初始化悬浮提示处理器
-   */
   public init(): void {
     this.getTooltipElement();
     if (!this.tooltipElement) {
@@ -30,9 +27,6 @@ export class TooltipHandler {
     this.plugin.eventBus.on("before-hide-tooltip", this.onBeforeHideTooltip);
   }
 
-  /**
-   * 销毁悬浮提示处理器
-   */
   public destroy(): void {
     this.plugin.eventBus.off("before-show-tooltip", this.onBeforeShowTooltip);
     this.plugin.eventBus.off("before-hide-tooltip", this.onBeforeHideTooltip);
@@ -42,9 +36,6 @@ export class TooltipHandler {
     this.tooltipElement = null;
   }
 
-  /**
-   * tooltip 即将显示：按触发元素写入属性
-   */
   private onBeforeShowTooltip = (event: CustomEvent<IEventBusMap["before-show-tooltip"]>): void => {
     const { target, tooltipElement } = event.detail ?? {};
     if (tooltipElement instanceof HTMLElement) {
@@ -60,9 +51,7 @@ export class TooltipHandler {
     this.setTooltipData(this.classifyTooltip(target));
   };
 
-  /**
-   * tooltip 即将隐藏：左下角提示需保留 data-whisper-tooltip，供 CSS 淡出
-   */
+  /** 隐藏时不清空属性：href / tab_header 的淡出动画依赖它仍在。 */
   private onBeforeHideTooltip = (event: CustomEvent<IEventBusMap["before-hide-tooltip"]>): void => {
     const { tooltipElement } = event.detail ?? {};
     if (tooltipElement instanceof HTMLElement) {
@@ -71,29 +60,20 @@ export class TooltipHandler {
     // 不在此处清空属性：href / tab_header 的淡出依赖属性仍在
   };
 
-  /**
-   * 根据触发元素判断 tooltip 类型
-   */
   private classifyTooltip(e: HTMLElement): string {
-    // 按照触发频率排序
-
-    // 文本超链接
+    // 按触发频率从高到低判断
     const href = e.getAttribute("data-href");
     if (href) {
-      // 资源文件链接
       if (isLocalPath(href)) {
         return "href_asset";
       }
-      // 普通链接
       return "href";
     }
 
-    // 页签
     if (e.closest('[data-type="tab-header"]')) {
       return "tab_header";
     }
 
-    // 数据库
     if (
       e.closest("[data-av-id]") // 数据库块、属性面板数据库选项卡
       || e.closest(".av__panel") // 数据库菜单：选项描述、资源字段条目
@@ -101,12 +81,11 @@ export class TooltipHandler {
       return "av";
     }
 
-    // 表情选择器上的表情、底部选项
     if (e.classList.contains("emojis__item") || e.classList.contains("emojis__type")) {
       return "emoji";
     }
 
-    // 块备注（角标）https://github.com/siyuan-note/siyuan/pull/16025
+    // 块备注角标 https://github.com/siyuan-note/siyuan/pull/16025
     if (e.closest(".protyle-attr--memo")) {
       return "block_memo";
     }
@@ -114,9 +93,6 @@ export class TooltipHandler {
     return "";
   }
 
-  /**
-   * 设置悬浮提示属性
-   */
   private setTooltipData(data: string): void {
     if (!this.tooltipElement) return;
 

@@ -3,11 +3,8 @@ import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /**
- * 基于 `kit/templates/plugin/` 生成一个新插件。
- *
- * 模板与生成器同处 kit，所以不新增顶层目录；它也不是 pnpm workspace 成员
- * （kit/tsconfig.json 的 include 只有 src/**\/*.ts），`pnpm -r build` 不会扫到它。
- * 生成器自己遍历：文本文件做占位符替换，图片等二进制文件原样复制。
+ * 基于 `kit/templates/plugin/` 生成新插件。
+ * 模板不是 pnpm workspace 成员，生成器自己遍历：文本替换占位符，二进制原样复制。
  */
 
 /** 模板里可以用到的占位符。新增时记得同步 kit/templates/README.md。 */
@@ -31,7 +28,6 @@ const TEXT_EXTENSIONS = new Set([".json", ".md", ".scss", ".ts"]);
 
 const FLAGS = new Set(["display-name", "zh-name", "description", "zh-description", "author", "url"]);
 
-/** 解析 `create` 子命令的参数，返回模板要用的全部取值。 */
 export function parseCreateArgs(args: string[]): TemplateValues {
   const positional: string[] = [];
   const flags = new Map<string, string>();
@@ -83,7 +79,6 @@ export function parseCreateArgs(args: string[]): TemplateValues {
   };
 }
 
-/** 在 `plugins/<name>/` 下生成插件，返回目标目录的绝对路径。 */
 export function createPlugin(repoRoot: string, values: TemplateValues): string {
   const templateDir = templateDirectory();
   if (!existsSync(templateDir)) {
@@ -100,10 +95,7 @@ export function createPlugin(repoRoot: string, values: TemplateValues): string {
 }
 
 /**
- * 模板目录 = `kit/templates/<kind>`。
- *
- * 按模块自身位置推导，而不是从仓库根拼：kit 的源码本身就是入口
- * （`exports` 指向 `src/index.ts`），所以这里能拿到 `<repo>/kit/src/create.ts`。
+ * 模板目录 = `kit/templates/<kind>`，按模块自身位置推导，不依赖仓库根。
  */
 function templateDirectory(): string {
   return join(dirname(fileURLToPath(import.meta.url)), "..", "templates", TEMPLATE_KIND);
@@ -135,10 +127,8 @@ function isTextFile(fileName: string): boolean {
 
 /**
  * 一次性替换全部占位符。
- *
- * 用 replace 的回调而不是逐个 replaceAll：替换进来的值即使包含 `{{...}}`
- * 也不会被再展开一遍。遇到未定义的占位符直接报错，避免模板拼写错误
- * 悄悄留在生成的包里。
+ * 用 replace 的回调而不是逐个 replaceAll：替换值里的 `{{...}}` 不会被再展开；
+ * 未定义的占位符直接报错，避免模板拼写错误留在生成的包里。
  */
 function render(content: string, values: TemplateValues): string {
   // 模板文件名是任意的，这里按字符串键取值（类型别名才有隐式索引签名）
@@ -152,7 +142,6 @@ function render(content: string, values: TemplateValues): string {
   });
 }
 
-/** `my-plugin` → `My Plugin`，作为 displayName 的默认值。 */
 function toTitleCase(name: string): string {
   return name
     .split("-")

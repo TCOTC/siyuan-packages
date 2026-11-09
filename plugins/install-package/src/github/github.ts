@@ -409,7 +409,7 @@ export function packageZipCreatedAt(assets: GitHubRelease["assets"]): string {
   return zip && typeof zip.created_at === "string" ? zip.created_at : "";
 }
 
-// TODO 包名不一定等于仓库名
+// 包名不一定等于仓库名
 /** 从下载 URL 中提取包名（仓库名）；没有匹配时返回 null */
 export function extractPackageNameFromUrl(url: string): string | null {
   const match = url.match(/github\.com\/[^/]+\/([^/]+)/);

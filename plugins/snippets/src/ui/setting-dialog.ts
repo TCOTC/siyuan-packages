@@ -242,7 +242,6 @@ export class SettingDialog {
           event.stopPropagation();
           handleGistTokenAction(this.plugin, action, target);
         }
-        // TODO功能: 移动端的导出导入
       }
     };
 

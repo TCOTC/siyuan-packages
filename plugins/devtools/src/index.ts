@@ -5,15 +5,12 @@ import "./index.scss";
 
 const STORAGE_NAME = "config.json";
 
-/** 工作区文件 API 中的插件目录 */
 const PLUGIN_DIR_API_PATH = "/data/plugins";
-/** 工作区文件 API 中的插件存储目录 */
 const PLUGIN_STORAGE_DIR_API_PATH = "/data/storage/petal";
 
 /** 日志与网络记录默认上限为 1000，这里加倍 */
 const VCONSOLE_MAX_ITEM_NUMBER = 2000;
 
-/** 顶栏按钮稳定 id，供 addTopBar / removeTopBar 使用 */
 const TOP_BAR_ID = {
   desktop: "desktop",
   reloadUI: "reloadUI",
@@ -39,7 +36,6 @@ const DEFAULT_CONFIG: PluginConfig = {
 const FEATURE_KEYS: FeatureKey[] = ["reloadUI", "openPluginDir", "openPluginStorageDir", "toggleDevTools"];
 
 let vConsoleInstance: VConsole | undefined;
-/** 右下角绿色开关按钮是否可见 */
 let vConsoleSwitchVisible = false;
 
 const isMobileFrontend = () => {

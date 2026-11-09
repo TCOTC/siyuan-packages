@@ -2,7 +2,6 @@ import { escapeHtml } from "../util";
 import type { MergedItem, WidgetContext } from "../context/types";
 import { getMergedItems, renewBlockIdSuffix } from "./renderList";
 
-/** 导出 HTML 预览：解析汇总项后将 iframe 挂件块替换为 typography 无序列表 */
 export async function genListPreview(ctx: WidgetContext): Promise<void> {
   const items = await getMergedItems(ctx);
   replaceWidgetWithPreviewList(ctx, items);

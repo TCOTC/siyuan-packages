@@ -29,7 +29,6 @@ export class SnippetsDialog {
    */
   private genEditDialogHtml(snippet: Snippet, confirmText: string = this.plugin.i18n.save): string {
     const showPublishCheckbox = this.plugin.menuView.isShowPublishCheckbox();
-    // TODO功能: 在删除按钮左边加一个创建副本按钮（始终显示），点击之后创建副本（不直接保存，是新建的代码片段，需要手动点击保存按钮）并且打开编辑对话框
     return `
 <div class="jcsm-dialog">
     <div class="jcsm-dialog-header resize__move"></div>
@@ -571,7 +570,6 @@ export class SnippetsDialog {
    * @param confirm 确认删除回调
    */
   openDeleteDialog(snippetName: string, confirm?: () => void) {
-    // TODO功能: 实现了代码片段回收站之后，增加一个“不再提示”按钮，点击之后修改配置项、弹出消息说明可以在插件设置中开关
     this.openConfirm(this.plugin.i18n.deleteConfirm, this.plugin.i18n.deleteConfirmDescription.replace("${x}", snippetName ? " <b>" + snippetName + "</b> " : ""), "jcsm-snippet-delete", undefined, this.plugin.i18n.delete, confirm);
 
     // 不需要移除菜单上的 b3-menu__item--current，方便判断点击的是哪个代码片段
@@ -823,13 +821,9 @@ export class SnippetsDialog {
    * 遍历所有打开的代码片段编辑对话框，存在未保存变更时弹确认框二次确认后再请求重载界面。
    */
   reloadUI() {
-    // 方案1：获取界面上所有打开的代码片段编辑对话框，判断是否存在未保存的变更，如果有的话需要弹窗确认再重载界面
-    // 先用方案 1 顶顶，之后看看能不能实现方案 2
-    // TODO: 方案2：获取界面上所有打开的代码片段编辑对话框（包括相关内联样式），重载界面之后恢复对话框的位置、大小、内容...
+    // 先用方案 1：判断已打开对话框是否有未保存变更，有则确认后重载。
 
-    // 获取所有打开的代码片段编辑对话框
     const dialogs = document.querySelectorAll(SNIPPET_DIALOG_SELECTOR);
-    // 判断是否存在未保存的变更
     let needConfirm = false;
     for (let i = 0; i < dialogs.length; i++) {
       const dialog = dialogs[i] as HTMLElement;

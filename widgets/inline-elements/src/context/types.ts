@@ -31,17 +31,14 @@ export interface MergedItem {
   blockId: string;
 }
 
-/** 是否是导出图片/PDF模式 */
 export function isExportMode(mode: RuntimeMode): boolean {
   return mode === "export-img" || mode === "export-pdf";
 }
 
-/** 是否是导出预览模式 */
 export function isPreviewMode(mode: RuntimeMode): boolean {
   return mode === "preview";
 }
 
-/** 是否是导出 PDF 模式 */
 export function isExportPDF(mode: RuntimeMode): boolean {
   return mode === "export-pdf";
 }

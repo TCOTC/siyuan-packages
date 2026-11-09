@@ -49,9 +49,7 @@ function getMergeGap(last: Element, current: Element): string | null {
   return null;
 }
 
-/**
- * 异步遍历、相邻合并、时间片让出主线程
- */
+/** 异步遍历、相邻合并、时间片让出主线程。 */
 export async function extractItems(docHTML: string, ctx: WidgetContext): Promise<MergedItem[]> {
   const parser = new DOMParser();
   const doc = parser.parseFromString(docHTML, "text/html");
@@ -86,7 +84,6 @@ export async function extractItems(docHTML: string, ctx: WidgetContext): Promise
     if (visitedCount % PERF_CHECK_INTERVAL === 0) {
       const now = performance.now();
       if (now - parseStartTime >= MAX_PARSE_MS) {
-        // 超时后返回已解析的部分结果
         console.warn(`inline-elements widget: Reached the maximum parsing time (${MAX_PARSE_MS}ms), ` + `stopping after ${processedCount} elements`);
         break;
       }
@@ -102,14 +99,11 @@ export async function extractItems(docHTML: string, ctx: WidgetContext): Promise
       if (blockId) {
         const gap = lastElement ? getMergeGap(lastElement, element) : null;
         if (gap === null) {
-          // 保存上一个项（如果存在）
           if (currentItem) {
             mergedItems.push(currentItem);
           }
-          // 开始新项
           currentItem = { text, blockId };
         } else {
-          // 如果相邻，则合并文本
           currentItem!.text += gap + text;
         }
 
@@ -119,66 +113,9 @@ export async function extractItems(docHTML: string, ctx: WidgetContext): Promise
     }
   }
 
-  // 添加最后一个项
   if (currentItem) {
     mergedItems.push(currentItem);
   }
 
   return mergedItems;
 }
-
-// 旧实现（TreeWalker，仅作参考）：
-// 遍历 body 下所有元素，在 acceptNode 中过滤 SPAN；约 20KB / 198 个 mark 时仅收集阶段约慢 16×。
-//
-// const walker = doc.createTreeWalker(
-//   doc.body,
-//   NodeFilter.SHOW_ELEMENT,
-//   {
-//     acceptNode: function (node: Node) {
-//       if ((node as Element).tagName === "SPAN") {
-//         const dataType = (node as Element).getAttribute("data-type");
-//         if (dataType && dataType.split(" ").includes(filterType)) {
-//           return NodeFilter.FILTER_ACCEPT;
-//         }
-//       }
-//       return NodeFilter.FILTER_SKIP;
-//     },
-//   }
-// );
-//
-// let element: Element | null;
-// while ((element = walker.nextNode() as Element)) {
-//   visitedCount++;
-//   if (visitedCount % PERF_CHECK_INTERVAL === 0) {
-//     const now = performance.now();
-//     if (now - parseStartTime >= MAX_PARSE_MS) {
-//       console.warn(
-//         `inline-elements widget: Reached the maximum parsing time (${MAX_PARSE_MS}ms), ` +
-//         `stopping after ${processedCount} elements`
-//       );
-//       break;
-//     }
-//     if (now - sliceStartTime >= TIME_SLICE_MS) {
-//       await sleep();
-//       sliceStartTime = performance.now();
-//     }
-//   }
-//
-//   const text = getSpanText(element);
-//   if (text) {
-//     const blockId = getBlockId(element);
-//     if (blockId) {
-//       const gap = lastElement ? getMergeGap(lastElement, element) : null;
-//       if (gap === null) {
-//         if (currentItem) {
-//           mergedItems.push(currentItem);
-//         }
-//         currentItem = { text, blockId };
-//       } else {
-//         currentItem!.text += gap + text;
-//       }
-//       lastElement = element;
-//       processedCount++;
-//     }
-//   }
-// }

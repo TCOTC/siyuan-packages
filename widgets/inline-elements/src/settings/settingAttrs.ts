@@ -30,12 +30,10 @@ export type SettingAttrDefMap = {
 // kbd         键盘       <span data-type="kbd">&ZeroWidthSpace;text</span>
 
 export const SETTING_ATTR_DEFS = {
-  // 当前选中的内联元素类型，默认为 "mark"（标记）
   filterType: {
     attrName: "filter-type",
     options: ["mark", "strong", "tag", "em", "u", "s", "inline-memo", "a", "block-ref", "code", "inline-math", "sup", "sub", "kbd"] as const,
   },
-  // 控制是否包含嵌入块内容的标志位，默认为 false（不包含）
   isEmbedBlocks: {
     attrName: "embed-blocks",
     options: [false, true] as const,
@@ -44,7 +42,6 @@ export const SETTING_ATTR_DEFS = {
 
 export const SETTING_KEYS = Object.keys(SETTING_ATTR_DEFS) as SettingKey[];
 
-/** 将配置项值序列化为块属性 / 控件 option 字符串 */
 export function settingToAttrValue(value: WidgetSettings[SettingKey]): string {
   if (typeof value === "boolean") {
     return value ? "true" : "false";
@@ -66,7 +63,6 @@ function resolveSetting<K extends SettingKey>(key: K, raw: string | null | undef
   return { value: defaultValue, valid: false };
 }
 
-/** 从块属性 / 控件字符串解析配置项值 */
 export function attrValueToSetting<K extends SettingKey>(key: K, raw: string): WidgetSettings[K] {
   return resolveSetting(key, raw).value;
 }

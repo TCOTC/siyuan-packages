@@ -1,7 +1,7 @@
 /* 鸿蒙黑体 SC + Twemoji
  *
- * 字体 url 一律写成 /plugins/... 的绝对路径：文件由 build.config.ts 的 copy 原样
- * 复制，vite 对这个形式既不做模块解析也不改写，产物与旧 webpack 的 url:false 一致。
+ * 字体 url 一律写成 /plugins/... 绝对路径：文件由 build.config.ts 的 copy 原样复制，
+ * vite 对这个形式既不做模块解析也不改写。
  */
 
 /* 基础字体 */

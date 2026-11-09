@@ -4,9 +4,7 @@ import { showError } from "../ui/message";
 import { copyThemeStyle } from "../theme/copyThemeStyle";
 import type { RuntimeMode, WidgetContext, WidgetSettings } from "./types";
 
-/**
- * 解析挂件块与 DOM；失败则渲染 error 并返回 null
- */
+/** 解析挂件块与 DOM；失败时渲染错误并返回 null。 */
 export async function createContext(): Promise<WidgetContext | null> {
   const { widgetBlock, widgetBlockId, hasValidBlockId } = resolveWidgetBlock();
 
@@ -42,9 +40,6 @@ export async function createContext(): Promise<WidgetContext | null> {
   return ctx;
 }
 
-/**
- * 从 iframe 向上查找挂件块并解析块 ID
- */
 function resolveWidgetBlock(): {
   widgetBlock: HTMLElement | null;
   widgetBlockId: string | null;
@@ -62,20 +57,15 @@ function resolveWidgetBlock(): {
   return { widgetBlock, widgetBlockId, hasValidBlockId };
 }
 
-/**
- * 从挂件块 DOM 判定运行模式
- */
 function detectMode(widgetBlock: Element): RuntimeMode {
   if (widgetBlock.closest(".export-img")) {
-    // 导出图片模式
     return "export-img";
   }
   if (widgetBlock.closest("#preview")) {
-    // 导出 PDF 模式
     return "export-pdf";
   }
+  // 导出预览：无 data-node-id，仅有 id（导出图片/PDF 时两者并存，已在上方优先判定）
   if (!widgetBlock.hasAttribute("data-node-id") && widgetBlock.hasAttribute("id")) {
-    // 导出预览模式：无 data-node-id，仅有 id（导出图片/PDF 时两者并存，已在上方优先判定）
     return "preview";
   }
   return "normal";

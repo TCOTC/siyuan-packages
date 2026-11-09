@@ -89,8 +89,6 @@ export function createEditorExtensions(theme: Extension, language: string, inden
     bracketMatching(),
     // 自动闭合括号
     closeBrackets(),
-    // 启用自动完成功能
-    // TODO考虑: 默认的补全关键词太少了，还不如没有。等之后再手工添加补全关键词
     // autocompletion(),
     // 启用矩形选择模式
     rectangularSelection(),

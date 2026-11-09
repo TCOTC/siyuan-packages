@@ -14,10 +14,7 @@ export function syncAttr(element: HTMLElement, name: string, value: string): voi
 }
 
 /**
- * 轮询等待 DOM 元素出现
- * @param selector 目标元素选择器
- * @param shouldAbort 每次重试前调用，若返回 true 则中止等待并返回 null（不计为超时）
- * @returns 找到的元素，超时或中止时返回 null
+ * 轮询等待元素出现；shouldAbort 返回 true 时中止并返回 null（不计为超时）。
  */
 export function waitForElement(selector: string, shouldAbort?: () => boolean): Promise<HTMLElement | null> {
   return new Promise((resolve) => {
@@ -36,31 +33,27 @@ export function waitForElement(selector: string, shouldAbort?: () => boolean): P
       }
 
       if (retryCount >= 50) {
-        // 最大重试 50 次
         resolve(null);
         return;
       }
 
       retryCount++;
-      setTimeout(tryFind, 100); // 间隔 100ms 重试
+      setTimeout(tryFind, 100);
     };
 
     tryFind();
   });
 }
 
-/** 判断是否为内核只读模式 */
 export function isReadOnly(): boolean {
   return !!window.siyuan.config?.readonly || !!window.siyuan.isPublish;
 }
 
-/** 判断是否为移动设备（手机） */
 export const isMobile = (): boolean => {
   const frontend = getFrontend();
   return frontend === "mobile" || frontend === "browser-mobile";
 };
 
-/** 判断是否为 iPad */
 export const isIPad = () => platformUtils.isIPad();
 
 /** 判断是否为触屏设备（安卓平板只能通过这个） */
@@ -73,7 +66,6 @@ export const isWindows = (): boolean => {
   return navigator.platform.toUpperCase().indexOf("WIN") > -1;
 };
 
-/** 判断是否为本地路径 */
 export const isLocalPath = (link: string) => {
   if (!link) {
     return false;

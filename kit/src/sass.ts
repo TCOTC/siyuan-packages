@@ -1,31 +1,22 @@
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 
-/**
- * sass 编译步骤。目前只有主题用它——主题的产物就是一份 CSS，
- * 不需要打包器（理由见 presets/theme.ts）。
- */
+/** sass 编译步骤，目前只有主题使用（主题产物就是一份 CSS，不需要打包器）。 */
 export interface SassStep {
   runner: "sass";
   label: string;
-  /** 入口文件，绝对路径。 */
   input: string;
-  /** 产物文件，绝对路径。 */
   output: string;
   style: "expanded" | "compressed";
   /** 开发模式下额外产出 `<output>.map`，并在 CSS 末尾写 sourceMappingURL。 */
   sourceMap?: boolean;
   /**
-   * 需要内联进 CSS 的图标目录，绝对路径。
-   *
-   * 主题的 `icons/` 只存在于源码里，产物里没有这个目录，
-   * 所以编译后要把 `url(.../<目录名>/x.svg)` 换成 data URI，
-   * 否则装到思源里图标会 404。
+   * 需要内联进 CSS 的图标目录。icons/ 不进产物，
+   * 编译后要把 url(.../<目录名>/x.svg) 换成 data URI，否则会 404。
    */
   iconDir?: string;
 }
 
-/** 编译 sass，按需内联图标与 sourcemap。 */
 export async function runSassStep(step: SassStep): Promise<void> {
   const { compileAsync } = await import("sass");
   const result = await compileAsync(step.input, {
@@ -47,7 +38,7 @@ export async function runSassStep(step: SassStep): Promise<void> {
   writeFileSync(step.output, css);
 }
 
-/** 递归收集目录下的全部 SVG，键是相对该目录的路径。 */
+/** 目录下全部 SVG，键为相对该目录的路径。 */
 function readIcons(dir: string): Map<string, string> {
   const icons = new Map<string, string>();
   const walk = (current: string, prefix: string): void => {
@@ -65,11 +56,8 @@ function readIcons(dir: string): Map<string, string> {
 }
 
 /**
- * 把指向图标目录的 `url()` 换成 data URI。
- *
- * 样式写在 `styles/modules/editor/` 这类深层 partial 里，url 会带若干层 `../`，
- * 而 sass 编译结果原样保留这些相对路径，所以按「若干层 ../ + 目录名/」匹配。
- * 找不到对应文件时不改写，留着让它在浏览器里显式 404——比静默丢掉 url 更容易发现。
+ * 把指向图标目录的 `url()` 换成 data URI。深层 partial 里的 url 带多层 `../`，
+ * 按「若干层 ../ + 目录名/」匹配；找不到文件则保留原 url，让它显式 404。
  */
 function inlineIcons(css: string, icons: Map<string, string>, dirName: string): string {
   const pattern = new RegExp(`url\\((['"]?)(?:\\.\\./)+${escapeRegExp(dirName)}/([^"')]+)\\1\\)`, "g");

@@ -1,13 +1,9 @@
 export const STORAGE_NAME = "config.json";
 
 export interface FlomoConfig {
-  /** 隐藏页签内的工具栏，让网页铺满页签 */
   immersiveTab: boolean;
-  /** 隐藏停靠栏内的工具栏，让网页铺满停靠栏 */
   immersiveDock: boolean;
-  /** 拦截编辑器中的 flomo 链接，用插件页签打开 */
   interceptEditorFlomoLinks: boolean;
-  /** 在工具栏显示开发者工具按钮 */
   showDevToolsButton: boolean;
 }
 

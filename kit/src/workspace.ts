@@ -3,10 +3,8 @@ import { basename, join, resolve } from "node:path";
 import { PLURAL_DIR, type ResolvedPackage } from "./resolve.ts";
 
 /**
- * 本机的思源工作空间路径。
- *
- * 这个文件是 gitignore 的：每台机器的工作空间目录都不一样，而且里面是别人的个人数据。
- * 仓库里只提交 siyuan.config.example.json 作为模板。
+ * 本机的思源工作空间路径（gitignore）：每台机器不同，且里面是个人数据。
+ * 仓库只提交 siyuan.config.example.json 作为模板。
  */
 export const CONFIG_FILE = "siyuan.config.json";
 
@@ -15,7 +13,6 @@ export interface WorkspaceConfig {
   workspace: string;
 }
 
-/** 工作空间里的数据目录：<workspace>/data */
 export function dataDir(config: WorkspaceConfig): string {
   return join(config.workspace, "data");
 }
@@ -46,17 +43,16 @@ export function loadWorkspaceConfig(repoRoot: string): WorkspaceConfig | undefin
   return { workspace };
 }
 
-/** 该包在思源工作空间里的安装目录：<workspace>/data/<plugins|themes|widgets>/<name> */
+/** <workspace>/data/<plugins|themes|widgets>/<name> */
 export function workspaceTarget(pkg: ResolvedPackage, config: WorkspaceConfig): string {
   return resolve(join(dataDir(config), PLURAL_DIR[pkg.kind], pkg.name));
 }
 
 /**
- * 把产物同步进思源工作空间，覆盖同名的已安装包。
+ * 把产物同步进思源工作空间。
  *
- * 这个操作会删掉目标目录里「产物里没有」的文件，所以必须先确认目标确实是本包：
- * 目录里得有对应清单、且清单里的 name 与本包一致。校验不过就拒绝动手，
- * 避免 workspace 配错时把别的插件目录清空。
+ * 会删掉目标目录里产物没有的文件，所以先确认目标确实是本包（清单存在且 name 一致），
+ * 避免 workspace 配错时清空别的包。
  */
 export function syncToWorkspace(pkg: ResolvedPackage, outDir: string, config: WorkspaceConfig): string {
   const target = workspaceTarget(pkg, config);
@@ -76,10 +72,7 @@ export function syncToWorkspace(pkg: ResolvedPackage, outDir: string, config: Wo
   return target;
 }
 
-/**
- * 把 from 的内容镜像到 to：新增的文件复制过去，内容有变化的覆盖，
- * 目标里多出来的条目删掉（否则改了文件名后旧产物会一直留在插件目录里）。
- */
+/** 把 from 镜像到 to：新增或覆盖，并删掉目标里多出来的条目。 */
 export function mirrorDirectory(from: string, to: string): void {
   if (!existsSync(from)) {
     throw new Error(`产物目录不存在：${from}`);

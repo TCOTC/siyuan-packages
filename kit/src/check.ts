@@ -3,24 +3,16 @@ import { basename, join } from "node:path";
 import { resolvePackage, THIRD_PARTY_NOTICES, type ResolvedPackage } from "./resolve.ts";
 
 /**
- * 仓库级的「契约门禁」。
- *
- * 这个命令存在的理由：README 里的约定只有人读，而人会忘。22 个包的目录名、
- * 清单 name、package.json name、脚本名、测试位置、配置白名单，任何一处漂移
- * 都应该在 CI 变红，而不是在半年后某次发版时才被发现。
- *
- * 只检查「构建阶段就能判定」的结构问题，不重复集市（bazaar）的清单校验，
- * 也不检查产物内容——那是构建自己的事。
+ * 仓库级契约门禁：把 README 里的约定变成 CI 会变红的检查。
+ * 只检查构建阶段能判定的结构问题，不重复集市校验，也不看产物内容。
  */
 
-/** 允许存在的 `{plugins,themes,widgets}/` 目录，顺序即检查顺序。 */
+/** {plugins,themes,widgets} 的检查顺序。 */
 const PACKAGE_KINDS = ["plugins", "themes", "widgets"] as const;
 
 /**
- * 允许携带 `build.config.ts` 的包，值是该包必须偏离约定的理由。
- *
- * 这张表是**白名单**：新增条目必须在这里写清为什么不走默认 preset，
- * 否则任何人加一份配置都不会被发现。表里的理由也会打印在 `--verbose` 输出里。
+ * 允许携带 `build.config.ts` 的包，值是必须偏离默认 preset 的理由。
+ * 这是白名单：新增条目必须写清理由，否则标准包多出配置不会有人发现。
  */
 export const ALLOWED_BUILD_CONFIG: Record<string, string> = {
   "code-recognition": "wasm 不在 vite 模块图里，需要 copy",
@@ -32,10 +24,10 @@ export const ALLOWED_BUILD_CONFIG: Record<string, string> = {
   "siyuan-ttf-LXGWWenKaiGB-and-Twemoji": "14 MB 字体不能进模块图，需要 copy",
 };
 
-/** 包目录里绝不允许出现的文件与目录：产物只能落在仓库根的 dist/ 下。 */
+/** 包目录里不允许出现的产物。 */
 const FORBIDDEN_ENTRIES = ["dist", "package.zip", "index.js", "index.css", "i18n"];
 
-/** 扩展名 → 该包类型必须存在的约定入口。 */
+/** 包类型 → 必须存在的约定入口。 */
 const REQUIRED_ENTRY: Record<string, string> = {
   plugin: "src/index.ts",
   widget: "index.html",
@@ -49,7 +41,6 @@ export interface CheckIssue {
 }
 
 export interface CheckResult {
-  /** 已检查的包目录名。 */
   packages: string[];
   issues: CheckIssue[];
 }
@@ -81,8 +72,7 @@ function checkPackage(root: string, issues: CheckIssue[]): void {
   const fallbackName = basename(root);
   const push = (message: string) => issues.push({ package: fallbackName, message });
 
-  // 目录名 == 清单 name == package.json name 的校验已经写在 resolvePackage 里，
-  // 这里只负责把异常转成一条 issue，而不是让整个命令崩掉。
+  // 身份校验在 resolvePackage 里，这里只把异常转成 issue，避免整条命令崩掉。
   let pkg: ResolvedPackage;
   try {
     pkg = resolvePackage(root);
@@ -102,7 +92,7 @@ function checkPackage(root: string, issues: CheckIssue[]): void {
   checkEntry(pkg, push);
 }
 
-/** 每个包都必须走同一套脚本入口，不许某个包偷偷退回自建构建。 */
+/** 所有包必须使用同一套脚本入口。 */
 function checkScripts(root: string, push: (message: string) => void): void {
   const packageJsonPath = join(root, "package.json");
   if (!existsSync(packageJsonPath)) {
@@ -120,7 +110,7 @@ function checkScripts(root: string, push: (message: string) => void): void {
   }
 }
 
-/** 有测试就必须能跑测试，而且跑的是同一套 runner。 */
+/** 有测试就必须能跑。 */
 function checkTests(root: string, push: (message: string) => void): void {
   const hasUnitTests = globSync("src/**/*.test.ts", { cwd: root }).length > 0;
   const hasTestsDir = existsSync(join(root, "tests"));
@@ -135,12 +125,7 @@ function checkTests(root: string, push: (message: string) => void): void {
   }
 }
 
-/**
- * 包内 tsconfig 只能 extends 仓库里的两个基线之一：
- *   - tsconfig.package.json：宽松档（strict: false，多数包）
- *   - tsconfig.base.json：严格档（严格度正在逐步收紧的包）
- * 不许各写一份互不相同的配置——那正是单仓要消除的漂移。
- */
+/** 包内 tsconfig 只能 extends 这两个基线之一，避免各包配置漂移。 */
 const ALLOWED_TSCONFIG_BASES = ["../../tsconfig.base.json", "../../tsconfig.package.json"];
 
 function checkTsconfig(root: string, push: (message: string) => void): void {
@@ -168,10 +153,8 @@ function checkBuildConfig(pkg: ResolvedPackage, push: (message: string) => void)
 }
 
 /**
- * 思源现在用 BCP 47 作为 locale 标识（`kernel/util/lang.go` 的 LangLegacyToBCP47）。
- * 运行期 `util.Lang` 一定是 BCP 47 形式（`Conf.Lang` 在落盘前就被 `LangToBCP47` 归一），
- * 清单的 displayName / description / readme、以及 i18n/ 目录的文件名都按它查表；
- * 历史下划线写法只是回退链里的兼容分支，不该出现在新代码里。
+ * 思源用 BCP 47 作为 locale 标识（`kernel/util/lang.go` 的 LangLegacyToBCP47）。
+ * 下划线写法只是回退链里的兼容分支，不应出现在新代码里。
  */
 const BCP47_LOCALES = new Set(["zh-CN", "zh-TW", "en", "de", "fr", "es", "pt-BR", "it", "ja", "ko", "ru", "uk", "pl", "nl", "ar", "he", "hi", "id", "th", "tr", "sk", "sr"]);
 
@@ -179,10 +162,8 @@ const BCP47_LOCALES = new Set(["zh-CN", "zh-TW", "en", "de", "fr", "es", "pt-BR"
 const LOCALE_FIELDS = ["displayName", "description", "readme", "title"] as const;
 
 /**
- * 集市按清单里的 readme 字段读文件，而 kit 的 `collectStaticAssets` 按 `README.<locale>.md`
- * 的约定复制。两边同时漂移就会静默漏文件，所以这里做两条互相印证的检查：
- *   - locale key 必须是 BCP 47
- *   - readme 声明的每个文件都必须真实存在（哪怕靠 copy 兜底，也不能指向不存在的名字）
+ * 集市按清单 readme 字段读文件，kit 按 README.<locale>.md 复制；两边漂移会静默漏文件。
+ * 因此同时检查 locale key 是 BCP 47，且 readme 指向的文件真实存在。
  */
 function checkLocales(pkg: ResolvedPackage, push: (message: string) => void): void {
   for (const field of LOCALE_FIELDS) {
@@ -230,7 +211,7 @@ function checkI18nFileNames(pkg: ResolvedPackage, push: (message: string) => voi
   }
 }
 
-/** 产物只能落在 <repo>/dist/，包目录里出现产物说明有人手动拷回或绕过了 kit。 */
+/** 产物只能落在 <repo>/dist/；包目录里出现产物说明有人手动拷回或绕过了 kit。 */
 function checkForbiddenEntries(root: string, push: (message: string) => void): void {
   for (const entry of FORBIDDEN_ENTRIES) {
     if (existsSync(join(root, entry))) {
@@ -239,11 +220,7 @@ function checkForbiddenEntries(root: string, push: (message: string) => void): v
   }
 }
 
-/**
- * 许可只在仓库根声明一次，各包不再放副本：产物固定不带许可原文，
- * 22 份副本迟早会漂移出不同年份、不同写法。第三方许可（OFL / CC / Apache）
- * 属于随附条款，不在此列——它们统一写进包根的 THIRD_PARTY-NOTICES.md。
- */
+/** 许可只在仓库根声明一次，各包不得放副本；第三方许可走 THIRD_PARTY-NOTICES.md。 */
 const LICENSE_COPIES = ["LICENSE", "LICENSE.md", "LICENSE.txt"];
 
 function checkLicenseCopy(root: string, push: (message: string) => void): void {
@@ -253,8 +230,8 @@ function checkLicenseCopy(root: string, push: (message: string) => void): void {
     }
   }
 
-  // 第三方通知的文件名是固定的，kit 只认这一个名字。多出来的 THIRD_PARTY-* 不会被
-  // 复制进产物，而作者以为它被带上了——这是最容易静默失效的一类。
+  // THIRD_PARTY-* 的文件名是固定的，kit 只认 THIRD_PARTY_NOTICES；
+  // 其他写法不会被复制进产物，是最容易静默失效的一类。
   for (const file of readdirSync(root)) {
     if (file.startsWith("THIRD_PARTY") && file !== THIRD_PARTY_NOTICES) {
       push(`第三方通知必须写成 ${THIRD_PARTY_NOTICES}，不允许 ${file}；许可全文写在该文件的「许可全文」段落`);
@@ -262,7 +239,7 @@ function checkLicenseCopy(root: string, push: (message: string) => void): void {
   }
 }
 
-/** 每种类型都有一个约定入口，缺了构建一定会失败，不如在这里先报。 */
+/** 每种类型都有一个约定入口，缺了构建必然失败，不如先在这里报。 */
 function checkEntry(pkg: ResolvedPackage, push: (message: string) => void): void {
   const entry = REQUIRED_ENTRY[pkg.kind];
   if (!entry) {
