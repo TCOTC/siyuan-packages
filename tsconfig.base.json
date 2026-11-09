@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"],
+
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "exactOptionalPropertyTypes": true,
+
+    // 下面三项是「kit 不编译、直接由 Node 24 运行 .ts」的前提：
+    // verbatimModuleSyntax 保证 import type 不被保留成运行时导入，
+    // allowImportingTsExtensions 允许写 ./foo.ts，
+    // erasableSyntaxOnly 禁掉 enum / namespace 这类无法剥离的语法。
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  }
+}

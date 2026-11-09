@@ -1,0 +1,25 @@
+{
+  "name": "siyuan-packages",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "思源集市包单一源码仓库：插件 / 主题 / 挂件统一构建，构建产物分发到各自的集市收录仓库",
+  "packageManager": "pnpm@11.25.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "lint": "oxlint",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm -r --if-present build",
+    "verify": "pnpm -r --if-present verify"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "typescript": "catalog:"
+  }
+}

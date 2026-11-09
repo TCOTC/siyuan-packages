@@ -1,0 +1,55 @@
+/**
+ * kit 的公开契约。
+ *
+ * 包内可选地放一个 `build.config.ts`，默认导出 `defineBuild({...})`。
+ * 没有配置文件时，CLI 完全按目录约定推断（见 resolve.ts），
+ * 这样 20 个标准插件不需要任何构建配置。
+ */
+
+/** 集市包类型。决定清单文件名，与 bazaar 的 rules.ManifestFile() 一一对应。 */
+export type PackageKind = "plugin" | "theme" | "widget";
+
+/**
+ * 一次构建 pass。
+ *
+ * 绝大多数包只有一个 pass。需要多个 pass 的真实场景：
+ *   - image-squeeze：主入口用 cjs，Worker 入口用 iife（挂全局变量）
+ *   - plugin-sample：插件入口用 cjs，内核侧脚本用 esm
+ * 用 `passes` 表达，而不是退回 webpack 单独维护一份配置。
+ */
+export interface PassOptions {
+  /** cjs = 思源插件运行时；iife = Web Worker；es = 内核侧脚本（Rollup 里叫 es）。 */
+  format: "cjs" | "iife" | "es";
+  /** 相对包根的入口路径。 */
+  entry: string;
+  /** 产物文件名（不含扩展名）。默认 `index`。 */
+  outName?: string;
+  /** iife 格式必填：产物挂到哪个全局名上。 */
+  name?: string;
+  /**
+   * 把动态 import 内联进同一个文件。
+   * Worker 里没有 `document`，无法用脚本注入方式按需加载 chunk，
+   * 内联后就不需要原来的 importScripts 变通。
+   */
+  inlineDynamicImports?: boolean;
+}
+
+export interface BuildOptions {
+  /** 一般不必写，默认由目录推断：plugins/* → plugin。 */
+  kind?: PackageKind;
+  /** 单入口简写，等价于 `passes: [{ format: "cjs", entry }]`。 */
+  entry?: string;
+  /** 多 pass / 多格式。存在时忽略 `entry`。 */
+  passes?: PassOptions[];
+  /** 额外注入的常量，会与默认的 process.env.* 合并。 */
+  define?: Record<string, string>;
+  /** 额外复制的静态文件（相对包根，支持简单 glob）。 */
+  copy?: string[];
+  /** 是否产出 zip，默认 true。 */
+  zip?: boolean;
+}
+
+/** 仅用于给 `build.config.ts` 提供类型与补全，运行时是恒等函数。 */
+export function defineBuild(options: BuildOptions): BuildOptions {
+  return options;
+}

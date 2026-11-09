@@ -1,0 +1,32 @@
+packages:
+  - "plugins/*"
+  - "themes/*"
+  - "widgets/*"
+  - "kit"
+
+# 升级思源 API 或构建工具时只改这里，所有包统一使用。
+catalog:
+  # 思源 API 类型，仓库为 https://github.com/siyuan-note/petal
+  siyuan: "1.2.9"
+
+  # 构建工具链
+  vite: "^8.3.6"
+  vite-plugin-singlefile: "^2.3.4"
+  sass: "^1.108.1"
+  archiver: "^8.0.0"
+  "@types/archiver": "^8.0.0"
+  # 只用来读 zip 做产物对拍（verify），不参与构建
+  fflate: "^0.8.3"
+
+  # 代码质量
+  typescript: "^6.0.3"
+  # 格式化与 lint 都交给 oxc：一个工具链覆盖 TS / SCSS / Markdown / JSON
+  oxfmt: "^0.77.0"
+  oxlint: "^1.92.0"
+  # 与 engines.node 的最低版本对齐：类型定义了 Node 的 API 面
+  "@types/node": "^24.6.2"
+
+allowBuilds:
+  # sass 的可选原生依赖，用于 --watch
+  "@parcel/watcher": false
+

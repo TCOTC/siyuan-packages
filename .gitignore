@@ -1,0 +1,17 @@
+# 依赖
+node_modules
+
+# 构建产物
+/dist
+
+# 本机配置
+/siyuan.config.json
+
+# 工具与系统
+.idea
+.vscode
+.DS_Store
+Thumbs.db
+*.log
+.oxlintcache
+.vite

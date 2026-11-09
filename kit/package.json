@@ -1,0 +1,28 @@
+{
+  "name": "@tcotc/siyuan-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "思源集市包的统一构建内核：一份契约、三个 preset、一套产物",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "siyuan-kit": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "archiver": "catalog:",
+    "fflate": "catalog:",
+    "sass": "catalog:",
+    "vite": "catalog:",
+    "vite-plugin-singlefile": "catalog:"
+  },
+  "devDependencies": {
+    "@types/archiver": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

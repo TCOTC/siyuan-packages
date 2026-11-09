@@ -1,0 +1,19 @@
+# 统一 LF。
+# Windows 上 core.autocrlf 常被设成 true，签出时会把文件转成 CRLF；
+# 而 oxfmt（endOfLine: lf）和 .editorconfig 都要求 LF，结果就是每次格式化都重写、
+# 工作区永远是脏的。这里用仓库级属性覆盖 autocrlf。
+* text=auto eol=lf
+
+# 二进制文件不做任何换行转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.wasm binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
