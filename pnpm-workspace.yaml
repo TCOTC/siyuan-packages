@@ -10,6 +10,12 @@ catalog:
   # 思源 API 类型，仓库为 https://github.com/siyuan-note/petal
   siyuan: "1.2.9"
 
+  # image-squeeze 的 WASM 编解码器（Squoosh 移植）。直接进产物，写精确版本，
+  # 否则「与旧产物对拍」的 wasm 体积会随上游漂移。
+  "@jsquash/jpeg": "1.6.0"
+  "@jsquash/oxipng": "2.3.0"
+  "@jsquash/webp": "1.5.0"
+
   # 只在编译期用到、不随包发布的依赖
   # electron：install-package 仅用 `typeof import("electron")` 的两个成员（ipcRenderer / shell）做类型
   electron: "40.8.3"

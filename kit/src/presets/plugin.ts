@@ -80,7 +80,10 @@ function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, dev: boolean, out
         // siyuan 由内核注入，不参与打包
         external: ["siyuan", "process"],
         output: {
-          entryFileNames: "[name].js",
+          // 必须用 outName：lib 模式下的 `[name]` 来自入口文件名，
+          // 例如 src/codec/worker.ts 会产出 worker.js，
+          // 而插件运行时按固定名加载（image-squeeze 的 Worker 就是 codecWorker.js）。
+          entryFileNames: `${pass.outName ?? "index"}.js`,
           chunkFileNames: "chunk/[name]-[hash].js",
           // 思源按固定名找样式（index.css），而 lib 模式默认给它带哈希、还可能塞进
           // assets/ 子目录。冒烟测试实测：只设 cssFileName 不够，最终路径仍由这里决定。

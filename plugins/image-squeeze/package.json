@@ -1,0 +1,18 @@
+{
+  "name": "image-squeeze",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "siyuan-kit build",
+    "dev": "siyuan-kit dev",
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "@jeffrey-chen/siyuan-kit": "workspace:*",
+    "@jsquash/jpeg": "catalog:",
+    "@jsquash/oxipng": "catalog:",
+    "@jsquash/webp": "catalog:",
+    "siyuan": "catalog:",
+    "typescript": "catalog:"
+  }
+}
