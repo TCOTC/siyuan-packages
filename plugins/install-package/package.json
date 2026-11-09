@@ -1,0 +1,20 @@
+{
+  "name": "install-package",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "siyuan-kit build",
+    "dev": "siyuan-kit dev",
+    "typecheck": "tsc -p .",
+    "test": "node --import ./tests/tsResolve.mjs --test \"tests/**/*.test.mjs\"",
+    "preview": "node tools/preview/run.mjs"
+  },
+  "devDependencies": {
+    "@jeffrey-chen/siyuan-kit": "workspace:*",
+    "@octokit/openapi-types": "catalog:",
+    "electron": "catalog:",
+    "siyuan": "catalog:",
+    "siyuan-token-vault": "catalog:",
+    "typescript": "catalog:"
+  }
+}

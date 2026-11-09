@@ -2,9 +2,9 @@
 
 把散在 27 个目录、25 个 GitHub 仓库里的思源集市包收进一个源码仓库：**统一构建，各自发布**。
 
-> **当前状态：已迁入 `plugins/highlight-search` 与 `plugins/move-doc`。**
-> 两者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异，已用桩模块证明运行时行为一致），单测 / 类型检查 / lint 均已接入仓库根的那一套。
-> 其余包仍按 README 末尾的迁移计划逐个搬。
+> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc` 与 `plugins/install-package`，三个旧仓库均已归档（只剩 `README.md`）。**
+> 三者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致），单测 / 类型检查 / lint 均已接入仓库根的那一套。
+> 其余包仍按 README 末尾的迁移计划逐个搬。**每个包的迁移任务只有在旧仓库归档后才算完成**，规则见 9.1 ⑧。
 
 ---
 
@@ -262,13 +262,13 @@ monorepo 打 tag `move-doc/v1.0.2`
 
 ## 9. 迁移计划
 
-| 阶段   | 内容                                                                              | 验收标准                                                                      |
-| ------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| **P0** | 骨架 + kit + 2 个试点包（`move-doc` 标准插件、`highlight-search` 现有 vite 配置） | 两个包 `pnpm build` 通过；`verify` 与旧产物对拍无缺文件；在真实思源里装上能跑 |
-| **P1** | 20 个标准插件机械迁移                                                             | 每个包都对拍 + 实机安装；`pnpm -r build` 全绿                                 |
-| **P2** | 4 个例外包：`image-squeeze`、`plugin-sample`、`devtools`、+ 有 `scripts/` 的三个  | 逐个人工验证，尤其是 `image-squeeze` 的 Worker 与 wasm                        |
-| **P3** | 主题（Whisper）+ 挂件（inline-elements）                                          | 产物结构与现有一致；主题在思源里渲染正常                                      |
-| **P4** | 接入 `publish.yml`，先 dry-run 再真发一个包                                       | 集市 Stage 能抓到新版本                                                       |
+| 阶段   | 内容                                                                              | 验收标准                                                                                                                      |
+| ------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **P0** | 骨架 + kit + 2 个试点包（`move-doc` 标准插件、`highlight-search` 现有 vite 配置） | 两个包 `pnpm build` 通过；`verify` 与旧产物对拍无缺文件；**旧仓库已归档**（只剩 `README.md`，见 9.1 ⑧）；在真实思源里装上能跑 |
+| **P1** | 20 个标准插件机械迁移                                                             | 每个包都对拍 + 实机安装 + **旧仓库已归档**；`pnpm -r build` 全绿                                                              |
+| **P2** | 4 个例外包：`image-squeeze`、`plugin-sample`、`devtools`、+ 有 `scripts/` 的三个  | 逐个人工验证，尤其是 `image-squeeze` 的 Worker 与 wasm；**旧仓库已归档**                                                      |
+| **P3** | 主题（Whisper）+ 挂件（inline-elements）                                          | 产物结构与现有一致；主题在思源里渲染正常；**旧仓库已归档**                                                                    |
+| **P4** | 接入 `publish.yml`，先 dry-run 再真发一个包                                       | 集市 Stage 能抓到新版本                                                                                                       |
 
 **安全网（每个包都要做）**：用旧仓库的 `package.zip` 当基线，运行
 
@@ -309,20 +309,26 @@ new toolchain × new source   ← 差集 B = 你改的代码
 
 **⑦ 不要拿源码目录当 `dev` 的同步目标。** `siyuan-kit dev` 会镜像并**删除**产物里没有的文件，指向 checkout 会清掉 `src/` 和 `.git`。
 
-**⑧ 旧仓库归档：仓库树与目录都只剩 `README.md`（`.git` 除外），不留任何源码与产物。**
-集市按**旧仓库**的 `releases/latest` 取包（`util.FetchLatestReleaseZip` 走 `/releases/latest`，`plugins.txt` 只有 `owner/repo` 一行），所以旧仓库**不能删**；但仓库里的东西它一个都不用，因此也不必留。
-`move-doc` 归档后 `git ls-tree -r HEAD` 与工作区目录两边都只有 `README.md`，每个包都按这个走：
+**⑧ 迁移的最后一步就是归档原仓库，必须当场做完，不许留到以后。**
+迁移的定义是三步：**复制源码 → 产物对拍 → 归档原仓库**。前两步通过却把仓库原封不动留着，等于同时维持两套工具链和一个仍在漂移的源码副本，合仓要解决的第一个痛点立刻回来了。「等发布链路接好再归档」不是理由：集市按**旧仓库**的 `releases/latest` 取包（`util.FetchLatestReleaseZip` 走 `/releases/latest`，`plugins.txt` 只有 `owner/repo` 一行），所以旧仓库**不能删**，但仓库里的东西它一个都不用——归档不会影响任何一次发布，只会让源码只有一处。
+归档后的目标状态：**仓库树与磁盘目录都只剩 `README.md`**（`git ls-tree -r HEAD` 只有一行，`Get-ChildItem -Force` 只有 `.git` 与 `README.md`），不留任何源码、工具链、清单、静态资源与产物，**也不留运行时文件**。
 
-1. 删掉受控的源码与工具链：`src/`、`webpack.config.js`（或 `vite.config.ts` / `build.config.ts`）、`eslint.config.mjs`、`tsconfig.json`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`.gitignore`
-2. **删掉 `.github/workflows/release.yml`**：发版会在目标仓库建 tag，`on: push: tags` 的旧工作流会再构建一遍并覆盖 release 资产（第 8 节第 2 条）
-3. 删掉清单与静态资源：`plugin.json`（`theme.json` / `widget.json`）、`icon.png`、`preview.png`、`LICENSE`、多语言 README（`README.zh-CN.md` 等）。集市是**解压 zip 之后**从包里读清单 / README / 图标（`actions/stage/index.go`），仓库树里的副本不参与分发
-4. 删掉产物与本地垃圾：`dist/`、`node_modules/`、`i18n/`、`index.js`、`index.css`、`package.zip`、`.idea/`。这些通常本来就没被跟踪，`git rm` 删不到，要单独 `Remove-Item`
-5. README 按 ⑨ 的模板重写，提交（`.git` 必须留着：仓库本身和这条提交都在里面）
+顺序本身就是规则的一部分，照抄不要跳步：
 
-两个坑：
+0. **先固定基线。** `git status` 必须干净；需要与新产物对拍就用**旧工具链**（旧 `pnpm install` + 旧 `webpack` / `vite`）重建一份 `package.zip`，**复制到仓库外**再动手（见 ①）。归档之后再也造不出这份基线。
+1. **删掉 `.github/`**（整个目录）。`release.yml` 必须最先删：新仓发版会在旧仓库建 tag，`on: push: tags` 的旧工作流会再构建一遍并覆盖 release 资产（第 8 节第 2 条）；`check.yml` 已经没东西可查。
+2. `git rm -r` 掉除 `README.md` 外的**全部受控文件**：`src/`、`tests/`、`tools/`、`webpack.config.js`（或 `vite.config.ts` / `build.config.ts`）、`eslint.config.mjs`、`tsconfig.json`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`.gitignore`、`plugin.json`（`theme.json` / `widget.json`）、`icon.png`、`preview.png` / `preview.webp`、`LICENSE`、多语言 README。清单与静态资源只是「集市解压 zip 之后」读的那一份副本（`actions/stage/index.go`），仓库树里的留着没有意义。
+3. 删掉未跟踪的产物与本机垃圾：`dist/`、`node_modules/`、`i18n/`、`index.js`、`index.css`、`package.zip`、`.idea/`、`.eslintcache`、`.preview/`、空的 `scripts/`。这些没被跟踪，`git rm` 删不到，要单独 `Remove-Item`。
+4. README 按 ⑨ 的模板重写，然后提交（`.git` 必须留着：仓库本身和这条提交都在里面）。
+5. **不要装回运行时文件。** 归档目录里出现 `index.js` / `index.css` / `i18n/` / `plugin.json` / `icon.png` / `preview.webp` 就等于又留下一份可漂移的产物副本，仓库树干净、磁盘上却堆着旧代码，下次谁看到都会以为它才是真相。仓库目录**必须只有 `README.md`**，`git status` 必须干净。
+   - 迁移的起点常常就是 `<工作空间>/data/plugins/<name>`，两个身份压在同一条路径上。删完源码这个插件在思源里立刻失效，**这是预期结果，不是要修的故障**。
+   - 要恢复使用只有一条正当路径：**从集市 release 重新安装**（新版本走第 8 节的 tag → `publish.yml`）。急用则临时把 `dist/<name>/` 装到**别的**插件目录名或另一台设备，用完删掉，不放回归档目录。
+   - 需要保留旧产物的场合（复现问题、留证），用的是第 0 步存到仓库外的 `package.zip`，不是仓库目录里的散文件。
 
-- **这个目录常常同时是正在运行的那个插件。** 迁移时正是从 `<工作空间>/data/plugins/<name>` 起手的，清完之后思源里这个插件立刻失效。要恢复只能卸载重装（走集市 release）或把 `dist/<name>/` 装进去。归档前先确认「源码仓库」和「在用插件」这两个角色能不能分开，分不开就先别清磁盘上的运行时文件。
-- **`package.zip` 同时也是 `verify` 的基线。** 删掉后想再对拍就从 GitHub release 重新下载；但它会停在归档时的版本，源码已经比它新，别当成基线用（见 ①）。
+两条必须记住的连带事实：
+
+- **`package.zip` 同时是 `verify` 的基线。** 归档删掉它以后想再对拍，只能从 GitHub release 重新下载；而那份会停在归档时的版本，源码已经比它新，**别当成基线用**（见 ①）。所以第 0 步的离线副本要留好。
+- **归档不等于发布。** 归档只改旧仓库的树；集市看到的是 release 资产，一次发布都不会因此中断，也不会提前生效。真正的新版本仍要走第 8 节的 tag → `publish.yml`。
 
 **⑨ 归档后的 README 就按这个模板写**，把 `<...>` 换掉即可（`highlight-search` 已是这个形态）：
 
@@ -365,6 +371,11 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **dev 与 build 的形态差异已实测**：dev 产物 41504 字节、不压缩、末尾带 inline sourcemap，并额外补一个空 `index.css`；build 产物 5635 字节、压缩、无 sourcemap、无 `index.css`。`highlight-search`（样式有真实内容）两种模式都正常产出 `index.css`，说明这段补丁只作用于「编译结果为空」的情况
 - **`move-doc` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` 下分别加载新旧 `index.js`，`onload`（事件订阅、两个设置项与下拉选项）、三种 `open-menu-doctree`（自定义排序 / 非自定义排序 / 笔记本）、`moveDocBeside` 与 `moveDocAsChild` 的 API 调用序列、`onunload` / `uninstall` 全部一致；只有 `src/compat.ts` 新增的 `?? ""` 多出一个空字符串字面量
 - **归档后的旧仓库确实只剩 README**：`move-doc` 清完以后 `git ls-tree -r HEAD` 只输出 `README.md`，工作区目录也只有 `README.md` 与 `.git`，`git status` 干净；`plugin.json` / 图标 / `LICENSE` / 运行时文件都已从树与磁盘移除（顺序与坑见 9.1 ⑧）
+- **`install-package` 迁入，不需要 `build.config.ts`**：清单 / 两版 README / 图标 / 预览图 / `i18n/*.json` 与旧产物**逐字节相同**（跑过 oxfmt 之后只剩换行与空白差异，JSON 解析后完全相等）；`index.css` 的规则与声明集合一致，差异只有 minifier 的等价重写（`flex:1 1 auto`→`flex:auto`、`column-gap`+`row-gap`→`gap`、`rgba(0,0,0,0)`→`#0000`、`@media(max-width: 860px)`→`@media(width<=860px)`）；`index.js` 从 373909 降到 133775 字节——旧产物经过 `webpack-obfuscator`，**体积与词元都对拍不了**，只能靠行为对拍
+- **`install-package` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，导出的键、4640 个图标的集合、三个自定义页签、两个事件订阅、顶栏按钮与四个命令、`onload` / `onunload` 全部一致
+- **`install-package` 的单测保留 Node 自带 runner**：97 条用例都不需要 DOM，继续用 `node --test` + `tests/tsResolve.mjs` 的解析钩子（补无扩展名的相对导入），没有为了统一而改写成 vitest
+- **未发布到 npm 的共享依赖可以进 catalog**：`siyuan-token-vault` 以 `git+https://…#<提交>` 写进 catalog，包内照常写 `catalog:`，lockfile 固定到 codeload 的 tar.gz；`electron` 只用于取类型（`window.require("electron")`），必须在 `allowBuilds` 里显式写 `electron: false`，否则被跳过的构建脚本会让 `pnpm install` 直接退出 1
+- **`install-package` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`，`.github/`（含 `release.yml`）、`src/`、`tests/`、`tools/`、`webpack.config.js`、`package.json`、`plugin.json`、图标与产物全部移除，磁盘目录同样只有 `.git` 与 `README.md`；该目录同时是测试空间里在用的插件，因此它现在在思源里失效——按规则这是预期结果，恢复走集市 release 重装
 
 **实测踩到的两个坑（已写进 preset 注释，迁移时不用再踩）**
 
