@@ -2,8 +2,8 @@
 
 把散在 27 个目录、25 个 GitHub 仓库里的思源集市包收进一个源码仓库：**统一构建，各自发布**。
 
-> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package`、`plugins/snippets`、`plugins/select-opened-doc`、`plugins/heatmap`、`plugins/siyuan-ttf-LXGWWenKaiGB-and-Twemoji`、`plugins/siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji`、`plugins/siyuan-plugin-openmoji-emoji`、`plugins/whisper-plus`、`plugins/temp-edit`、`plugins/top-bar-text` 与 `plugins/fullscreen`，十三个旧仓库均已归档（只剩 `README.md`）。**
-> 十三者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写；`select-opened-doc` 的 `index.js` 小 20%，静态资源逐字节相同，字符串字面量只差 webpack 运行时的三个；`heatmap` 的 `index.js` 小 10.6%，字符串字面量同样只差那三个，CSS 只有 minifier 等价重写；`siyuan-ttf-LXGWWenKaiGB-and-Twemoji` 的 `index.js` 小 19%，15 MB 字体在内的静态资源逐字节相同；`siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` 的 `index.js` 小 18%，11 MB 鸿蒙字体在内的 18 个静态文件逐字节相同；`siyuan-plugin-openmoji-emoji` 的 `index.js` 小 33%，953 KiB 字体在内的 5 个静态文件逐字节相同；`whisper-plus` 的 `index.js` 小 17%，图标 / 预览图逐字节相同，字符串字面量只差 webpack 运行时三个、被 tree-shaking 的死代码与前缀常量折叠；`temp-edit` 的 `index.js` 小 17%，`i18n` 逐字节相同、清单与两份 README 只差 oxfmt 排版，字符串字面量只差 webpack 运行时三个，CSS 只有 minifier 等价重写；`top-bar-text` 的 `index.js` 小 15%，图标 / 预览图 / `i18n` 逐字节相同，字符串字面量只差 webpack 运行时三个，CSS 只有 minifier 等价重写；`fullscreen` 的 `index.js` 小 26%，图标 / 预览图 / `i18n` 逐字节相同，字符串字面量只差 webpack 运行时三个，CSS 只有 minifier 等价重写），单测 / 类型检查 / lint 均已接入仓库根的那一套。
+> **当前状态：已迁入 `plugins/highlight-search`、`plugins/move-doc`、`plugins/install-package`、`plugins/snippets`、`plugins/select-opened-doc`、`plugins/heatmap`、`plugins/siyuan-ttf-LXGWWenKaiGB-and-Twemoji`、`plugins/siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji`、`plugins/siyuan-plugin-openmoji-emoji`、`plugins/whisper-plus`、`plugins/temp-edit`、`plugins/top-bar-text`、`plugins/fullscreen` 与 `plugins/devtools`，十四个旧仓库均已归档（只剩 `README.md`）。**
+> 十四者都由 `pnpm --filter <name> build` 构建，产物与旧仓库的 `package.zip` 对拍一致（`move-doc` 只剩 `index.js` 的体积差异；`install-package` 的旧 `index.js` 经过混淆，体积不可比，已改用桩模块证明运行时行为一致；`snippets` 的 `index.js` 小 5.7%，静态资源逐字节相同、CSS 只有 minifier 等价重写；`select-opened-doc` 的 `index.js` 小 20%，静态资源逐字节相同，字符串字面量只差 webpack 运行时的三个；`heatmap` 的 `index.js` 小 10.6%，字符串字面量同样只差那三个，CSS 只有 minifier 等价重写；`siyuan-ttf-LXGWWenKaiGB-and-Twemoji` 的 `index.js` 小 19%，15 MB 字体在内的静态资源逐字节相同；`siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` 的 `index.js` 小 18%，11 MB 鸿蒙字体在内的 18 个静态文件逐字节相同；`siyuan-plugin-openmoji-emoji` 的 `index.js` 小 33%，953 KiB 字体在内的 5 个静态文件逐字节相同；`whisper-plus` 的 `index.js` 小 17%，图标 / 预览图逐字节相同，字符串字面量只差 webpack 运行时三个、被 tree-shaking 的死代码与前缀常量折叠；`temp-edit` 的 `index.js` 小 17%，`i18n` 逐字节相同、清单与两份 README 只差 oxfmt 排版，字符串字面量只差 webpack 运行时三个，CSS 只有 minifier 等价重写；`top-bar-text` 的 `index.js` 小 15%，图标 / 预览图 / `i18n` 逐字节相同，字符串字面量只差 webpack 运行时三个，CSS 只有 minifier 等价重写；`fullscreen` 的 `index.js` 小 26%，图标 / 预览图 / `i18n` 逐字节相同，字符串字面量只差 webpack 运行时三个，CSS 只有 minifier 等价重写；`devtools` 的 `index.js` 小 2.2%（bundled vConsole 占 98%，差异只在 minifier），图标 / 预览图 / `i18n` 逐字节相同，清单与两份 README 只差 oxfmt 排版，13 个场景的运行时行为对拍一致），单测 / 类型检查 / lint 均已接入仓库根的那一套。
 > **共享库 `siyuan-token-vault` 已迁入 `libs/token-vault`**，`install-package` 与 `snippets` 改用 `workspace:*` 直接从源码导入，不再依赖 GitHub 上的 git 哈希。
 > 其余包仍按 README 末尾的迁移计划逐个搬。**每个包的迁移任务只有在旧仓库归档后才算完成**，规则见 9.1 ⑧。
 
@@ -83,7 +83,8 @@ siyuan-packages/
 ├── themes/               # 主题
 ├── widgets/              # 挂件
 ├── libs/                 # 不发布到集市的共享库（源码被消费方直接打包）
-│   └── token-vault/      # siyuan-token-vault：加密 Token 存储
+│   ├── token-vault/      # siyuan-token-vault：加密 Token 存储
+│   └── vconsole/         # Tencent vConsole 的官方预编译产物（vendored）
 ├── kit/                  # 构建内核 @jeffrey-chen/siyuan-kit
 │   └── src/
 │       ├── define.ts     # 公开契约：BuildOptions / PassOptions
@@ -103,7 +104,7 @@ siyuan-packages/
 
 根目录的规则很简单：三个类型目录装「要发布的东西」，`libs/` 装「会被打进别人产物、但自己不发布的库」，`kit/` 装「把前者变成 `package.zip` 的那个程序」。没有 `packages/`、也没有 `tooling/` 这类外层容器——每个都只有一个成员时，那层只增加路径长度，不承载任何语义。
 
-`libs/*` 不是集市包：没有清单、没有 `build` 脚本、不进 `dist/`，`exports` 直接指向 `src/index.ts`（与 `kit` 一样不预编译）。消费方写 `workspace:*`，构建时由 vite 把它的 TS 源码一并编译进自己的 bundle，运行时没有额外加载。
+`libs/*` 不是集市包：没有清单、没有 `build` 脚本、不进 `dist/`，`exports` 直接指向 `src/index.ts`（与 `kit` 一样不预编译）。消费方写 `workspace:*`，构建时由 vite 把它的 TS 源码一并编译进自己的 bundle，运行时没有额外加载。`libs/vconsole` 是唯一的例外形态：上游只发源码、打包需要一整套 svelte + webpack，仓内无法复现，所以直接放官方构建产物（入口指向 `dist/vconsole.min.js`，见第 7 节）。
 
 包放在哪个类型目录下就决定它的类型：`plugins/*` → `plugin`，`themes/*` → `theme`，`widgets/*` → `widget`。类型决定清单文件名（`plugin.json` / `theme.json` / `widget.json`），与集市规则一一对应。
 
@@ -217,6 +218,7 @@ kit 从同目录的清单读 `name` / `version` / `icon` / `preview` / `readme`�
 - **catalog 是唯一真相源**：升级思源 API 或构建工具只改 `pnpm-workspace.yaml` 里的 catalog，25 个包一起动
 - **`siyuan` 用已发布版本，不用 git 短哈希**：19 种 pin 收敛成 1 行，lockfile 可复现、可缓存
 - **仓内共享库用 `workspace:*`，不进 catalog、不用 git 依赖**：`libs/*` 的版本号只作记录，解析结果永远是 `link:../../libs/<name>`，不存在「两个消费方锁在不同提交」的可能
+- **源码在仓内构建不了的预编译产物也放 `libs/*`**：`libs/vconsole` 是 Tencent vConsole 的官方构建产物（npm 上最新是 3.15.1，而 `devtools` 需要未发布的 3.16.0-alpha），旧仓库靠 git submodule + `postinstall` 在本地编一份。合仓后 submodule 与「安装即编译」都不成立，改为把 `dist/vconsole.min.js` / `dist/vconsole.min.d.ts` / `build/vendor.d.ts` / `LICENSE` 连同上游提交号一起提交进 `libs/vconsole`，消费方照常用 `workspace:*`。`libs/vconsole` 的 `dist` / `build` 已从 oxfmt 与 oxlint 的扫描范围里排掉，更新方式写在它自己的 README 里（换上游提交、覆盖产物）
 - **关闭 `shamefully-hoist`**：原 Whisper 开了，其余 24 个没开。合仓后 `.npmrc` 只有根一份，开了等于把全部插件的依赖解析拍平，幽灵依赖会被静默解析成功。保持 pnpm 默认的隔离式 `node_modules`，让幽灵依赖在构建期就报错
 - **machine 相关的配置不进仓库**：registry、`store-dir` 留在用户级 `~/.npmrc`；CI 跑在 ubuntu-latest，仓库里硬编码 Windows 路径会直接把 CI 弄坏
 - **仓库里没有 `.npmrc`，这是刻意的**：pnpm 默认就是隔离式 `node_modules`，不需要任何配置。不要为了图快加 `shamefully-hoist=true`——那会把全部插件的依赖解析拍平，让幽灵依赖在构建期静默通过，最后表现为「本地能构建、换台机器解析不到」
@@ -271,13 +273,13 @@ monorepo 打 tag `move-doc/v1.0.2`
 
 ## 9. 迁移计划
 
-| 阶段   | 内容                                                                              | 验收标准                                                                                                                      |
-| ------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| **P0** | 骨架 + kit + 2 个试点包（`move-doc` 标准插件、`highlight-search` 现有 vite 配置） | 两个包 `pnpm build` 通过；`verify` 与旧产物对拍无缺文件；**旧仓库已归档**（只剩 `README.md`，见 9.1 ⑧）；在真实思源里装上能跑 |
-| **P1** | 20 个标准插件机械迁移                                                             | 每个包都对拍 + 实机安装 + **旧仓库已归档**；`pnpm -r build` 全绿                                                              |
-| **P2** | 4 个例外包：`image-squeeze`、`plugin-sample`、`devtools`、+ 有 `scripts/` 的三个  | 逐个人工验证，尤其是 `image-squeeze` 的 Worker 与 wasm；**旧仓库已归档**                                                      |
-| **P3** | 主题（Whisper）+ 挂件（inline-elements）                                          | 产物结构与现有一致；主题在思源里渲染正常；**旧仓库已归档**                                                                    |
-| **P4** | 接入 `publish.yml`，先 dry-run 再真发一个包                                       | 集市 Stage 能抓到新版本                                                                                                       |
+| 阶段   | 内容                                                                                                                                             | 验收标准                                                                                                                      |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| **P0** | 骨架 + kit + 2 个试点包（`move-doc` 标准插件、`highlight-search` 现有 vite 配置）                                                                | 两个包 `pnpm build` 通过；`verify` 与旧产物对拍无缺文件；**旧仓库已归档**（只剩 `README.md`，见 9.1 ⑧）；在真实思源里装上能跑 |
+| **P1** | 20 个标准插件机械迁移                                                                                                                            | 每个包都对拍 + 实机安装 + **旧仓库已归档**；`pnpm -r build` 全绿                                                              |
+| **P2** | 3 个例外包：`image-squeeze`、`plugin-sample`、+ 有 `scripts/` 的三个（`devtools` 已用它自己的方式迁入：vConsole 预编译产物落在 `libs/vconsole`） | 逐个人工验证，尤其是 `image-squeeze` 的 Worker 与 wasm；**旧仓库已归档**                                                      |
+| **P3** | 主题（Whisper）+ 挂件（inline-elements）                                                                                                         | 产物结构与现有一致；主题在思源里渲染正常；**旧仓库已归档**                                                                    |
+| **P4** | 接入 `publish.yml`，先 dry-run 再真发一个包                                                                                                      | 集市 Stage 能抓到新版本                                                                                                       |
 
 **安全网（每个包都要做）**：用旧仓库的 `package.zip` 当基线，运行
 
@@ -439,6 +441,11 @@ dev：不压缩 + inline sourcemap（在思源里直接打源码行号）；buil
 - **`fullscreen` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan`（`Setting` 的 `createActionElement` 立即构造开关）+ jsdom 下分别加载新旧 `index.js`，覆盖 13 个场景——默认配置、只开编辑器 / 只开窗口、两个都关、Electron 窗口（`window.require("@electron/remote")` 桩）与浏览器页面全屏（`requestFullscreen` / `exitFullscreen` + `fullscreenElement` 桩）两条路径下的连点进入 / 退出、配置值类型非法回退默认、`loadData` 失败、`saveData` 失败、确认时改开关（落盘载荷与按钮增删）、命令在有 / 无活动编辑器两种情况——两套产物的 JSON 快照**逐字节相同**。唯一差异是导出形态（webpack 的 `{default}` → cjs 的 `module.exports = class`，思源 loader 取 `.default || exports`，两种都认）
 - **`fullscreen` 只改类型层**：补 3 个生命周期方法的 `override`（`onload` / `onunload` / `uninstall`），`declare i18n: typeof zhCN` 沿用原写法即满足 1.2.9 的 `Record<string, JSONValue>`；运行期代码未动。旧仓库没有单测，本包也未新增
 - **`fullscreen` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`（commit `f706c7d`，未 push），`.github/`、`src/`、`webpack.config.js`、`eslint.config.mjs`、`dprint.json`、`tsconfig.json`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`.gitignore`、`plugin.json`、`LICENSE`、两份 README、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
+
+- **`devtools` 迁入，`libs/vconsole` 是预编译产物的首个案例**：旧仓库的 `package.zip` 停在 1.0.0、早于 1.0.1 的 HEAD（`plugin.json` / `i18n` 都旧，两份 README 是 0 字节），按 9.1 ① 用旧工具链（webpack 5.109.2 + esbuild-loader + 子模块里已编好的 `vconsole.min.js`）重建基线。`icon.png` / `preview.png` / `i18n/*.json` 与基线 **SHA-256 相同**；`plugin.json` 只被 oxfmt 在 `funding` 对象内补空格，两份 README 只被 oxfmt 对齐表格（`git diff --no-index --ignore-all-space` 无其他内容）。`index.js` 从 336130 降到 328745 字节（-2.2%）；acorn 取字符串字面量（含模板字符串）后 1029→1004，差异只有两处——vConsole 里 26 个布尔属性名被新 minifier 合并成一个点分字符串、以及 UMD 的 `VConsole` 全局名，插件自己的字面量一条没少。`index.css` 是 1 字节空样式，按 9.1 ⑪ 不再产出，`verify` 因此只报这一个缺失文件并退出 1（预期偏差）
+- **`devtools` 的运行时行为用桩模块对拍过**：同一份桩 `siyuan` + jsdom 下分别加载新旧 `index.js`，13 个场景——桌面（顶栏菜单）、桌面点遍全部菜单项、桌面无 Electron、桌面独立窗口、浏览器桌面、移动端、浏览器移动端、四个开关全关、部分关闭、`loadData` 抛错、`reloadUI` 失败、`openPath` 返回错误、`window.require` 抛错——覆盖 `loadData` / `saveData` / `removeData`、4 条命令、`addTopBar` 的 id 与图标、`Setting` 的 4 个开关项、菜单项与 `accelerator`、`fetchPost` 的 URL 与 multipart 字段、`ipcRenderer.send` 的 `openPath` / `toggleDevTools` 载荷、`showMessage` 文案，13 份记录**全部相同**；移动端场景里 vConsole 也真的被构造（jsdom 需额外补 `XMLHttpRequest` / `Text` / `location` 等全局）
+- **`devtools` 只改类型层**：补 5 个生命周期方法的 `override`；siyuan@1.2.9 把 `/api/file/putFile` 的 body 收紧成带 `apiRequest` 影子字段的 `APIFormData`，用一个本地 `type MultipartFormData = FormData & {readonly apiRequest: never}` 放行一次。运行期代码未动，旧仓库没有单测，本包也未新增
+- **`devtools` 的旧仓库已按 9.1 ⑧ 归档并当场验证**：`git ls-tree -r HEAD` 只剩 `README.md`（commit `9d01f07`，未 push），`.github/`、`src/`、`scripts/`、`vendor/vconsole`（git submodule，连同 `.git/modules` 残留）、`webpack.config.js`、`eslint.config.mjs`、`dprint.json`、`tsconfig.json`、`package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`AGENTS.md`、`.gitmodules`、`.gitignore`、`plugin.json`、`LICENSE`、两份 README、图标与产物全部移除，磁盘目录只有 `.git` 与 `README.md`；该目录同样是测试空间里在用的插件，现在在思源里失效属预期，恢复走集市 release 重装
 
 **实测踩到的两个坑（已写进 preset 注释，迁移时不用再踩）**
 

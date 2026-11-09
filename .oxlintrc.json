@@ -13,5 +13,5 @@
   "rules": {
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
   },
-  "ignorePatterns": ["**/dist/**", "**/package.zip", "**/i18n/**", "**/index.js", "**/index.css"]
+  "ignorePatterns": ["**/dist/**", "**/package.zip", "**/i18n/**", "**/index.js", "**/index.css", "libs/vconsole/build/**"]
 }

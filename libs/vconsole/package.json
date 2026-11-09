@@ -1,0 +1,9 @@
+{
+  "name": "vconsole",
+  "version": "3.16.0-alpha",
+  "private": true,
+  "description": "Tencent vConsole 的官方构建产物（vendored，不参与打包发布）",
+  "main": "dist/vconsole.min.js",
+  "typings": "dist/vconsole.min.d.ts",
+  "license": "MIT"
+}

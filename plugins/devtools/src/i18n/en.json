@@ -1,0 +1,15 @@
+{
+  "reloadUI": "Reload window",
+  "reloadUIDesc": "Refresh the UI through the kernel API without restarting the app",
+  "reloadUIFailed": "Failed to reload window",
+  "openPluginDir": "Open plugin directory",
+  "openPluginDirDesc": "Open the workspace data/plugins folder in the system file manager",
+  "openPluginStorageDir": "Open plugin storage directory",
+  "openPluginStorageDirDesc": "Open the workspace data/storage/petal folder in the system file manager",
+  "openDirFailed": "Unable to open the directory",
+  "toggleDevTools": "Toggle developer tools",
+  "toggleDevToolsDescDesktop": "Toggle Electron developer tools",
+  "toggleDevToolsDescMobile": "Show or hide vConsole",
+  "toggleDevToolsFailed": "Unable to toggle developer tools in the current environment",
+  "featureDisabled": "This feature is turned off in the plugin settings"
+}

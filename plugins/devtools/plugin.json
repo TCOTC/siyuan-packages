@@ -1,0 +1,23 @@
+{
+  "name": "devtools",
+  "author": "Jeffrey Chen",
+  "url": "https://github.com/TCOTC/devtools",
+  "version": "1.0.1",
+  "minAppVersion": "3.8.2-alpha.3",
+  "backends": ["all"],
+  "frontends": ["all"],
+  "disabledInPublish": true,
+  "displayName": {
+    "default": "DevTools",
+    "zh-CN": "开发者工具"
+  },
+  "description": {
+    "default": "Reload the window, open plugin-related directories, and toggle developer tools (uses vConsole on mobile).",
+    "zh-CN": "支持重载窗口、打开插件相关目录、切换开发者工具（移动端使用 vConsole）。"
+  },
+  "readme": {
+    "default": "README.md",
+    "zh-CN": "README.zh-CN.md"
+  },
+  "funding": { "custom": ["https://mytemos.com/"] }
+}

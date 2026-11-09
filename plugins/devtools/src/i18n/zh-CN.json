@@ -1,0 +1,15 @@
+{
+  "reloadUI": "重载窗口",
+  "reloadUIDesc": "通过内核 API 刷新界面，无需重启应用",
+  "reloadUIFailed": "重载窗口失败",
+  "openPluginDir": "打开插件目录",
+  "openPluginDirDesc": "在系统文件管理器中打开工作空间的 data/plugins",
+  "openPluginStorageDir": "打开插件存储目录",
+  "openPluginStorageDirDesc": "在系统文件管理器中打开工作空间的 data/storage/petal",
+  "openDirFailed": "无法打开目录",
+  "toggleDevTools": "切换开发者工具",
+  "toggleDevToolsDescDesktop": "切换 Electron 开发者工具",
+  "toggleDevToolsDescMobile": "显示或隐藏 vConsole",
+  "toggleDevToolsFailed": "当前环境无法切换开发者工具",
+  "featureDisabled": "该功能已在插件设置中关闭"
+}
