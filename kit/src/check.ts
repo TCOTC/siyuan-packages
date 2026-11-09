@@ -133,7 +133,14 @@ function checkTests(root: string, push: (message: string) => void): void {
   }
 }
 
-/** 包内 tsconfig 只允许在仓库基线上追加开关，不许各写一份互不相同的配置。 */
+/**
+ * 包内 tsconfig 只能 extends 仓库里的两个基线之一：
+ *   - tsconfig.package.json：从旧仓库原样迁入的宽松档（多数包）
+ *   - tsconfig.base.json：旧仓库本来就是 strict 的包
+ * 不许各写一份互不相同的配置——那正是合仓要消除的漂移。
+ */
+const ALLOWED_TSCONFIG_BASES = ["../../tsconfig.base.json", "../../tsconfig.package.json"];
+
 function checkTsconfig(root: string, push: (message: string) => void): void {
   const file = join(root, "tsconfig.json");
   if (!existsSync(file)) {
@@ -143,8 +150,8 @@ function checkTsconfig(root: string, push: (message: string) => void): void {
   // tsconfig 允许注释，JSON.parse 会直接报错；这里只关心 extends 这一项，正则足够
   const match = /"extends"\s*:\s*"([^"]*)"/.exec(readFileSync(file, "utf8"));
   const base = match?.[1];
-  if (base !== "../../tsconfig.base.json") {
-    push(`tsconfig.json 必须 extends "../../tsconfig.base.json"，实际是 ${JSON.stringify(base ?? null)}`);
+  if (base === undefined || !ALLOWED_TSCONFIG_BASES.includes(base)) {
+    push(`tsconfig.json 必须 extends ${ALLOWED_TSCONFIG_BASES.map((item) => JSON.stringify(item)).join(" 或 ")}，实际是 ${JSON.stringify(base ?? null)}`);
   }
 }
 

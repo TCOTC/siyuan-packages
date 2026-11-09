@@ -1,17 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    // 原仓库是 strict: true + strictFunctionTypes: false + useUnknownInCatchVariables: false。
-    // 换构建系统不顺手改类型严格度，这里显式记录本包当前的严格度。
     "strictFunctionTypes": false,
     "useUnknownInCatchVariables": false,
     "noUncheckedIndexedAccess": false,
     "noImplicitOverride": false,
     "exactOptionalPropertyTypes": false,
-    // 原仓库的源码由 webpack 的 esbuild-loader 以 commonjs 编译，没有 verbatim 语义；
-    // 打开后大量「类型被当成值导入」的写法会报错，那是另一件事。
     "verbatimModuleSyntax": false,
     "erasableSyntaxOnly": false
   },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "vitest.config.ts"]
+  "include": ["src/**/*.ts", "*.config.ts"]
 }

@@ -1,16 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    // 原仓库 strict 全开，但没开这三项。收紧类型属于独立重构，
-    // 不和「换构建系统」混在一起做；这里显式记录本包当前的严格度。
     "noUncheckedIndexedAccess": false,
     "noImplicitOverride": false,
     "exactOptionalPropertyTypes": false,
-    // 原仓库把这批源码交给 esbuild-loader（commonjs）编译，没有 verbatim 语义；
-    // 打开后大量「类型被当成值导入」的写法会报错，那是另一件事。
     "verbatimModuleSyntax": false,
-    // 同上：原仓库没有这条约束，先保留现状。
     "erasableSyntaxOnly": false
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "*.config.ts"]
 }

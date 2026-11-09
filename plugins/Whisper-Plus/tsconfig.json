@@ -1,17 +1,8 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.package.json",
   "compilerOptions": {
-    // 原仓库没有开 strict，只要求 noImplicitAny。收紧类型属于独立重构，
-    // 不和「换构建系统」混在一起做；这里显式记录本包当前的严格度。
-    "strict": false,
-    "noImplicitAny": true,
-    "noUncheckedIndexedAccess": false,
-    // 依赖 strictNullChecks，本包当前关着
-    "exactOptionalPropertyTypes": false,
-    // 原仓库用 webpack + esbuild-loader，没有这两项限制；
-    // 源码里的参数属性（constructor(private readonly x) {}）和混合类型导入都照原样保留
     "verbatimModuleSyntax": false,
     "erasableSyntaxOnly": false
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts", "*.config.ts"]
 }
