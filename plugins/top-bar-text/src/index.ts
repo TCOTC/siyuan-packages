@@ -8,10 +8,6 @@ const DRAG_HIDDEN_ATTR = "data-top-bar-text-drag-hidden";
 
 // 原始代码片段：https://ld246.com/article/1728048965009
 export default class TopBarTextPlugin extends Plugin {
-  // siyuan@1.2.9 把 Plugin.i18n 收紧成 Record<string, JSONValue>，
-  // 这里按实际用法收窄回字符串；运行期取值不变。
-  declare i18n: Record<string, string>;
-
   private isMobile = false;
   private topbarDragElement: HTMLElement | undefined;
   private toolbarElement: HTMLElement | undefined;

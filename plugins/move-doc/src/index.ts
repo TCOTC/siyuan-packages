@@ -1,5 +1,4 @@
 import { Plugin, Setting, fetchSyncPost, getActiveEditor, expandDocTree, showMessage, type FileTreeFile, type IEventBusMap } from "siyuan";
-import { getDocTitle, texts, type DoctreeMenuItem } from "./compat";
 import "./index.scss";
 
 const STORAGE_NAME = "move-doc-config.json";
@@ -35,7 +34,7 @@ type ChildAnchor = {
 
 export default class PluginSample extends Plugin {
   override async onload() {
-    const i18n = texts(this.i18n);
+    const i18n = this.i18n;
     this.eventBus.on("open-menu-doctree", this.openMenuDoctree);
 
     await this.loadData(STORAGE_NAME);
@@ -110,10 +109,10 @@ export default class PluginSample extends Plugin {
   }
 
   openMenuDoctree = (event: CustomEvent<IEventBusMap["open-menu-doctree"]>) => {
-    const i18n = texts(this.i18n);
+    const i18n = this.i18n;
     const type = event.detail.type;
     const menu = event.detail.menu;
-    const item = event.detail.items[0] as DoctreeMenuItem | undefined;
+    const item: IEventBusMap["open-menu-doctree"]["items"][number] | undefined = event.detail.items[0];
     if (!item) {
       return;
     }
@@ -371,7 +370,7 @@ export default class PluginSample extends Plugin {
     if (!protyle || !protyle.block?.rootID || !protyle.path || !protyle.notebookId) return null;
     // 桌面端取 protyle 标题元素，实时反映编辑中的标题；移动端 render.titleShowTop 为 true，标题显示在顶栏，
     // protyle 内不生成标题元素，getText() 返回 setTitle() 记录的文档标题，空标题时回退为“未命名文档”
-    const name = getDocTitle(protyle.title) || window.siyuan.languages._kernel[16] || "";
+    const name = protyle.title?.getText() || window.siyuan.languages._kernel[16] || "";
     return {
       id: protyle.block.rootID,
       path: protyle.path,

@@ -34,9 +34,6 @@ interface Statistics {
 }
 
 export default class CodeLanguagesPlugin extends Plugin {
-  // 1.2.9 把 i18n 声明为 Record<string, JSONValue>，运行时是纯字符串
-  declare i18n: Record<string, string>;
-
   private config: Config;
   private tempConfig: Config; // 临时配置，用于存储用户输入
   private statistics: Statistics;

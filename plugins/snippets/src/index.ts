@@ -27,14 +27,6 @@ import { GistDialog } from "./ui/gist-dialog";
 
 export default class PluginSnippets extends Plugin {
   /**
-   * 思源 1.2.9 的 siyuan 类型把 `Plugin.i18n` 声明成 `Record<string, JSONValue>`，
-   * 而本插件只读取固定的字符串键（旧版 petal 的声明就是 `Record<string, string>`）。
-   * 在派生类里收窄一次，避免 200 余处读取都写一次 `as string`；
-   * 收窄是安全的：`Record<string, string>` 仍可赋给基类的 `Record<string, JSONValue>`。
-   */
-  declare i18n: Record<string, string>;
-
-  /**
    * 是否为移动端
    */
   isMobile = false;

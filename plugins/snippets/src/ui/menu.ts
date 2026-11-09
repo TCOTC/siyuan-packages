@@ -48,7 +48,9 @@ export class SnippetsMenu {
   /**
    * 顶栏按钮元素（原插件实例字段迁入本类——仅菜单模块创建/读取/移除，属菜单专属 DOM）
    */
-  private topBarElement!: HTMLElement;
+  // addTopBar 在移动端、独立窗口、图标无效时返回 undefined；这里保留 `!` 的
+  // definite assignment 语义（不生成 class field），只把类型写成可空
+  private topBarElement!: HTMLElement | undefined;
 
   /**
    * 是否为触摸设备（原插件实例字段迁入本类——仅本类 genMenuSnippetsItems 使用，
@@ -319,6 +321,8 @@ export class SnippetsMenu {
     const menu = this.menu;
     if (!menu) return;
 
+    // addTopBar 在移动端、独立窗口、图标无效时返回 undefined；没有按钮时菜单本来也不会被打开
+    if (!this.topBarElement) return;
     let rect = this.topBarElement.getBoundingClientRect();
     // 如果被隐藏，则使用更多按钮
     if (rect.width === 0) {

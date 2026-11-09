@@ -3,7 +3,6 @@ import type zhCN from "./i18n/zh_CN.json";
 import "./index.scss";
 
 export default class ExitConfirm extends Plugin {
-  // 思源 1.2.9 的 Plugin.i18n 是 Record<string, JSONValue>，收窄回本包实际的字符串表
   declare i18n: typeof zhCN;
 
   private exitDialog: Dialog | null = null;

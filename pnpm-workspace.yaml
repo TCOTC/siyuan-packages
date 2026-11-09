@@ -8,7 +8,15 @@ packages:
 # 升级思源 API 或构建工具时只改这里，所有包统一使用。
 catalog:
   # 思源 API 类型，仓库为 https://github.com/siyuan-note/petal
-  siyuan: "1.2.9"
+  #
+  # 钉在 petal main 的具体提交上（而不是 npm 的 1.2.9）：插件真正需要的三处声明
+  # 在已发布版本里还没有，只存在于 main。
+  #   - Plugin.i18n 恢复成 Record<string, string>（67d2f50，petal issue #67）
+  #   - open-menu-doctree 的 items 带 effectiveSortMode / childrenSortMode
+  #   - Title.getText()（纯文本摘要）
+  # 仍然是「单一真相源 + 单一 pin」：全仓 22 个包共用这一行。
+  # petal 发布新版后改回并重新 typecheck 即可（届时应删掉各包的类型垫片）。
+  siyuan: "github:siyuan-note/petal#edc4b0494a"
 
   # image-squeeze 的 WASM 编解码器（Squoosh 移植）。直接进产物，写精确版本，
   # 否则「与旧产物对拍」的 wasm 体积会随上游漂移。

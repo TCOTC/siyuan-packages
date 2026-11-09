@@ -4,14 +4,6 @@ const STORAGE_NAME = "select-opened-doc-config.json";
 
 // 原始代码片段：https://ld246.com/article/1727980528164
 export default class SelectOpenedDocPlugin extends Plugin {
-  /**
-   * 思源 1.2.9 的 siyuan 类型把 `Plugin.i18n` 声明成 `Record<string, JSONValue>`，
-   * 本插件只读取固定的字符串键（旧版 petal 的声明就是 `Record<string, string>`），
-   * 这里收窄一次，避免每处读取都写 `as string`。收窄是安全的：
-   * `Record<string, string>` 仍可赋给基类的 `Record<string, JSONValue>`。
-   */
-  declare i18n: Record<string, string>;
-
   private isMobile: boolean;
   private focusButton: HTMLElement;
   private originalButtonText = "";
