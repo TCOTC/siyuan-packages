@@ -164,21 +164,25 @@ plugins/move-doc/           源码  {plugin.json, README*.md, icon.png, preview.
 
 ---
 
-## 5. tsconfig 只有两档
+## 5. tsconfig 只有两份基线
 
-包内 `tsconfig.json` 只指定 `extends`（必要时再写 `include` 与个别 `compilerOptions` 覆盖），不许自创第三份基线：
+包内 `tsconfig.json` 只写 `extends` 与 `include`（必要时再补个别「更严」的开关），不许自创第三份基线：
 
-| 基线                    | 严格度                                                                  | 谁用                                                                          |
-| ----------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `tsconfig.base.json`    | `strict` + `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`    | `kit`、`libs/token-vault`、`snippets` / `install-package` / `inline-elements` |
-| `tsconfig.package.json` | `strict: false` + `noImplicitAny`（其余依赖 strictNullChecks 的项关掉） | 其余 18 个包                                                                  |
+| 基线                   | 严格度                                                                       | 谁用                             |
+| ---------------------- | ---------------------------------------------------------------------------- | -------------------------------- |
+| `tsconfig.base.json`   | `strict` + `noImplicitOverride` + `verbatimModuleSyntax`                     | 全部 21 个发布包 + 新包模板      |
+| `tsconfig.strict.json` | base 之上再开 `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes`      | `kit`、`libs/*`                  |
 
-新包默认走严格档。宽松档留给严格度尚未收紧的包，收紧类型属于独立重构。
+默认档就是严格档：`strict` 全仓开启，没有「宽松档」。加强档只给那些「一个错误会扩散到很多包」的代码——kit 自身出错会让 21 个包的构建一起崩，`libs/*` 会被多个消费方的 tsc 程序一并检查。某个发布包整体重构时可以临时改成 `../../../tsconfig.strict.json` 收紧，`pnpm typecheck` 会列出要收的全部位置。
 
-两点需要注意：
+四条硬规则：
 
-- `include` 不能放进共享基线：TS 的相对声明它的配置文件解析，写进根配置会指向仓库根的 `src/`。
-- `libs/token-vault` 的源码会被两个消费方的 tsc 程序一并检查，因此与它们一致关掉了 `noUncheckedIndexedAccess` / `exactOptionalPropertyTypes`。
+- **`target` 一律 `ES2022`**，没有例外。`target` / `lib` / `module` / `moduleResolution` 是编译事实，改一处就会改产物。
+- **`include` 不能放进共享基线**：TS 的 `include` / `exclude` 相对「声明它的那个配置文件」解析，写进根配置会指向仓库根的 `src/`，套到每个包上就成了空集合。
+- **包内只允许把检查调得更严**（`noUnusedLocals`、`noFallthroughCasesInSwitch` 这类）。`strict`、`verbatimModuleSyntax`、`target` 等由基线管辖，`pnpm check` 会拦住任何覆盖。
+- **`verbatimModuleSyntax` 全仓开启**：纯类型导入必须写 `import type`。产物由 rolldown/esbuild 剥离类型，少写一个 `type` 就会让类型导入留进 bundle，运行期去找一个不存在的模块。
+
+`kit` 自己额外叠两条只有它需要的开关：`allowImportingTsExtensions`（`bin` 直接指向 `src/cli.ts`，由 Node 剥离类型运行，导入必须带 `.ts`）与 `erasableSyntaxOnly`（禁掉 `enum` / `namespace` / 参数属性这类 Node 剥不掉的语法）。`allowImportingTsExtensions` 留在基线里是因为各包的 tsc 程序会顺带编译 kit 源码，它只是「允许」而非「强制」。
 
 ---
 
@@ -191,7 +195,7 @@ plugins/move-doc/           源码  {plugin.json, README*.md, icon.png, preview.
 | 身份一致    | 目录名 == 清单 `name` == `package.json` 的 `name`（逐字符，含大小写）                                        |
 | 脚本入口    | `build` 必须是 `siyuan-kit build`，`dev` 必须是 `siyuan-kit dev`                                             |
 | 测试        | 有 `src/**/*.test.ts` 或 `tests/` 就必须有 `test` 脚本且为 `vitest run`                                      |
-| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.package.json`                                        |
+| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.strict.json`，且不得覆盖基线管辖的选项 |
 | 配置白名单  | 有 `build.config.ts` 就必须在 `ALLOWED_BUILD_CONFIG` 里                                                      |
 | locale      | 清单的 `displayName` / `description` / `readme` / `title` key 与 `src/i18n/*.json` 文件名必须是 BCP 47       |
 | README 存在 | 清单 `readme` 声明的每个文件都必须存在                                                                       |
