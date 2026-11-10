@@ -1,4 +1,5 @@
 import { Dialog } from "siyuan";
+import { escapeHtml } from "siyuan-html-safety";
 import { isLevelMode, normalizeLevelCuts } from "./config";
 import { DEFAULT_COUNT_THRESHOLDS, DEFAULT_PERCENTILE_THRESHOLDS } from "./levels";
 import type { I18n } from "./locale";
@@ -192,8 +193,4 @@ export function openLevelsDialog(options: OpenLevelsDialogOptions): void {
     });
     dialog.destroy();
   });
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

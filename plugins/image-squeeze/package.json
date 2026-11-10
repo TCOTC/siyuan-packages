@@ -13,6 +13,9 @@
     "@jsquash/oxipng": "catalog:",
     "@jsquash/webp": "catalog:",
     "siyuan": "catalog:",
+    "siyuan-custom-tab": "workspace:*",
+    "siyuan-html-safety": "workspace:*",
+    "siyuan-kernel-client": "workspace:*",
     "typescript": "catalog:"
   }
 }

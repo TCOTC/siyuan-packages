@@ -1,4 +1,5 @@
 import { type App, showMessage } from "siyuan";
+import { escapeHtml } from "siyuan-html-safety";
 import { CodecPool } from "./codec/pool";
 import { applyAccepted, checkEncoded, emptySummary, encodeCandidate, listCandidatePaths, analyzeCandidates, releasePreview, runBatch, uploadCandidate, writeInPlace } from "./compress";
 import { closeReferenceLayer, showReferenceLayer } from "./references";
@@ -6,8 +7,6 @@ import type { ICandidate, ICandidateReference, ICompressOptions, ICompressSummar
 import { closeImageViewer, openImageViewer, type IViewerImage } from "./viewer";
 
 export type TTranslator = (key: string, ...args: string[]) => string;
-
-const escapeHtml = (text: string): string => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 const formatBytes = (bytes: number): string => {
   if (1 > bytes) {

@@ -1,0 +1,17 @@
+{
+  "name": "siyuan-custom-tab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "思源插件共用的自定义页签助手：新建、复用、按类型查找",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "siyuan": "catalog:",
+    "typescript": "catalog:"
+  }
+}

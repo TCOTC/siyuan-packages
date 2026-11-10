@@ -9,7 +9,7 @@
 import { i18n } from "../infra/i18n";
 import { getFile, readDir } from "../infra/kernel-client";
 import { normalizeRepoKey, repoKeyFromOwnerRepo } from "../infra/repo-key";
-import { isVersionAtLeast } from "./package-version";
+import { isVersionAtLeast } from "siyuan-version-compare";
 import type { Logger } from "../infra/logger";
 
 /**

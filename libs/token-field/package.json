@@ -1,0 +1,18 @@
+{
+  "name": "siyuan-token-field",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "思源插件共用的令牌输入框遮蔽：优先 CSS 遮蔽，避开移动端安全键盘（无剪贴板）",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

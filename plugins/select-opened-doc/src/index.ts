@@ -1,4 +1,5 @@
-import { Plugin, Setting, getActiveEditor, getFrontend, getModelByDockType } from "siyuan";
+import { Plugin, Setting, getActiveEditor, getModelByDockType } from "siyuan";
+import { isMobileFrontend } from "siyuan-plugin-env";
 
 const STORAGE_NAME = "select-opened-doc-config.json";
 
@@ -10,8 +11,7 @@ export default class SelectOpenedDocPlugin extends Plugin {
   private originalButtonText = "";
 
   override async onload() {
-    const frontEnd = getFrontend();
-    this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
+    this.isMobile = isMobileFrontend();
     // 加载配置
     await this.loadData(STORAGE_NAME);
     // 默认配置

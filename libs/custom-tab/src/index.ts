@@ -1,5 +1,10 @@
 /**
  * 插件自定义页签的打开与复用
+ *
+ * 宿主的 `openTab` 自带一条判重（siyuan 仓库 `app/src/editor/util.ts` 的 `isSameCustomTab`，
+ * 按 `custom.data` 比较），但页签内的面板常把 `custom.data` 换成规范化后的对象，
+ * 后续调用时与传入值不再相等，行为不可预期。这里的复用一律按「页签类型」判定，
+ * 新建时显式传 `openNewTab: true`，是否复用完全由调用方决定。
  */
 
 import { getAllTabs, openTab, type App, type Tab } from "siyuan";
@@ -25,13 +30,7 @@ export function focusCustomTab(tab: Tab): void {
   tab.parent.showHeading();
 }
 
-/**
- * 新建一个自定义页签，不查找、不复用已有页签
- *
- * 显式传 `openNewTab: true`：`openTab` 自身也有一条判重（siyuan 仓库 `app/src/editor/util.ts` 的 `isSameCustomTab`），
- * 它按 `custom.data` 比较，而页签内的面板会把 `custom.data` 换成规范化后的对象，
- * 与这里传入的空对象不再相等，行为不可预期；置位后「新建还是复用」完全由本模块决定
- */
+/** 新建一个自定义页签，不查找、不复用已有页签 */
 export function openNewCustomTab(options: CustomTabOptions): void {
   openTab({
     app: options.app,
@@ -45,9 +44,7 @@ export function openNewCustomTab(options: CustomTabOptions): void {
   });
 }
 
-/**
- * 打开自定义页签；同类型的页签已经打开时切回它，不再新建
- */
+/** 打开自定义页签；同类型的页签已经打开时切回它，不再新建 */
 export function openOrFocusCustomTab(options: CustomTabOptions): void {
   const opened = getOpenedCustomTabs(options.customId)[0];
   if (opened) {

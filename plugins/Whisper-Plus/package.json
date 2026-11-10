@@ -10,6 +10,9 @@
   "devDependencies": {
     "@jeffrey-chen/siyuan-kit": "workspace:*",
     "siyuan": "catalog:",
+    "siyuan-kernel-client": "workspace:*",
+    "siyuan-plugin-env": "workspace:*",
+    "siyuan-version-compare": "workspace:*",
     "typescript": "catalog:"
   }
 }

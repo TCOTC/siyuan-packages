@@ -1,0 +1,18 @@
+{
+  "name": "siyuan-version-compare",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "思源插件共用的版本比较：宽松比较（容忍预发布后缀）与严格语义化版本 2.0.0 比较",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

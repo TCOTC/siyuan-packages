@@ -1,72 +1,22 @@
 /**
- * 思源内核 HTTP 封装
+ * 思源内核 HTTP 封装（本包的接口形状与日志口径）
+ *
+ * 传输与包络归一在 `siyuan-kernel-client`：那边负责「拿到内核包络 / 没拿到」的区分，
+ * 这里只保留本包用到的接口封装与日志文案
  */
 
+import { getFileBlob as readFileBlob, getFileText, kernelPost, kernelPostForm, type KernelApiResponse } from "siyuan-kernel-client";
 import { i18n } from "./i18n";
 import type { Logger } from "./logger";
 
-export interface KernelApiResponse {
-  code: number;
-  msg: string;
-  data: unknown;
-  /**
-   * 请求未得到内核的应答包络（断网、连接被拒、响应不可解析、非内核包络的非 2xx 响应等），
-   * 用于与内核返回的业务错误区分，也决定本地安装是否值得重传
-   */
-  transportFailed?: boolean;
-}
-
-/** 失败包络；`transportFailed` 为真表示请求未得到内核的应答包络，供调用方决定是否重试 */
-function kernelFailure(msg: string, transportFailed = false): KernelApiResponse {
-  return transportFailed ? { code: -1, msg, data: null, transportFailed: true } : { code: -1, msg, data: null };
-}
-
-/** 异常转文本，用于返回给调用方的 msg 与日志 */
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+export type { GetFileResult, KernelApiResponse } from "siyuan-kernel-client";
 
 /**
- * 非 2xx 响应
+ * POST 一个 JSON 请求体；不抛错，失败时返回失败包络
  *
- * 内核的接口一律以 HTTP 200 返回业务包络，因此非 2xx 通常意味着请求没走到内核（代理或网关的错误页、
- * 内核尚未就绪、连接被中断）。这里先尝试把响应体按内核包络解析：能解析出非 0 的 `code` 时按业务失败
- * 返回，否则置 `transportFailed`，让调用方按可重传处理
+ * 名称沿用本包原先的调用点，语义是「拿到内核包络」，与请求本身是否同步无关
  */
-async function httpFailure(response: Response): Promise<KernelApiResponse> {
-  const fallback = `HTTP error: ${response.status} ${response.statusText}`;
-  try {
-    const body = (await response.json()) as KernelApiResponse;
-    if (body !== null && typeof body === "object" && typeof body.code === "number" && body.code !== 0) {
-      return {
-        code: body.code,
-        msg: typeof body.msg === "string" && body.msg !== "" ? body.msg : fallback,
-        data: body.data ?? null,
-      };
-    }
-  } catch {
-    // 响应体不是内核的 JSON 包络（如代理返回的 HTML 错误页）
-  }
-  return kernelFailure(fallback, true);
-}
-
-export async function fetchSyncPost(url: string, data?: object): Promise<KernelApiResponse> {
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(data ?? {}),
-    });
-    if (!response.ok) {
-      return await httpFailure(response);
-    }
-    return (await response.json()) as KernelApiResponse;
-  } catch (error) {
-    return kernelFailure(errorText(error), true);
-  }
-}
+export const fetchSyncPost = kernelPost;
 
 /**
  * `/api/file/putFile`：HTTP Multipart
@@ -92,81 +42,20 @@ export async function putFile(params: PutFileParams): Promise<KernelApiResponse>
     const fileName = params.path.split("/").pop() || "file";
     formData.append("file", params.file, fileName);
   }
-
-  try {
-    const response = await fetch("/api/file/putFile", {
-      method: "POST",
-      body: formData,
-    });
-    if (!response.ok) {
-      return await httpFailure(response);
-    }
-    return (await response.json()) as KernelApiResponse;
-  } catch (error) {
-    return kernelFailure(errorText(error), true);
-  }
+  return kernelPostForm("/api/file/putFile", formData);
 }
 
 /** `/api/file/getFile`：200 为文件正文，202 为 JSON 异常体（含 code / msg） */
-export type GetFileResult = { ok: true; content: string } | { ok: false; code: number; msg: string };
+export const getFile = getFileText;
 
-export async function getFile(path: string): Promise<GetFileResult> {
-  try {
-    const response = await fetch("/api/file/getFile", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ path }),
-    });
-    if (response.status === 200) {
-      const content = await response.text();
-      return { ok: true, content };
-    }
-    if (response.status === 202) {
-      const body = (await response.json()) as KernelApiResponse;
-      const code = typeof body.code === "number" ? body.code : -1;
-      const msg = typeof body.msg === "string" ? body.msg : "";
-      return { ok: false, code, msg };
-    }
-    return {
-      ok: false,
-      code: -1,
-      msg: `HTTP error: ${response.status} ${response.statusText}`,
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      code: -1,
-      msg: errorText(error),
-    };
-  }
-}
-
-/** `/api/file/getFile`：200 为文件正文（按二进制读取为 Blob），202 为 JSON 异常体（含 code / msg） */
+/** `/api/file/getFile`：200 为文件正文（按二进制读取为 Blob），失败时写日志并返回 null */
 export async function getFileBlob(path: string, log: Logger): Promise<Blob | null> {
-  try {
-    const response = await fetch("/api/file/getFile", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ path }),
-    });
-    if (response.status === 200) {
-      return await response.blob();
-    }
-    if (response.status === 202) {
-      const body = (await response.json()) as KernelApiResponse;
-      log.warn(`Failed to read [${path}]: code=[${body.code}], msg=[${body.msg}]`);
-      return null;
-    }
-    log.warn(`Failed to read [${path}]: HTTP ${response.status} ${response.statusText}`);
-    return null;
-  } catch (error) {
-    log.warn(`Failed to read [${path}]:`, error);
-    return null;
+  const result = await readFileBlob(path);
+  if (result.ok) {
+    return result.blob;
   }
+  log.warn(`Failed to read [${path}]: code=[${result.code}], msg=[${result.msg}]`);
+  return null;
 }
 
 /** 删除文件或目录；成功时静默（调用方多为临时文件清理），只在失败时记一行 */
@@ -218,7 +107,7 @@ export async function readDir(path: string, log: Logger): Promise<ReadDirEntry[]
 
 export async function unzipFile(zipPath: string, extractPath: string, log: Logger): Promise<boolean> {
   const response = await fetchSyncPost("/api/archive/unzip", {
-    zipPath: zipPath,
+    zipPath,
     path: extractPath,
   });
   if (response.code !== 0) {
@@ -254,18 +143,5 @@ export async function installLocalBazaarPackage(blob: Blob, fileName: string, fr
   formData.append("file", blob, fileName);
   formData.append("frontend", frontend);
   formData.append("overwrite", "true");
-
-  try {
-    const response = await fetch("/api/bazaar/installLocalBazaarPackage", {
-      method: "POST",
-      body: formData,
-    });
-    if (!response.ok) {
-      return await httpFailure(response);
-    }
-    return (await response.json()) as KernelApiResponse;
-  } catch (error) {
-    // 断网、连接被拒、响应不可解析都走这里：内核并未处理该请求，与内核返回的失败原因不同
-    return kernelFailure(errorText(error), true);
-  }
+  return kernelPostForm("/api/bazaar/installLocalBazaarPackage", formData);
 }

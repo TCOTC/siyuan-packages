@@ -7,7 +7,7 @@
 
 import { getFrontend } from "siyuan";
 import { i18n } from "../infra/i18n";
-import { escapeHtml } from "../infra/html";
+import { escapeHtml } from "siyuan-html-safety";
 import { confirmDialog } from "../infra/dialog";
 import { fetchSyncPost } from "../infra/kernel-client";
 import type { PackageType } from "./install";

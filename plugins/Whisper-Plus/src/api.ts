@@ -1,16 +1,25 @@
-export type ApiRes<T = null> = { code: number; msg: string; data: T };
+/**
+ * 内核接口封装
+ *
+ * 传输与包络归一见 `siyuan-kernel-client`，这里只挑本插件用到的接口
+ */
 
+import { kernelPost } from "siyuan-kernel-client";
+
+export type ApiRes<T = null> = {
+  code: number;
+  msg: string;
+  data: T;
+};
+
+/**
+ * POST 一个 JSON 请求体
+ *
+ * 不抛错：失败时返回 `code !== 0` 的包络（内核业务失败原样透传，未拿到内核应答时
+ * `code` 为 -1 且带 `transportFailed: true`）
+ */
 export async function post<T = null>(url: string, body: object): Promise<ApiRes<T>> {
-  try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    return await res.json();
-  } catch (e) {
-    return { code: 500, msg: e instanceof Error ? e.message : String(e), data: null as T };
-  }
+  return await kernelPost<T>(url, body);
 }
 
 export const getLocalStorageVal = (key: string) => post<unknown>("/api/storage/getLocalStorageVal", { key });
@@ -18,19 +27,6 @@ export const getLocalStorageVal = (key: string) => post<unknown>("/api/storage/g
 export const setLocalStorageVal = (key: string, val: unknown) => post<unknown>("/api/storage/setLocalStorageVal", { key, val });
 
 export const removeLocalStorageVal = (key: string) => post("/api/storage/removeLocalStorageVal", { key });
-
-export async function getFile(path: string): Promise<string | ApiRes> {
-  try {
-    const res = await fetch("/api/file/getFile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path }),
-    });
-    return res.status === 200 ? res.text() : res.json();
-  } catch (e) {
-    return { code: 500, msg: e instanceof Error ? e.message : String(e), data: null };
-  }
-}
 
 export const removeFile = (path: string) => post("/api/file/removeFile", { path });
 

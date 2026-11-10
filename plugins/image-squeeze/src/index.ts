@@ -1,4 +1,5 @@
-import { type Custom, openTab, Plugin, showMessage } from "siyuan";
+import { type Custom, Plugin, showMessage } from "siyuan";
+import { openOrFocusCustomTab } from "siyuan-custom-tab";
 import type zhCN from "./i18n/zh-CN.json";
 import { SqueezeTab } from "./tab";
 import "./index.scss";
@@ -93,13 +94,11 @@ export default class ImageSqueezePlugin extends Plugin {
       return;
     }
     // 同一个页签只会存在一份，重复调用会切换到已打开的页签
-    openTab({
+    openOrFocusCustomTab({
       app: this.app,
-      custom: {
-        id: this.name + TAB_TYPE,
-        title: this.i18n.title,
-        icon: "iconImage",
-      },
+      customId: this.name + TAB_TYPE,
+      title: this.i18n.title,
+      icon: "iconImage",
     });
   }
 

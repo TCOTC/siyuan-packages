@@ -769,3 +769,15 @@ div[data-key="jcsm-setting-dialog"] {
     }
   }
 }
+
+// 令牌输入框的遮蔽策略由共享库 siyuan-token-field 决定：支持 `-webkit-text-security` 时
+// 输入框始终是 `type="text"`，靠这里显示圆点（移动端因此不会弹出无剪贴板的安全键盘）；
+// 不支持的环境退回密码框互切，用不到这两条规则
+.siyuan-token-field {
+  -webkit-text-security: disc;
+}
+
+// 「眼睛」按钮切换后的明文状态（遮蔽是默认状态，故这里是修饰类）
+.siyuan-token-field--revealed {
+  -webkit-text-security: none;
+}

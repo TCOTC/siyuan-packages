@@ -10,7 +10,7 @@
  */
 
 import type { Menu } from "siyuan";
-import { isMobileFrontend } from "../infra/desktop";
+import { isMobileFrontend } from "siyuan-plugin-env";
 
 /** 边栏自身的边框宽度，贴边时让出这一点 */
 const DOCK_BORDER = 1;

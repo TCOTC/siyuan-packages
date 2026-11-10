@@ -1,12 +1,9 @@
 import enUS from "../i18n/en.json";
 import zhCN from "../i18n/zh-CN.json";
-
-type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
-
-type Assert<T extends true> = T;
+import type { AssertTrue, Equal } from "siyuan-i18n-types";
 
 // 强制 zh-CN.json 与 en.json 键集与类型一致；不匹配时仅在此处报错，避免 PluginI18n 变成 never 导致全项目刷屏
-type _I18nJsonFilesMatch = Assert<Equal<typeof zhCN, typeof enUS>>;
+type _I18nJsonFilesMatch = AssertTrue<Equal<typeof zhCN, typeof enUS>>;
 
 /**
  * 与 src/i18n 下各语言 JSON 的键一致（由 zh-CN.json 推导）。

@@ -1,0 +1,16 @@
+{
+  "name": "siyuan-i18n-types",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "思源插件共用的 i18n 类型断言：校验多份 locale JSON 的键集合与类型完全一致",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

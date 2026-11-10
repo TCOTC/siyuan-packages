@@ -12,6 +12,8 @@
     "@jeffrey-chen/siyuan-kit": "workspace:*",
     "jsdom": "catalog:",
     "siyuan": "catalog:",
+    "siyuan-html-safety": "workspace:*",
+    "siyuan-plugin-env": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

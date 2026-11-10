@@ -1,4 +1,5 @@
-import { getFrontend, platformUtils } from "siyuan";
+import { platformUtils } from "siyuan";
+import { isMobileFrontend } from "siyuan-plugin-env";
 
 /** 同步元素属性：值相同时跳过；空字符串时移除属性 */
 export function syncAttr(element: HTMLElement, name: string, value: string): void {
@@ -49,10 +50,7 @@ export function isReadOnly(): boolean {
   return !!window.siyuan.config?.readonly || !!window.siyuan.isPublish;
 }
 
-export const isMobile = (): boolean => {
-  const frontend = getFrontend();
-  return frontend === "mobile" || frontend === "browser-mobile";
-};
+export const isMobile = (): boolean => isMobileFrontend();
 
 export const isIPad = () => platformUtils.isIPad();
 
@@ -87,31 +85,3 @@ export const isLocalPath = (link: string) => {
   }
   return link.startsWith("/");
 };
-
-/**
- * 比较语义化版本号（忽略预发布后缀，如 3.0.0-beta.1 按 3.0.0 处理）
- * @returns a > b 返回 1，a < b 返回 -1，相等返回 0
- */
-export function compareVersions(a: string, b: string): number {
-  const parse = (version: string): number[] =>
-    version
-      .trim()
-      .replace(/^v/i, "")
-      .split(".")
-      .map((part) => {
-        const match = /^\d+/.exec(part);
-        return match ? Number(match[0]) : 0;
-      });
-
-  const va = parse(a);
-  const vb = parse(b);
-  const length = Math.max(va.length, vb.length);
-  for (let i = 0; i < length; i++) {
-    const na = va[i] ?? 0;
-    const nb = vb[i] ?? 0;
-    if (na !== nb) {
-      return na > nb ? 1 : -1;
-    }
-  }
-  return 0;
-}

@@ -3,7 +3,7 @@ import { GITHUB_RELEASES_PER_PAGE, listReleasesPage, mergeInstallReleasePages } 
 import { isSelfInstallableVersion, MIN_SELF_INSTALL_VERSION, selfInstallVersionTooOldText } from "../install/self-package";
 import { SELECT_ICON_ID } from "./icons";
 import { i18n } from "../infra/i18n";
-import { escapeHtml } from "../infra/html";
+import { escapeHtml } from "siyuan-html-safety";
 import { REPO_SUMMARY_ATTRS, isRepoSummaryRendered } from "./repo-summary-dom";
 import type { InstallReleaseRow } from "../github/github";
 import type { Logger } from "../infra/logger";

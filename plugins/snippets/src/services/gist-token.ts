@@ -5,6 +5,7 @@
 // 因此本服务不参与 ConfigService 的 valueItems/persistConfig 路径。
 import { createTokenVault, seedFromSiyuanSystem } from "siyuan-token-vault";
 import type { TokenVault } from "siyuan-token-vault";
+import { createTokenMask } from "siyuan-token-field";
 import { showMessage } from "siyuan";
 import { htmlToElement } from "../utils";
 import type PluginSnippets from "../index";
@@ -170,7 +171,7 @@ export function handleGistTokenAction(plugin: PluginSnippets, action: string, el
 
   if (action === "gistTokenTogglePassword" && tokenInput) {
     // 眼睛图标切换明文显示（仅用于输入确认，不落盘明文）
-    tokenInput.type = tokenInput.type === "password" ? "text" : "password";
+    createTokenMask(window.CSS).toggle(tokenInput);
     return;
   }
   if (action === "gistTokenSave") {
@@ -216,6 +217,9 @@ export function handleGistTokenAction(plugin: PluginSnippets, action: string, el
  * @returns Token 设置区域元素
  */
 export function buildGistTokenSettingElement(plugin: PluginSnippets): HTMLElement {
+  // 能靠 CSS 遮蔽时输入框始终是普通文本：Chromium 会把密码类输入框上报为密码 `inputType`，
+  // 移动端第三方输入法据此弹安全键盘，而安全键盘没有剪贴板、无法粘贴
+  const mask = createTokenMask(window.CSS);
   const container = htmlToElement(`<div class="fn__block ${GIST_TOKEN_SCOPE_CLASS}">
     <div data-token-role="${EDITING_ROLE}">
         <div class="fn__flex fn__flex-center" style="flex-wrap: wrap;">
@@ -230,7 +234,7 @@ export function buildGistTokenSettingElement(plugin: PluginSnippets): HTMLElemen
         <div class="b3-label__text fn__block" style="margin-top: 4px;">${plugin.i18n.gistTokenCreateHint}</div>
         <div class="fn__flex fn__flex-center" style="flex-wrap: wrap; gap: 8px; margin-top: 8px;">
             <div class="b3-form__icona fn__block" style="flex: 1 1 auto; min-width: 240px;">
-                <input data-action="gistTokenInput" type="password" class="b3-text-field b3-form__icona-input" placeholder="${plugin.i18n.gistTokenPlaceholder}" spellcheck="false" autocomplete="off">
+                <input data-action="gistTokenInput" type="${mask.type}" class="${mask.className("b3-text-field b3-form__icona-input")}" placeholder="${plugin.i18n.gistTokenPlaceholder}" spellcheck="false" autocomplete="off">
                 <svg data-action="gistTokenTogglePassword" class="b3-form__icona-icon" style="cursor: pointer; user-select: none;"><use xlink:href="#iconEye"></use></svg>
             </div>
             <span data-action="gistTokenSave" class="b3-button b3-button--outline fn__flex-center fn__size200">${plugin.i18n.gistTokenSaveButton}</span>

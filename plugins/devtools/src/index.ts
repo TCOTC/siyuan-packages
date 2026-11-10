@@ -1,4 +1,5 @@
-import { Constants, fetchPost, getFrontend, Menu, Plugin, Setting, showMessage } from "siyuan";
+import { Constants, fetchPost, Menu, Plugin, Setting, showMessage } from "siyuan";
+import { isDesktopClientFrontend, isMobileFrontend } from "siyuan-plugin-env";
 import VConsole from "vconsole";
 import type zhCN from "./i18n/zh-CN.json";
 import "./index.scss";
@@ -37,16 +38,6 @@ const FEATURE_KEYS: FeatureKey[] = ["reloadUI", "openPluginDir", "openPluginStor
 
 let vConsoleInstance: VConsole | undefined;
 let vConsoleSwitchVisible = false;
-
-const isMobileFrontend = () => {
-  const frontend = getFrontend();
-  return frontend === "mobile" || frontend === "browser-mobile";
-};
-
-const isDesktopClientFrontend = () => {
-  const frontend = getFrontend();
-  return frontend === "desktop" || frontend === "desktop-window";
-};
 
 const normalizeConfig = (data: unknown): PluginConfig => {
   const source = typeof data === "object" && data !== null ? (data as Partial<PluginConfig>) : {};

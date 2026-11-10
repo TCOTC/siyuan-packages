@@ -1,4 +1,5 @@
-import { Dialog, getFrontend, openMobileFileById, openTab, Plugin, showMessage } from "siyuan";
+import { Dialog, openMobileFileById, openTab, Plugin, showMessage } from "siyuan";
+import { isMobileFrontend } from "siyuan-plugin-env";
 import { getDefaultWeekStart, type I18n } from "./locale";
 import {
   applyHeatColor,
@@ -142,8 +143,7 @@ export default class HeatMap extends Plugin {
   }
 
   override onLayoutReady() {
-    const frontEnd = getFrontend();
-    this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
+    this.isMobile = isMobileFrontend();
     const i18n = this.i18nText;
 
     this.addTopBar({

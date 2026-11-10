@@ -1,4 +1,5 @@
 import { type App, openTab } from "siyuan";
+import { escapeHtml } from "siyuan-html-safety";
 import { describeReferences } from "./compress";
 import type { ICandidateReference } from "./types";
 
@@ -15,8 +16,6 @@ const TYPE_LABEL_KEY: Record<string, string> = {
   annotation: "refTypeAnnotation",
   ocr: "refTypeOcr",
 };
-
-const escapeHtml = (text: string): string => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** 同一时间只保留一个引用浮窗。 */
 let activeLayer: HTMLElement | null = null;

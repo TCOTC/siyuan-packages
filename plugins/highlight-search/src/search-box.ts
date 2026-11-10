@@ -1,4 +1,5 @@
 import { showMessage } from "siyuan";
+import { escapeHtml } from "siyuan-html-safety";
 import { isDebugEnabled } from "./case-settings";
 import { FindSession, type FindSessionContext } from "./find-session";
 import { SEARCH_TOGGLE_ICON_CASE, SEARCH_TOGGLE_ICON_PRESERVE_CASE, SEARCH_TOGGLE_ICON_WHOLE } from "./icons";
@@ -617,33 +618,25 @@ export class SearchBox {
     this.countEl.classList.toggle("search-count--empty", this.searchText.length > 0 && this.session.count === 0);
   }
 
-  private escapeSnippet(text: string): string {
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-
-  private escapeAttr(text: string): string {
-    return this.escapeSnippet(text).replace(/"/g, "&quot;");
-  }
-
   /** 用 snippetMatches 标出本条结果中的全部命中 */
   private formatSnippetHtml(snippet: string, matchSpans?: { start: number; end: number }[]): string {
     if (!matchSpans || matchSpans.length === 0) {
-      return this.escapeSnippet(snippet);
+      return escapeHtml(snippet);
     }
     const valid = matchSpans.filter((s) => s.start >= 0 && s.end <= snippet.length && s.start < s.end).sort((a, b) => a.start - b.start);
     if (valid.length === 0) {
-      return this.escapeSnippet(snippet);
+      return escapeHtml(snippet);
     }
 
     let html = "";
     let cursor = 0;
     for (const span of valid) {
       if (span.start < cursor) continue;
-      html += this.escapeSnippet(snippet.slice(cursor, span.start));
-      html += `<mark>${this.escapeSnippet(snippet.slice(span.start, span.end))}</mark>`;
+      html += escapeHtml(snippet.slice(cursor, span.start));
+      html += `<mark>${escapeHtml(snippet.slice(span.start, span.end))}</mark>`;
       cursor = span.end;
     }
-    html += this.escapeSnippet(snippet.slice(cursor));
+    html += escapeHtml(snippet.slice(cursor));
     return html;
   }
 
@@ -651,7 +644,7 @@ export class SearchBox {
     const match = this.session.matches[i];
     const active = i + 1 === this.session.index ? " search-panel__item--active" : "";
     const plain = match.snippet || match.blockId;
-    return `<div class="search-panel__item${active}" data-index="${i}" title="${this.escapeAttr(plain)}">${this.formatSnippetHtml(plain, match.snippetMatches)}</div>`;
+    return `<div class="search-panel__item${active}" data-index="${i}" title="${escapeHtml(plain)}">${this.formatSnippetHtml(plain, match.snippetMatches)}</div>`;
   }
 
   /** 结果总数对应的内容高度 */

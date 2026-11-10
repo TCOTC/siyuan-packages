@@ -9,7 +9,7 @@
 import type { PanelHost } from "./panel-host";
 import { getBazaarPullCommentRepo, isBazaarPullCIPassed, listBazaarPulls, ownerRepoFromBazaarPullTitle, type BazaarPullRow, type BazaarPullState } from "../github/bazaar-prs";
 import { i18n } from "../infra/i18n";
-import { safeExternalUrl } from "../infra/html";
+import { safeExternalUrl } from "siyuan-html-safety";
 import { message } from "../infra/message";
 import { createBazaarPullLabelChip } from "./bazaar-pull-labels";
 import { setStatusText } from "./installed-package-ui";

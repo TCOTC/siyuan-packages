@@ -7,8 +7,8 @@ import { i18n } from "../infra/i18n";
 import { message } from "../infra/message";
 import { createTokenVault, seedFromSiyuanSystem } from "siyuan-token-vault";
 import type { TokenVault } from "siyuan-token-vault";
+import { createTokenMask } from "siyuan-token-field";
 import { EYE_ICON_ID } from "../ui/icons";
-import { TOKEN_FIELD_CLASS, TOKEN_REVEAL_CLASS, supportsTextSecurity } from "./token-field";
 
 /**
  * 模块级 Token Vault 单例（首次使用时按当前插件实例惰性初始化）
@@ -67,11 +67,11 @@ export function createSetting(plugin: Plugin): Setting {
   });
 
   // 能靠 CSS 遮蔽时输入框始终是普通文本，移动端不会弹出不提供剪贴板的安全键盘；否则退回密码框与文本框互切
-  const cssMask = supportsTextSecurity(window.CSS);
-  const tokenInputClass = `b3-text-field b3-form__icona-input${cssMask ? ` ${TOKEN_FIELD_CLASS}` : ""}`;
+  const mask = createTokenMask(window.CSS);
+  const tokenInputClass = mask.className("b3-text-field b3-form__icona-input");
   const tokenInputWrapper = document.createRange().createContextualFragment(`
         <div class="b3-form__icona fn__block">
-            <input id="secretKey" type="${cssMask ? "text" : "password"}" class="${tokenInputClass}" placeholder="${i18n.githubTokenPlaceholder}" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off">
+            <input id="secretKey" type="${mask.type}" class="${tokenInputClass}" placeholder="${i18n.githubTokenPlaceholder}" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off">
             <svg class="b3-form__icona-icon" data-action="togglePassword" style="cursor: pointer; user-select: none;"><use xlink:href="#${EYE_ICON_ID}"></use></svg>
         </div>
     `).firstElementChild as HTMLDivElement | null;
@@ -81,12 +81,7 @@ export function createSetting(plugin: Plugin): Setting {
     throw new Error("Failed to create token input elements");
   }
   togglePasswordIcon.addEventListener("click", () => {
-    if (cssMask) {
-      // 遮蔽是默认状态，这里只切换「显示明文」这一个修饰类
-      tokenInput.classList.toggle(TOKEN_REVEAL_CLASS);
-      return;
-    }
-    tokenInput.type = tokenInput.type === "password" ? "text" : "password";
+    mask.toggle(tokenInput);
   });
 
   const setting = new Setting({

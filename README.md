@@ -41,6 +41,13 @@ Jeffrey Chen 的思源笔记集市包的单一源码仓库。
 
 - [kit](kit) —— 本仓库的构建内核
 - [libs/token-vault](libs/token-vault) —— 加密 Token 存储
+- [libs/kernel-client](libs/kernel-client) —— 内核 HTTP 传输与响应包络归一
+- [libs/plugin-env](libs/plugin-env) —— 前端种类判定（移动端 / 桌面端）
+- [libs/custom-tab](libs/custom-tab) —— 自定义页签的新建与复用
+- [libs/html-safety](libs/html-safety) —— HTML 转义与外链白名单
+- [libs/token-field](libs/token-field) —— 令牌输入框遮蔽（避开移动端安全键盘）
+- [libs/version-compare](libs/version-compare) —— 版本比较（核心数字区间 / 严格语义化版本）
+- [libs/i18n-types](libs/i18n-types) —— i18n 键集合类型断言
 - [libs/vconsole](libs/vconsole) —— vConsole 官方构建产物
 
 ---

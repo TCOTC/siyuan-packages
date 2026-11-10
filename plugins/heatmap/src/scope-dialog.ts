@@ -1,4 +1,5 @@
 import { Dialog, fetchSyncPost } from "siyuan";
+import { escapeHtml } from "siyuan-html-safety";
 import { setDocIconContent } from "./icons";
 import type { I18n } from "./locale";
 import type { ScopeNotebook } from "./types";
@@ -222,8 +223,4 @@ function createLoadingEl(i18n: I18n): HTMLElement {
 function getDefaultNotebookIcon(): string {
   const images = (window as any).siyuan?.storage?.["local-images"];
   return String(images?.note || "1f5c3");
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }

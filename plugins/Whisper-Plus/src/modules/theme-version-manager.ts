@@ -2,13 +2,23 @@ import type { Plugin } from "siyuan";
 import { confirm, getFrontend, showMessage } from "siyuan";
 import { post } from "../api";
 import { logging } from "../logger";
-import { compareVersions } from "../utils";
+import { isVersionInRange, type VersionRange } from "siyuan-version-compare";
 import { WHISPER_THEME_NAME } from "./theme-switch";
 
-/** 本插件要求的浅吟主题版本范围（左闭右开，含左端不含右端） */
-const MIN_THEME_VERSION = "3.0.0";
-const MAX_THEME_VERSION = "3.1.0";
-const THEME_VERSION_RANGE = `${MIN_THEME_VERSION}~${MAX_THEME_VERSION}`;
+/**
+ * 本插件要求的浅吟主题版本区间（左闭右开）
+ *
+ * 区间比较走 `isVersionInRange`，它按**核心数字**归类预发布：
+ * - `3.0.0-beta.1` 归入 3.0.0 → 在区间内（作者声明支持 3.0.x，预发布同属这一代）；
+ * - `3.1.0-beta.1` 归入 3.1.0 → 在区间外（`max` 的含义是「3.1 这一代还没验证过」，
+ *   未验证版本的预发布不该放行）。
+ *
+ * 所以边界常量写成纯 `主.次.修订`，别带预发布后缀：带也能算对，但会让读代码的人
+ * 以为预发布有特殊待遇。
+ */
+const THEME_VERSION: VersionRange = { min: "3.0.0", max: "3.1.0" };
+/** 展示给用户的区间文案，与 `THEME_VERSION` 保持同一来源 */
+const THEME_VERSION_TEXT = `${THEME_VERSION.min}~${THEME_VERSION.max}`;
 
 /** 集市包结构（/api/bazaar/getBazaarTheme、getInstalledTheme、getBazaarPlugin 返回） */
 type BazaarPackage = {
@@ -19,10 +29,6 @@ type BazaarPackage = {
 
 function format(template: string, values: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? `{${key}}`);
-}
-
-function isVersionInRange(version: string): boolean {
-  return compareVersions(version, MIN_THEME_VERSION) >= 0 && compareVersions(version, MAX_THEME_VERSION) < 0;
 }
 
 /** 启用主题前校验版本，不满足时尝试自动升级。 */
@@ -38,7 +44,7 @@ export class ThemeVersionManager {
       return false;
     }
 
-    if (isVersionInRange(installedVersion)) {
+    if (isVersionInRange(installedVersion, THEME_VERSION)) {
       return true;
     }
 
@@ -48,7 +54,7 @@ export class ThemeVersionManager {
       return false;
     }
 
-    if (isVersionInRange(latest.version)) {
+    if (isVersionInRange(latest.version, THEME_VERSION)) {
       return await this.confirmAndUpgrade(installedVersion, latest.version);
     }
 
@@ -57,7 +63,7 @@ export class ThemeVersionManager {
         this.text("theme_version_upgrade_title"),
         format(this.text("theme_version_update_plugin_first"), {
           target: latest.version,
-          range: THEME_VERSION_RANGE,
+          range: THEME_VERSION_TEXT,
         }),
       );
       return false;
@@ -68,7 +74,7 @@ export class ThemeVersionManager {
       this.text("theme_version_upgrade_title"),
       format(this.text("theme_version_latest_incompatible"), {
         target: latest.version,
-        range: THEME_VERSION_RANGE,
+        range: THEME_VERSION_TEXT,
       }),
     );
     return false;
@@ -101,7 +107,7 @@ export class ThemeVersionManager {
         format(this.text("theme_version_upgrade_message"), {
           current,
           target,
-          range: THEME_VERSION_RANGE,
+          range: THEME_VERSION_TEXT,
         }),
         () => resolve(true),
         () => resolve(false),

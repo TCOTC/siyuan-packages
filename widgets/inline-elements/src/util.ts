@@ -43,9 +43,8 @@ export function sleep(ms = 0): Promise<void> {
   });
 }
 
-export function escapeHtml(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
+/** HTML 转义（含单引号）：拼 innerHTML 时统一走这里 */
+export { escapeHtml } from "siyuan-html-safety";
 
 /**
  * 在挂件文档的 html、body 元素上写入挂件标识属性

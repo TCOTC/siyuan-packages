@@ -1,6 +1,6 @@
 import { Menu } from "siyuan";
 import { i18n } from "../infra/i18n";
-import { safeExternalUrl, escapeHtml } from "../infra/html";
+import { escapeHtml, safeExternalUrl } from "siyuan-html-safety";
 import type { Logger } from "../infra/logger";
 import { RepoParser, type InstallReleasesPayload, type RepoParseEvent, type RepoReleasesEvent } from "./repo-parser";
 import { abortInstall, subscribeActiveInstallChange, runInstall } from "../install/install-session";

@@ -6,9 +6,9 @@
  * 更新检查按 GitHub Release 的最新 tag 与已安装版本比较，与本插件的安装流程口径一致
  */
 
+import { compareSemver } from "siyuan-version-compare";
 import { getLatestReleaseTag } from "../github/github";
 import { i18n } from "../infra/i18n";
-import { comparePackageVersions } from "../install/package-version";
 import { kernelPackageTypeLabel, listInstalledPackages, sortInstalledPackages, type InstalledPackage, type InstalledPackagesResult } from "../install/installed-packages";
 import { mergeInstalledByType, refreshedTypes } from "../install/installed-package-list";
 import { KERNEL_PACKAGE_TYPES, type KernelPackageType } from "../install/package-types";
@@ -402,7 +402,7 @@ export class InstalledPanel {
 
   /** 最新 tag 与已安装版本的比较结果；版本号无法比较时如实说明，不谎称有新版本 */
   private compareUpdate(pkg: InstalledPackage, latestTag: string): PackageUpdateState {
-    const compared = comparePackageVersions(latestTag, pkg.version);
+    const compared = compareSemver(latestTag, pkg.version);
     if (compared === null) {
       return { kind: "unknown", latestTag };
     }

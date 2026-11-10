@@ -1,5 +1,5 @@
 import { i18n } from "../infra/i18n";
-import { escapeHtml } from "../infra/html";
+import { escapeHtml } from "siyuan-html-safety";
 import { fallbackLatestTagFromRows, getReleaseInfo, githubRawRootFileUrl, listReleasesPage, mergeInstallReleasePages, packageZipCreatedAt, parseOwnerRepo, type ParsedPackageInfo } from "../github/github";
 import type { InstallReleaseRow } from "../github/github";
 import { isSelfRepo } from "../install/self-package";

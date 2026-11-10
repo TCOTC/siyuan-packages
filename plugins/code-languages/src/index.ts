@@ -101,6 +101,12 @@ export default class CodeLanguagesPlugin extends Plugin {
     console.log(this.displayName, this.i18n.uninstall);
   }
 
+  /**
+   * 语言名净化：先按分隔符归一，再去掉会破坏 HTML 的 `&` / `<`
+   *
+   * 不换成 `siyuan-html-safety` 的 `escapeHtml`：这里的结果是语言标识，会回填给宿主的工具栏
+   * 做筛选与匹配（不是直接拼 HTML），多转义引号会改变标识本身
+   */
   private escapeHtml = (html: string) => {
     if (!html) {
       return html;

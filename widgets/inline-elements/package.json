@@ -10,6 +10,8 @@
   "devDependencies": {
     "@jeffrey-chen/siyuan-kit": "workspace:*",
     "siyuan": "catalog:",
+    "siyuan-html-safety": "workspace:*",
+    "siyuan-i18n-types": "workspace:*",
     "typescript": "catalog:"
   }
 }

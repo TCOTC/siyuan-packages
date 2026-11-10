@@ -1,9 +1,9 @@
+import { isMobileFrontend } from "siyuan-plugin-env";
+
 export const CLASS_NAME = "jchs-container";
 
-/** 判断是否为移动端 */
-export const isMobile = () => {
-  return !!(window as any).siyuan?.mobile;
-};
+/** 判断是否为移动端（走宿主的 getFrontend()，与思源自适应布局同一口径） */
+export const isMobile = () => isMobileFrontend();
 
 /** 判断当前环境是否支持 CSS Custom Highlight API */
 export const isHighlightApiSupported = () => {

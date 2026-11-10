@@ -11,6 +11,9 @@
   "devDependencies": {
     "@jeffrey-chen/siyuan-kit": "workspace:*",
     "siyuan": "catalog:",
+    "siyuan-html-safety": "workspace:*",
+    "siyuan-i18n-types": "workspace:*",
+    "siyuan-plugin-env": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

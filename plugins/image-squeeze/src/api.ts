@@ -1,4 +1,5 @@
 import { fetchSyncPost } from "siyuan";
+import { getFileBlob } from "siyuan-kernel-client";
 import type { IAssetReferencesData, IAssetRelinkMapping, IDirectoryEntry } from "./types";
 
 /** 上传新资源的目标目录，使用全局资源目录以便得到唯一的 assets/ 链接路径。 */
@@ -69,35 +70,18 @@ export const readDir = async (path: string): Promise<IDirectoryEntry[]> => {
 };
 
 /**
- * 读取资源原始字节。该接口成功时直接返回二进制，失败时返回 202 加 JSON 错误体。
- * 资源在云端未下载到本地时也会失败，调用方应按「跳过」而非「异常」处理。
+ * 读取资源原始字节。资源在云端未下载到本地时读不到，调用方应按「跳过」而非「异常」处理。
+ * 该接口成功时直接返回二进制，失败时返回 202 加 JSON 错误体（含 code / msg）。
  */
 export const readAssetBytes = async (assetPath: string): Promise<Blob> => {
-  const response = await fetch("/api/file/getFile", {
-    method: "POST",
-    body: JSON.stringify({ path: `/data/${assetPath}` }),
-  });
-  if (response.status === 202) {
-    const text = await response.text();
-    let message = text;
-    try {
-      const parsed = JSON.parse(text);
-      if (parsed && parsed.msg) {
-        message = parsed.msg;
-      }
-    } catch {
-      // 非 JSON 错误体时直接使用原始文本
-    }
-    throw new Error(message || "failed to read asset");
+  const result = await getFileBlob(`/data/${assetPath}`);
+  if (!result.ok) {
+    throw new Error(result.msg || "failed to read asset");
   }
-  if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText}`);
-  }
-  const blob = await response.blob();
-  if (0 === blob.size) {
+  if (0 === result.blob.size) {
     throw new Error("asset is empty");
   }
-  return blob;
+  return result.blob;
 };
 
 /** 上传压缩后的资源，返回内核分配的资源路径，例如 assets/xxx-20230101120000-abc1234.webp。 */

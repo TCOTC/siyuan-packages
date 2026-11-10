@@ -1,12 +1,12 @@
-import { Constants, getFrontend, openTab, Plugin, Protyle, showMessage } from "siyuan";
+import { Constants, Plugin, Protyle, showMessage } from "siyuan";
 import type { Custom, IOperation, IProtyleOptions } from "siyuan";
+import { isMobileFrontend } from "siyuan-plugin-env";
+import { openOrFocusCustomTab } from "siyuan-custom-tab";
 import type zhCN from "./i18n/zh-CN.json";
 import "./index.scss";
 
 const TAB_TYPE = "tempEdit";
 const TAB_ICON = "iconEdit";
-// 固定数据用于复用同一个临时编辑页签，重复点击顶栏按钮时切换到已打开的页签
-const TAB_DATA = { id: "temp-edit" };
 
 // lite 模式仅在前端记录撤销（LocalUndo），事务不会提交到内核，因此不会写入工作空间；
 // 置空上传地址可避免粘贴图片等资源时写入 工作空间/data/assets
@@ -53,7 +53,7 @@ export default class TempEditPlugin extends Plugin {
   private isMobile = false;
 
   override onload() {
-    this.isMobile = getFrontend().endsWith("mobile");
+    this.isMobile = isMobileFrontend();
     if (this.isMobile) {
       // 自定义页签仅桌面端支持
       return;
@@ -98,14 +98,12 @@ export default class TempEditPlugin extends Plugin {
   }
 
   private openTempEditTab() {
-    openTab({
+    // 重复点击顶栏按钮时切回已打开的页签，不新建（判定按页签类型，不依赖 custom.data）
+    openOrFocusCustomTab({
       app: this.app,
-      custom: {
-        id: this.name + TAB_TYPE,
-        icon: TAB_ICON,
-        title: this.i18n.tabTitle,
-        data: TAB_DATA,
-      },
+      customId: this.name + TAB_TYPE,
+      icon: TAB_ICON,
+      title: this.i18n.tabTitle,
     });
   }
 

@@ -1,4 +1,5 @@
-import { openTab, type Custom, type IEventBusMap } from "siyuan";
+import { type Custom, type IEventBusMap } from "siyuan";
+import { openNewCustomTab, openOrFocusCustomTab } from "siyuan-custom-tab";
 import { FLOMO_URL, type FlomoPlugin, mountFlomoPanelWhenReady, parseFlomoUrl, runPanelUnmount, setPanelUnmount, TAB_TYPE } from "./view";
 
 function unmountCustom(custom: Custom) {
@@ -84,16 +85,18 @@ export function emptyOpenFlomoTabs(plugin: FlomoPlugin) {
 /** 用自定义页签打开 flomo 网页；默认新开，不复用已有页签 */
 export function openFlomoTab(plugin: FlomoPlugin, url = FLOMO_URL, openNew = true) {
   const abs = parseFlomoUrl(url) || FLOMO_URL;
-  openTab({
+  const options = {
     app: plugin.app,
-    custom: {
-      icon: "iconFlomoWeb",
-      title: plugin.i18n.dockTitle,
-      data: { url: abs },
-      id: plugin.name + TAB_TYPE,
-    },
-    openNewTab: openNew,
-  });
+    customId: plugin.name + TAB_TYPE,
+    icon: "iconFlomoWeb",
+    title: plugin.i18n.dockTitle,
+    data: { url: abs },
+  };
+  if (openNew) {
+    openNewCustomTab(options);
+    return;
+  }
+  openOrFocusCustomTab(options);
 }
 
 const EDITOR_LINK_ROOT = ".protyle-wysiwyg, .protyle-preview, .b3-typography";

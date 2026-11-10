@@ -1,0 +1,19 @@
+{
+  "name": "siyuan-plugin-env",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "思源插件共用的前端环境判定：宿主 getFrontend() 的取值与移动端 / 桌面端分类",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "siyuan": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

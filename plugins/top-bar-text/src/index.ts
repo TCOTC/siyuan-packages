@@ -1,4 +1,5 @@
-import { Plugin, Setting, getFrontend } from "siyuan";
+import { Plugin, Setting } from "siyuan";
+import { isMobileFrontend } from "siyuan-plugin-env";
 import "./index.scss";
 
 const STORAGE_NAME = "top-bar-text-config.json";
@@ -19,8 +20,7 @@ export default class TopBarTextPlugin extends Plugin {
   private hourlyUpdateTimer: number = 0;
 
   override async onload() {
-    const frontEnd = getFrontend();
-    this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
+    this.isMobile = isMobileFrontend();
     await this.loadData(STORAGE_NAME);
     // loadData 在配置文件不存在时返回空字符串，需归一化为对象
     if (typeof this.data[STORAGE_NAME] !== "object" || this.data[STORAGE_NAME] === null) {

@@ -1,5 +1,6 @@
 import { adaptHotkey } from "siyuan";
 import type { Plugin } from "siyuan";
+import { escapeHtml } from "siyuan-html-safety";
 import { ATTR_DEVTOOLS, getConfig, registerConfigPanel, unregisterConfigPanel } from "./config";
 import type zhCN from "./i18n/zh-CN.json";
 import { getFlomoInjectScript, GUEST_OPEN_PREFIX } from "./inject";
@@ -190,7 +191,7 @@ export function parseFlomoUrl(raw: string): string {
 }
 
 function escapeAttr(text: string): string {
-  return text.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  return escapeHtml(text);
 }
 
 function iconButton(type: string, href: string, label: string): string {

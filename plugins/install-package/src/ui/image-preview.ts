@@ -7,7 +7,7 @@
  */
 
 import { Dialog } from "siyuan";
-import { escapeHtml, safeExternalUrl } from "../infra/html";
+import { escapeHtml, safeExternalUrl } from "siyuan-html-safety";
 
 /** 当前打开的大图预览；连点时先收掉上一个，避免叠出多层同样的图 */
 let currentPreview: Dialog | null = null;

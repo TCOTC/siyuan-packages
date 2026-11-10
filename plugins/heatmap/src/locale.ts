@@ -1,4 +1,5 @@
 import type { WeekStart } from "./types";
+import type { AssertTrue, SameKeys } from "siyuan-i18n-types";
 import en from "./i18n/en.json";
 import ja from "./i18n/ja.json";
 import zhCN from "./i18n/zh-CN.json";
@@ -15,10 +16,6 @@ import zhTW from "./i18n/zh-TW.json";
  * 类型以 `en.json` 为参照：少一个键、值不是字符串都会在 tsc 阶段报出来。
  */
 export type I18n = typeof en;
-
-/** 键集合完全相同才算通过（多一个键也算不一致）。 */
-type SameKeys<Left, Right> = [Left] extends [Right] ? ([Right] extends [Left] ? true : false) : false;
-type AssertTrue<Value extends true> = Value;
 
 /** 另三份译文与 en.json 的键集合必须逐一相同；不一致时 tsc 会在这一行报错。 */
 export type LocaleKeyCheck = [AssertTrue<SameKeys<keyof I18n, keyof typeof zhCN>>, AssertTrue<SameKeys<keyof I18n, keyof typeof zhTW>>, AssertTrue<SameKeys<keyof I18n, keyof typeof ja>>];

@@ -7,13 +7,10 @@
 import en from "./i18n/en.json";
 import zhCN from "./i18n/zh-CN.json";
 import zhTW from "./i18n/zh-TW.json";
+import type { AssertTrue, SameKeys } from "siyuan-i18n-types";
 
 /** 键集合以 zh-CN 为参照，三份必须完全一致。 */
 export type I18nKey = keyof typeof zhCN;
-
-/** 键集合完全相同才算通过（多一个键也算不一致）。 */
-type SameKeys<Left, Right> = [Left] extends [Right] ? ([Right] extends [Left] ? true : false) : false;
-type AssertTrue<Value extends true> = Value;
 
 /** 另两份译文与 zh-CN 的键集合必须逐一相同；不一致时 tsc 会在这一行报错。 */
 export type LocaleKeyCheck = [AssertTrue<SameKeys<keyof typeof zhCN, keyof typeof zhTW>>, AssertTrue<SameKeys<keyof typeof zhCN, keyof typeof en>>];
