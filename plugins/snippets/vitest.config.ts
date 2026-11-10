@@ -16,5 +16,10 @@ export default defineConfig({
     include: ["src/**/*.test.ts", "e2e/**/*.test.ts"],
     // 每条用例前清掉 vi.fn 的调用记录，避免替身状态在用例之间泄漏
     restoreMocks: true,
+    // vitest 的 jsdom 默认 runScripts: "dangerously"，插进 document.head 的 JS 片段会被
+    // 真的执行 —— 夹具里的 console.log(1) 于是直接打到 CI 日志里。单测断言的是元素本身
+    // （存在、tagName、textContent、被移除），不需要它跑起来；改成 "outside-only" 只允许
+    // 从外部 eval，静音的同时保留 console 输出用于排查失败用例。
+    environmentOptions: { jsdom: { runScripts: "outside-only" } },
   },
 });
