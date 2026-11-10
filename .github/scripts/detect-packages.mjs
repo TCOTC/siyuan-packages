@@ -37,6 +37,18 @@ const KIND_BY_DIR = { plugins: "plugin", themes: "theme", widgets: "widget" };
 const MANUAL_PREVIOUS = "—（未检测）";
 const jsonMode = process.argv.includes("--json");
 
+/**
+ * 逐包进度日志：`--json` 时改走 stderr。
+ * stdout 在 jsonMode 下只许有 JSON，否则调用方 JSON.parse 会拿到「日志 + JSON」。
+ */
+function progress(message) {
+  if (jsonMode) {
+    console.error(message);
+    return;
+  }
+  console.log(message);
+}
+
 const event = process.env.EVENT ?? "";
 const refName = process.env.REF_NAME ?? "";
 const inputBase = (process.env.INPUT_BASE ?? "").trim();
@@ -279,7 +291,7 @@ function main() {
     const pkg = resolvePackage(dir);
 
     if (previous === null) {
-      console.log(`- ${pkg.name}：新包，直接发布`);
+      progress(`- ${pkg.name}：新包，直接发布`);
       rows.push({ ...pkg, previous: null });
       continue;
     }
@@ -287,14 +299,14 @@ function main() {
     const order = compareVersions(pkg.version, previous);
     if (order === 0) {
       // 只改了 displayName / description 之类，没有新版本可发
-      console.log(`- ${pkg.name}：清单变了但 version 仍是 ${pkg.version}，跳过`);
+      progress(`- ${pkg.name}：清单变了但 version 仍是 ${pkg.version}，跳过`);
       skipped.push(`${pkg.name}（version 仍是 ${pkg.version}）`);
       continue;
     }
     if (order < 0) {
       throw new Error(`${pkg.name} 的 version 从 ${previous} 降到了 ${pkg.version}`);
     }
-    console.log(`- ${pkg.name}：${previous} → ${pkg.version}`);
+    progress(`- ${pkg.name}：${previous} → ${pkg.version}`);
     rows.push({ ...pkg, previous });
   }
 
