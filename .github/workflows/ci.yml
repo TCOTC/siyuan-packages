@@ -15,9 +15,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# 默认 token 还会带 packages 等本流程用不到的权限；只留读代码
+permissions:
+  contents: read
+
 jobs:
   check:
-    runs-on: ubuntu-latest
+    # 钉具体镜像：ubuntu-latest 自 2026-10 起会迁移到 26.04，写 latest 既拿不到稳定行为，
+    # 又会每次运行都挂一条「即将迁移」的注解。
+    runs-on: ubuntu-26.04
+    # 默认上限 360 分钟，卡住时白烧额度；本流程实测约 65s，留十倍余量。
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7.0.1
 
@@ -52,5 +60,20 @@ jobs:
 
       - name: Build all packages
         run: pnpm -r --if-present build
+
+  # 只在 PR 上跑：Dependabot 的升级 PR 直接改 lockfile，这里拦「升到有已知漏洞的版本」。
+  # 独立成一个 job，它的任何故障都不会影响上面的全量校验。
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/dependency-review-action@v5.0.0
+        with:
+          # 默认 low 起就失败会过吵；按 moderate 拦
+          fail-on-severity: moderate
 
 
