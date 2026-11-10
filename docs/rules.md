@@ -245,11 +245,11 @@ plugins/move-doc/           源码  {manifest.json, README*.md, icon.png, previe
 - 插件入口必须是 CommonJS（内核按 `require` 加载），不要改成纯 ESM。
 - 样式必须落在 `index.css`，不能带哈希或进 `assets/`（内核按固定名找）。
 - 入口 import 了样式但编译结果为空时，build 不产出 `index.css`，dev 补一个空文件。
-- dev 与 build 只差两处：dev 不压缩 + inline sourcemap，build 压缩 + 无 sourcemap。`base` / `external` / CSS 命名两边一致，否则会「本地能跑、装了包不行」。
+- dev 与 build 只差两处：dev 不压缩 + inline sourcemap，build 压缩 + 无 sourcemap（`sync` 用 dev 口径）。`base` / `external` / CSS 命名两边一致，否则会「本地能跑、装了包不行」。
 
-### 3.3 dev 链接
+### 3.3 工作空间链接（dev / sync）
 
-`siyuan-kit dev` 在工作空间里为产物目录建一个**目录链接**：
+`siyuan-kit dev` 与 `siyuan-kit sync` 在工作空间里为产物目录建一个**目录链接**：
 
 ```
 <工作空间>/data/<类型>/<name>  →  <仓库>/dist/<name>/
@@ -260,6 +260,8 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 `dev` 是持续监听：插件/挂件由 vite 的 `build.watch` 负责；主题是唯一不走打包器的形态，由 kit 用 `fs.watch` 盯住入口目录（递归，含 partial 子目录）、入口之外被 `@use` 引用过的目录与 `icons/`（sass 的 `compileAsync` 没有 watch API）。编译错误只打到控制台、不中断监听；`dev` **不清空产物目录**——它已经链进思源，先清后编一旦失败（SCSS 报错、进程 OOM）思源里就只剩一个空主题。
 
+`sync` 是同一套产物口径（不压缩 + inline sourcemap）与链接的一次性版本：不监听、不产出 zip，跑完就退出。在仓库根裸跑即全部分发包（也可点名），在包目录里裸跑就是它自己。它同样**不清空产物目录**（目录已经链进思源），也**必须**有 `siyuan.config.json`——链接是这条命令的全部意义，缺文件直接报错，而不是像 `dev` 那样只构建不链接。
+
 需要仓库根的 `siyuan.config.json`（gitignore，模板见 `siyuan.config.example.json`，照抄后改成自己的路径）：
 
 ```json
@@ -268,7 +270,7 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 }
 ```
 
-指向工作空间根目录（含 `data/` 的那一层）。**只有 `dev` 读这份配置**：缺文件时只构建不链接（同一批启动的进程里只提示一次）；路径不存在、填成 `data` 本身、目录下没有 `data/` 各有报错。`build` / `check` 不读它，本机路径失效也不会让打包失败。
+指向工作空间根目录（含 `data/` 的那一层）。**只有 `dev` / `sync` 读这份配置**：`dev` 缺文件时只构建不链接（同一批启动的进程里只提示一次），`sync` 缺文件直接报错；路径不存在、填成 `data` 本身、目录下没有 `data/` 各有报错。`build` / `check` 不读它，本机路径失效也不会让打包失败。
 
 建链接时会校验已有目标：
 
@@ -276,11 +278,11 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 - 是**真实目录**（例如从集市装过的同一个包）→ 校验目录里的清单 `name` 与本包一致后删除，改成链接；不一致则拒绝，不会清掉别人的目录。
 - 是**指向别处的链接** → 拒绝，不擅自删除。
 
-链接是持久的：停掉 dev 之后它仍指向 `dist/<name>/`。要让思源恢复集市安装的版本，删掉这条链接（或整个 `dist/` 后重装）即可。
+链接是持久的：停掉 dev（或跑完 sync）之后它仍指向 `dist/<name>/`。要让思源恢复集市安装的版本，删掉这条链接（或整个 `dist/` 后重装）即可。
 
 根目录的 `pnpm dev` 是 `siyuan-kit dev`，**必须指定包名**（`pnpm dev Whisper`，也接受 `themes/Whisper` 这种目录）。裸跑会报错并列出全部包名：一次拉起二十多个 watch 进程会把内存吃光，最先崩的是编辑器。要全部包时用根目录的 `pnpm dev:all`（`pnpm -r --parallel`，每包一个进程、各占一个堆）。点名多个包时在同一个进程里串行启动。
 
-包枚举只有一份：`kit/src/resolve.ts` 的 `listPackages()`，`check` 与 `dev` 共用，报错提示也从它取包名列表。
+包枚举只有一份：`kit/src/resolve.ts` 的 `listPackages()`，`check`、`dev` 与 `sync` 共用，报错提示也从它取包名列表。
 
 编辑器侧：仓库的 `.vscode/settings.json` 把 `dist/` 从 `files.watcherExclude`、`search.exclude` 与 `js/ts.tsserver.watchOptions.excludeDirectories` 里排除。构建产物每次重写都是成千上万个文件事件，不排除的话编辑器光靠监听就能被拖死（`files.watcherExclude` 默认只排 `node_modules` 与 `.git/objects`，**不排 `dist`**）。
 

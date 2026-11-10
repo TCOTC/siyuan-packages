@@ -1,11 +1,12 @@
 import { existsSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { BuildOptions } from "../define.ts";
-import type { BuildStep } from "../plan.ts";
+import type { BuildMode, BuildStep } from "../plan.ts";
 import type { ResolvedPackage } from "../resolve.ts";
 
 /** 主题 preset：styles/index.scss → theme.css，直接交给 sass，不套 vite。 */
-export function themeSteps(pkg: ResolvedPackage, options: BuildOptions, dev: boolean, outDir: string): BuildStep[] {
+export function themeSteps(pkg: ResolvedPackage, options: BuildOptions, mode: BuildMode, outDir: string): BuildStep[] {
+  const dev = mode.profile === "dev";
   // 主题只有一个入口；需要第二个入口时再由 build.config.ts 提供 entry。
   const input = resolve(pkg.root, options.entry ?? "styles/index.scss");
 

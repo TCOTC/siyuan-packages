@@ -5,7 +5,7 @@ export { BASE_FORBIDDEN_FIELDS, BASE_MANIFEST_FILE, BASE_SECTION_KEYS, collectSt
 export type { ResolvedPackage, StaticAsset } from "./resolve.ts";
 
 export { plan } from "./plan.ts";
-export type { BuildStep, Plan } from "./plan.ts";
+export type { BuildMode, BuildStep, Plan } from "./plan.ts";
 
 export { ALLOWED_BUILD_CONFIG, checkWorkspace } from "./check.ts";
 export type { CheckIssue, CheckResult } from "./check.ts";

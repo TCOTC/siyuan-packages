@@ -67,6 +67,7 @@ pnpm dev move-doc                   # 只监听一个包，并把产物目录链
 | `pnpm build`                      | 构建全部包 → `dist/<name>/` 与 `dist/<name>.zip` |
 | `pnpm dev <name>…`                | 监听指定的包（不写包名会报错并列出可用包名）     |
 | `pnpm dev:all`                    | 监听全部包：每包一个 watch 进程，很吃内存，慎用  |
+| `pnpm sync`                       | 构建全部包（dev 口径、不打包）并链接进工作空间   |
 | `pnpm --filter <name> build\|dev` | 只构建 / 监听一个包（在包目录里跑）              |
 | `pnpm check`                      | 校验目录、清单、脚本、locale 等契约              |
 | `pnpm typecheck` / `pnpm test`    | 全仓 `tsc -p .` / vitest                         |
@@ -83,9 +84,11 @@ pnpm dev move-doc                   # 只监听一个包，并把产物目录链
 }
 ```
 
-没有这个文件时 `dev` 只构建、不链接（提示只打一次）。`build` 完全不读它：本机工作空间路径配错或换机器都不会影响打包。
+没有这个文件时 `dev` 只构建、不链接（提示只打一次），`sync` 则直接报错。`build` 完全不读它：本机工作空间路径配错或换机器都不会影响打包。
 
 `dev` 是持续监听：插件/挂件走 vite 的 `build.watch`，主题由 kit 用 `fs.watch` 盯住 `styles/`（含 partial 子目录）与 `icons/`——sass 的 `compileAsync` 没有 watch API，不自己盯就只能编译一次。SCSS 写错只打到控制台，不会中断监听；`dev` 也不会清空产物目录（它已经链进思源，先清后编一旦失败思源里就只剩空主题）。
+
+`pnpm sync` 与 `dev` 共用同一套产物口径（不压缩 + inline sourcemap）与链接，但只构建一次：在仓库根裸跑就是全部分发包，不产出 zip，跑完就退出；点名时只处理那几个包，在包目录里裸跑就是它自己。适合改完一批包后统一刷进思源，不必把二十多个 watch 进程一直开着。它**必须**有 `siyuan.config.json`（链接是这条命令的全部意义，缺文件直接报错）。
 
 **不要把全部包的 dev 一起开着**：`pnpm dev:all` 会同时拉起二十多个 watch 进程（每个几十到上百 MB），编辑器容易被拖到无响应。仓库里的 `.vscode/settings.json` 已经把 `dist/` 从文件监听、搜索和 TS 服务里排除——构建写入的产物不再触发编辑器的索引。
 

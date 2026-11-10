@@ -13,10 +13,21 @@ import type { SassStep } from "./sass.ts";
  */
 export type BuildStep = { runner: "vite"; label: string; config: InlineConfig } | SassStep;
 
+/**
+ * 一次构建的模式。两个维度分开，是因为 sync 要 dev 口径的产物（贴着源码调试），
+ * 却只构建一次、不常驻监听。
+ */
+export interface BuildMode {
+  /** 产物口径：dev 不压缩 + inline sourcemap；build 压缩且不带 sourcemap。 */
+  profile: "dev" | "build";
+  /** 是否常驻监听源码变化；只有 dev 命令为 true。 */
+  watch: boolean;
+}
+
 export interface Plan {
   pkg: ResolvedPackage;
   repoRoot: string;
-  dev: boolean;
+  mode: BuildMode;
   /** 产物目录：<repoRoot>/dist/<name>。绝不写进包目录。 */
   outDir: string;
   zipPath: string;
@@ -25,24 +36,25 @@ export interface Plan {
   zip: boolean;
 }
 
-export function plan(pkg: ResolvedPackage, options: BuildOptions, dev: boolean): Plan {
+export function plan(pkg: ResolvedPackage, options: BuildOptions, mode: BuildMode): Plan {
   const repoRoot = findRepoRoot(pkg.root);
   const outDir = join(repoRoot, "dist", pkg.name);
   const zipPath = join(repoRoot, "dist", `${pkg.name}.zip`);
-  const zip = !dev && options.zip !== false;
+  // dev 口径的产物只用于本机链接，永远不打 zip；build 口径才走发布链路
+  const zip = mode.profile === "build" && options.zip !== false;
 
   let steps: BuildStep[];
   switch (pkg.kind) {
     case "plugin":
-      steps = pluginSteps(pkg, options, dev, outDir);
+      steps = pluginSteps(pkg, options, mode, outDir);
       break;
     case "widget":
-      steps = widgetSteps(pkg, options, dev, outDir);
+      steps = widgetSteps(pkg, options, mode, outDir);
       break;
     case "theme":
-      steps = themeSteps(pkg, options, dev, outDir);
+      steps = themeSteps(pkg, options, mode, outDir);
       break;
   }
 
-  return { pkg, repoRoot, dev, outDir, zipPath, steps, zip };
+  return { pkg, repoRoot, mode, outDir, zipPath, steps, zip };
 }

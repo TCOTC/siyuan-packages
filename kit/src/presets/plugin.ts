@@ -2,15 +2,15 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import type { InlineConfig, Plugin } from "vite";
 import type { BuildOptions, PassOptions } from "../define.ts";
-import type { BuildStep } from "../plan.ts";
+import type { BuildMode, BuildStep } from "../plan.ts";
 import type { ResolvedPackage } from "../resolve.ts";
 
 /** 插件 preset：默认单入口 cjs，多入口用 passes。 */
-export function pluginSteps(pkg: ResolvedPackage, options: BuildOptions, dev: boolean, outDir: string): BuildStep[] {
+export function pluginSteps(pkg: ResolvedPackage, options: BuildOptions, mode: BuildMode, outDir: string): BuildStep[] {
   return passesOf(options).map((pass) => ({
     runner: "vite",
     label: `plugin:${pass.format}:${pass.outName ?? "index"}`,
-    config: pluginConfig(pkg, pass, dev, outDir, options.define),
+    config: pluginConfig(pkg, pass, mode, outDir, options.define),
   }));
 }
 
@@ -22,7 +22,9 @@ function passesOf(options: BuildOptions): PassOptions[] {
   return [{ format: "cjs", entry: options.entry ?? "src/index.ts" }];
 }
 
-function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, dev: boolean, outDir: string, extraDefine: Record<string, string> | undefined): InlineConfig {
+function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, mode: BuildMode, outDir: string, extraDefine: Record<string, string> | undefined): InlineConfig {
+  const dev = mode.profile === "dev";
+
   return {
     root: pkg.root,
     // 由 kit 完全接管配置，不让包内的 vite.config.* 参与合并
@@ -52,7 +54,7 @@ function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, dev: boolean, out
       // 产物目录里有上一次的残留会被打进 zip，交给 kit 在构建前统一清理，
       // 而不是让 vite 清空（dev 模式下 outDir 是包根，绝不能清空）
       emptyOutDir: false,
-      ...(dev ? { watch: {} } : {}),
+      ...(mode.watch ? { watch: {} } : {}),
       // dev 与 build 的产物形态刻意不同，只有 build 的结果会进 package.zip：
       //   dev   —— 不压缩、inline sourcemap（贴着源码调试，行号要对得上）
       //   build —— 压缩、无 sourcemap（思源用 eval 加载，外链 .map 也解析不到）

@@ -2,24 +2,26 @@ import { resolve } from "node:path";
 import type { InlineConfig } from "vite";
 import { viteSingleFile } from "vite-plugin-singlefile";
 import type { BuildOptions } from "../define.ts";
-import type { BuildStep } from "../plan.ts";
+import type { BuildMode, BuildStep } from "../plan.ts";
 import type { ResolvedPackage } from "../resolve.ts";
 
 /**
  * 挂件 preset：产物是 /widgets/<name>/index.html。
  * 用 vite-plugin-singlefile 把 JS/CSS 全部内联，避免运行时请求相对资源。
  */
-export function widgetSteps(pkg: ResolvedPackage, options: BuildOptions, dev: boolean, outDir: string): BuildStep[] {
+export function widgetSteps(pkg: ResolvedPackage, options: BuildOptions, mode: BuildMode, outDir: string): BuildStep[] {
   return [
     {
       runner: "vite",
       label: "widget:html",
-      config: widgetConfig(pkg, dev, outDir, options),
+      config: widgetConfig(pkg, mode, outDir, options),
     },
   ];
 }
 
-function widgetConfig(pkg: ResolvedPackage, dev: boolean, outDir: string, options: BuildOptions): InlineConfig {
+function widgetConfig(pkg: ResolvedPackage, mode: BuildMode, outDir: string, options: BuildOptions): InlineConfig {
+  const dev = mode.profile === "dev";
+
   return {
     root: pkg.root,
     configFile: false,
@@ -40,7 +42,7 @@ function widgetConfig(pkg: ResolvedPackage, dev: boolean, outDir: string, option
     build: {
       outDir,
       emptyOutDir: false,
-      ...(dev ? { watch: {} } : {}),
+      ...(mode.watch ? { watch: {} } : {}),
       sourcemap: dev ? "inline" : false,
       minify: !dev,
       rollupOptions: {
