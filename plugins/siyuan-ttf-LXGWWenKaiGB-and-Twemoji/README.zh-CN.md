@@ -1,5 +1,3 @@
-# 霞鹜文楷 & Twemoji
-
 字体文件来自：[lxgw/LxgwWenkaiGB-Lite](https://github.com/lxgw/LxgwWenkaiGB-Lite) 和 [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen)（GB 屏幕阅读版），后者由 .ttf 格式[转换](https://cloudconvert.com/ttf-to-woff)为 .woff 格式
 
 Twemoji 字体文件来自：[TCOTC/twemoji-colr](https://github.com/TCOTC/twemoji-colr/)

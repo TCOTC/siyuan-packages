@@ -1,5 +1,3 @@
-# DevTools
-
 Provides common development helpers in the top bar and the command panel: reload the window, open plugin-related directories, and toggle developer tools. Desktop uses the system developer tools; mobile uses [vConsole](https://github.com/Tencent/vConsole).
 
 Works on all backends and frontends. Disabled in the publish service.

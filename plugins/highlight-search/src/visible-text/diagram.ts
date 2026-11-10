@@ -58,12 +58,12 @@ export function isDiagramContentBlock(el: Element): boolean {
   return el.classList.contains("render-node") && el.getAttribute("data-type") === "NodeCodeBlock" && el.hasAttribute("data-content");
 }
 
-/** 反转义 data-content（对齐思源 Lute.UnEscapeHTMLStr） */
+/** 反转义 data-content（用思源自带的 Lute，缺失时退回 textarea） */
 export function unescapeDataContent(raw: string): string {
   if (!raw) return "";
-  const lute = (window as Window & { Lute?: { UnEscapeHTMLStr?: (s: string) => string } }).Lute;
-  if (typeof lute?.UnEscapeHTMLStr === "function") {
-    return lute.UnEscapeHTMLStr(raw);
+  const { Lute } = window;
+  if (typeof Lute?.UnEscapeHTMLStr === "function") {
+    return Lute.UnEscapeHTMLStr(raw);
   }
   const textarea = document.createElement("textarea");
   textarea.innerHTML = raw;

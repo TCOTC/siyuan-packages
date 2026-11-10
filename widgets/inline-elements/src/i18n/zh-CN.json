@@ -1,0 +1,23 @@
+{
+  "text-mark": "标记",
+  "text-strong": "粗体",
+  "text-tag": "标签",
+  "text-em": "斜体",
+  "text-u": "下划线",
+  "text-s": "删除线",
+  "text-inline-memo": "备注",
+  "text-a": "超链接",
+  "text-block-ref": "块引用",
+  "text-code": "行级代码",
+  "text-inline-math": "行级公式",
+  "text-sup": "上标",
+  "text-sub": "下标",
+  "text-kbd": "键盘",
+  "embedBlocks-true": "包含嵌入块中的元素",
+  "embedBlocks-false": "排除嵌入块中的元素",
+  "refreshList": "刷新列表",
+  "loadingMessage": "正在解析文档，请稍候...",
+  "noResultsMessage": "无查询结果",
+  "errorMessage": "异常：无法获取到必要的挂件元素，挂件加载失败",
+  "docIdNotFoundMessage": "异常：无法获取文档 ID"
+}

@@ -9,9 +9,9 @@ import { getFrontend } from "siyuan";
 import { i18n } from "../infra/i18n";
 import { escapeHtml } from "../infra/html";
 import { confirmDialog } from "../infra/dialog";
-import { fetchSyncPost } from "../infra/kernelClient";
+import { fetchSyncPost } from "../infra/kernel-client";
 import type { PackageType } from "./install";
-import { kernelPackageTypeLabel, kernelTypeNeedsFrontend, type InstalledPackage } from "./installedPackages";
+import { kernelPackageTypeLabel, kernelTypeNeedsFrontend, type InstalledPackage } from "./installed-packages";
 import type { Logger } from "../infra/logger";
 
 /** 各类型的卸载接口；是否需要 frontend 由 `kernelTypeNeedsFrontend` 判定 */

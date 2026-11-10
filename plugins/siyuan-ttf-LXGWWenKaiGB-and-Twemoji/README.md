@@ -1,5 +1,3 @@
-# LXGW WenKai and Twemoji
-
 Font files sourced from: [lxgw/LxgwWenkaiGB-Lite](https://github.com/lxgw/LxgwWenkaiGB-Lite) and [lxgw/LxgwWenKai-Screen](https://github.com/lxgw/LxgwWenKai-Screen) (GB Screen edition). The latter was converted from .ttf to .woff format using [CloudConvert](https://cloudconvert.com/ttf-to-woff).
 
 Twemoji font file sourced from: [TCOTC/twemoji-colr](https://github.com/TCOTC/twemoji-colr/)

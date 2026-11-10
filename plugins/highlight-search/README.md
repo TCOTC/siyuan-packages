@@ -1,5 +1,3 @@
-# Document Highlight Search
-
 Find text in the currently open document and highlight all matches. Supports jumping to the previous / next match, and replacing the current match.
 
 ## How to open

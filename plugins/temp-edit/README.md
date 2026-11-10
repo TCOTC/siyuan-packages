@@ -1,5 +1,3 @@
-# Temp Edit
-
 Adds a top bar button that opens a "Temp Edit" tab powered by the Protyle Lite editor.
 
 ## Features

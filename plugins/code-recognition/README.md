@@ -1,5 +1,3 @@
-# Code Language Recognition
-
 Automatically recognize SiYuan code block languages with a fast, offline local model.
 
 ## Features

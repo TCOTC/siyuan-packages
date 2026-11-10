@@ -1,5 +1,3 @@
-# Code Languages Manager
-
 A SiYuan plugin that helps you manage language lists in code blocks.
 
 ## Features

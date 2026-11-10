@@ -148,10 +148,13 @@ function checkPackage(root: string, issues: CheckIssue[]): void {
   checkLocales(pkg, push);
   checkReadmeFiles(pkg, push);
   checkI18nFileNames(pkg, push);
+  checkI18nLayout(root, push);
   checkForbiddenEntries(root, push);
   checkLicenseCopy(root, push);
   checkImages(pkg, push);
   checkEntry(pkg, push);
+  checkAmbientDeclarations(root, push);
+  checkFileNaming(root, push);
 }
 
 /** 所有包必须使用同一套脚本入口。 */
@@ -172,12 +175,21 @@ function checkScripts(root: string, push: (message: string) => void): void {
   }
 }
 
-/** 有测试就必须能跑。 */
+/** 有测试就必须能跑，且位置必须合约定：单元测试与源码同目录，端到端测试单独放 e2e/。 */
 function checkTests(root: string, push: (message: string) => void): void {
-  const hasUnitTests = globSync("src/**/*.test.ts", { cwd: root }).length > 0;
-  const hasTestsDir = existsSync(join(root, "tests"));
+  const unitTests = globSync("src/**/*.test.ts", { cwd: root });
+  const e2eTests = globSync("e2e/**/*.test.ts", { cwd: root });
+  const hasLegacyTestsDir = existsSync(join(root, "tests")) || existsSync(join(root, "test"));
+  const strayTests = globSync("src/**/*.test.mjs", { cwd: root });
 
-  if (!hasUnitTests && !hasTestsDir) {
+  if (hasLegacyTestsDir) {
+    push(`不允许 tests/ 或 test/ 目录：单元测试与源码同目录（src/**/*.test.ts），端到端测试放 e2e/`);
+  }
+  if (strayTests.length > 0) {
+    push(`${strayTests.join("、")} 必须写成 .test.ts：全仓单测统一 TS，才能跟着 typecheck 一起被检查`);
+  }
+
+  if (unitTests.length === 0 && e2eTests.length === 0) {
     return;
   }
 
@@ -185,6 +197,94 @@ function checkTests(root: string, push: (message: string) => void): void {
   if (scripts["test"] !== "vitest run") {
     push(`有测试文件，但 scripts.test 不是 "vitest run"（实际是 ${JSON.stringify(scripts["test"] ?? null)}）`);
   }
+
+  checkVitestConfig(root, push);
+}
+
+/** vitest 配置只负责 include（+ 必要的 alias / environment），写法全仓一致。 */
+function checkVitestConfig(root: string, push: (message: string) => void): void {
+  const file = join(root, "vitest.config.ts");
+  if (!existsSync(file)) {
+    push("有测试就必须有 vitest.config.ts：include 固定为 src/**/*.test.ts 与 e2e/**/*.test.ts");
+    return;
+  }
+  const source = readFileSync(file, "utf8");
+  for (const glob of ["src/**/*.test.ts", "e2e/**/*.test.ts"]) {
+    if (!source.includes(`"${glob}"`)) {
+      push(`vitest.config.ts 的 include 必须包含 "${glob}"：单测与源码同目录，端到端测试放 e2e/`);
+    }
+  }
+}
+
+/**
+ * 样式等环境声明只在仓库根 `types/ambient` 声明一次（由 tsconfig.base.json 的 typeRoots 纳入）。
+ * 包内再放一份不仅重复，还会出现 declarations / env / ambient / global 四种名字。
+ * 包内允许保留的只有 `src/types.d.ts`：放真正属于该包的全局类型。
+ */
+const FORBIDDEN_AMBIENT_FILES = ["declarations.d.ts", "env.d.ts", "ambient.d.ts", "global.d.ts"];
+
+function checkAmbientDeclarations(root: string, push: (message: string) => void): void {
+  const src = join(root, "src");
+  if (!existsSync(src)) {
+    return;
+  }
+  for (const file of readdirSync(src)) {
+    if (FORBIDDEN_AMBIENT_FILES.includes(file)) {
+      push(`src/${file} 应删除：样式模块等环境声明统一在仓库根 types/ambient 声明，包内只保留 src/types.d.ts（本包独有的全局类型）`);
+    }
+  }
+}
+
+/**
+ * i18n 只有一种形态：`src/i18n/<locale>.json`（文件名即 locale，不做 kebab-case）。
+ * 目录里出现别的文件没有意义：插件产物会整目录复制过去，非 JSON 只会被白白分发。
+ * 挂件没有内核注入 i18n 的路径，但同样用 JSON 存文案、由代码导入并内联进产物。
+ */
+function checkI18nLayout(root: string, push: (message: string) => void): void {
+  const dir = join(root, "src", "i18n");
+  if (!existsSync(dir)) {
+    return;
+  }
+  for (const file of readdirSync(dir)) {
+    if (!file.endsWith(".json")) {
+      push(`src/i18n/${file} 不允许：这个目录只放 <locale>.json（文案是数据，代码里用 typeof 对应 JSON 取类型）`);
+    }
+  }
+}
+
+/** 源码文件名一律 kebab-case（README / LICENSE 等约定名、i18n 的 locale 文件名与第三方资源除外）。 */
+const KEBAB_EXEMPT = /^(README|LICENSE|THIRD_PARTY)/;
+
+function checkFileNaming(root: string, push: (message: string) => void): void {
+  const src = join(root, "src");
+  if (!existsSync(src)) {
+    return;
+  }
+  const localeDir = join(src, "i18n");
+  for (const entry of readdirSync(src, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) {
+      continue;
+    }
+    const file = entry.name;
+    if (!/\.(ts|scss|json)$/.test(file) || KEBAB_EXEMPT.test(file)) {
+      continue;
+    }
+    if ((entry as { parentPath?: string }).parentPath === localeDir) {
+      continue;
+    }
+    const stem = file.replace(/\.(ts|scss|json)$/, "").replace(/\.d$/, "");
+    if (toKebabCase(stem) !== stem) {
+      push(`src 下的 ${file} 应改成 kebab-case（${toKebabCase(stem)}${file.slice(stem.length)}）`);
+    }
+  }
+}
+
+/** camelCase / PascalCase → kebab-case；已经是 kebab-case 时原样返回。 */
+function toKebabCase(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1-$2")
+    .toLowerCase();
 }
 
 /** 包内 tsconfig 只能 extends 这两份共享基线之一，避免各包配置漂移。 */
@@ -313,6 +413,12 @@ function checkManifestFields(pkg: ResolvedPackage, push: (message: string) => vo
   } else if (typeof pkg.manifest["disabledInPublish"] !== "boolean") {
     push(`${pkg.kind === "plugin" ? "插件" : "挂件"}清单必须显式写 disabledInPublish（true / false），不要省略：它决定发布服务里能否访问`);
   }
+
+  // settingsWindow 目前没有任何包提供设置窗口（集市会据此在插件卡片上给出「设置」入口，
+  // 点了却打不开任何界面）。确认做了设置界面之后再声明，别在迁移时顺手带上。
+  if ("settingsWindow" in pkg.override) {
+    push("包内清单不允许声明 settingsWindow：本仓目前没有任何包实现设置窗口，等真正做了设置界面再加");
+  }
 }
 
 /** 归类时忽略键顺序：`{a:1,b:2}` 与 `{b:2,a:1}` 视为同一个值。 */
@@ -347,6 +453,20 @@ function checkReadmeFiles(pkg: ResolvedPackage, push: (message: string) => void)
 
   if (!existsSync(join(pkg.root, "README.md"))) {
     push("缺少 README.md：清单 readme 没有 default 时集市会回退到它，产物里也必须有");
+  }
+
+  // README 是集市详情页的正文：页头已经由集市渲染 displayName 与图标，
+  // 再用 H1 重复一遍包名只是噪音。约定 README 从正文（或二级标题）开始。
+  for (const file of readdirSync(pkg.root)) {
+    if (!README_FILE_PATTERN.test(file)) {
+      continue;
+    }
+    const line = readFileSync(join(pkg.root, file), "utf8")
+      .split(/\r?\n/)
+      .findIndex((content) => /^#\s/.test(content));
+    if (line >= 0) {
+      push(`${file} 第 ${line + 1} 行是一级标题：README 不许写 H1，页头已经展示包名，直接从正文或二级标题开始`);
+    }
   }
 }
 

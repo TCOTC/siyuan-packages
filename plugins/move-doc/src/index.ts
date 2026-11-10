@@ -273,7 +273,7 @@ export default class PluginSample extends Plugin {
       return false;
     }
     // 跟随思源的「新建子文档放置在顶部」设置
-    return !!window.siyuan.config.fileTree.createDocAtTop;
+    return !!window.siyuan.config?.fileTree.createDocAtTop;
   };
 
   getParentListPath = (docPath: string): string => {
@@ -343,7 +343,7 @@ export default class PluginSample extends Plugin {
     if (!protyle || !protyle.block?.rootID || !protyle.path || !protyle.notebookId) return null;
     // 桌面端取 protyle 标题元素，实时反映编辑中的标题；移动端 render.titleShowTop 为 true，标题显示在顶栏，
     // protyle 内不生成标题元素，getText() 返回 setTitle() 记录的文档标题，空标题时回退为“未命名文档”
-    const name = protyle.title?.getText() || window.siyuan.languages._kernel[16] || "";
+    const name = protyle.title?.getText() || window.siyuan.languages?._kernel[16] || "";
     return {
       id: protyle.block.rootID,
       path: protyle.path,

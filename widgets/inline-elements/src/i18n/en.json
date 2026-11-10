@@ -1,0 +1,23 @@
+{
+  "text-mark": "Mark",
+  "text-strong": "Bold",
+  "text-tag": "Tag",
+  "text-em": "Italic",
+  "text-u": "Underline",
+  "text-s": "Strikethrough",
+  "text-inline-memo": "Memo",
+  "text-a": "Hyperlink",
+  "text-block-ref": "Block Ref",
+  "text-code": "Inline Code",
+  "text-inline-math": "Inline Math",
+  "text-sup": "Superscript",
+  "text-sub": "Subscript",
+  "text-kbd": "Keyboard",
+  "embedBlocks-true": "Include Embed Blocks Elements",
+  "embedBlocks-false": "Exclude Embed Blocks Elements",
+  "refreshList": "Refresh List",
+  "loadingMessage": "Parsing document, please wait...",
+  "noResultsMessage": "No results found",
+  "errorMessage": "Error: Failed to get necessary widget elements, widget loading failed",
+  "docIdNotFoundMessage": "Error: Failed to get document ID"
+}

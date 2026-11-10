@@ -1,5 +1,3 @@
-# OpenMoji
-
 OpenMoji font file sourced from: [hfg-gmuend/openmoji](https://github.com/hfg-gmuend/openmoji)
 
 ### Notes

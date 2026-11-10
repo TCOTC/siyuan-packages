@@ -77,15 +77,97 @@ plugins/move-doc/
 
 主题的约定入口是 `styles/index.scss`，挂件的约定入口是包根的 `index.html`。
 
+### 2.5 环境声明只在仓库根一份
+
+样式模块（`*.scss`）的模块声明**只写在仓库根的 [`types/ambient/index.d.ts`](../types/ambient/index.d.ts)**，由 `tsconfig.base.json` 的 `typeRoots` + `types` 自动纳入每个包的编译：
+
+```json
+"typeRoots": ["./types", "./node_modules/@types"],
+"types": ["node", "ambient"]
+```
+
+`typeRoots` 里的相对路径相对**声明它的那份配置文件**（仓库根）解析，所以包内不需要写 `include`，也不需要 `references`。
+
+因此包内**不允许**再出现 `src/declarations.d.ts` / `env.d.ts` / `ambient.d.ts` / `global.d.ts`（这四种名字都是历史遗留，`pnpm check` 会拦）。真正属于某个包的全局类型写成 `src/types.d.ts`，一个包最多一份。
+
+### 2.5.1 思源全局对象：用 `siyuan` 包自带的
+
+`siyuan` 包的 `siyuan.d.ts` 已经写了：
+
+```ts
+declare global {
+  interface Window extends Global {}
+}
+export interface Global {
+  Lute: typeof Lute; // NewNodeID / EscapeHTMLStr / UnEscapeHTMLStr 都是静态方法
+  siyuan: ISiyuan;
+}
+```
+
+所以包内**不要**再手写 `interface Window { siyuan: …; Lute: … }`。只要包内任意文件 `import` 过 `siyuan`（插件几乎必然），`window.siyuan`、`window.Lute` 就有类型。
+
+三条补充规则：
+
+- **挂件里 `window.siyuan` 不存在**，一律走 `window.parent.siyuan`（`Window.parent` 的类型是同一个 `Window`，所以不需要额外的 `declare global`）。挂件若没有别的文件 import `siyuan`，在 `src/types.d.ts` 里写一行 `import "siyuan";` 把类型拉进编译单元即可——这里 import 只为激活全局声明，产物里不会留下任何东西。
+- **上游把 `config` / `menus` / `languages` 声明成可选**，但这些字段在页面就绪后必然存在。只有确实需要"非空"的包才写收窄（`siyuan: ISiyuan & { config: NonNullable<…> }`），目前只有 `snippets`；其余包用可选链（`window.siyuan.config?.fileTree`）就够了。**不要**把收窄提到仓库根的 `types/` 里——`typeRoots` 下的文件只能从仓库根解析模块，而仓库根不依赖 `siyuan`（各包各自通过 catalog 安装）。
+- **上游漏声明的成员**（如 `Dialog.id`、`Dialog.destroyCallback`）用 `declare module "siyuan" { interface Dialog { … } }` 在包内补充；只给本包自创的成员（如 `destroyNative`）也写在同一个块里，并在注释中说明哪几个是内核字段、哪几个是本包约定。
+
+### 2.6 源码文件名一律 kebab-case
+
+`src/**` 下的 `.ts` / `.scss` / `.json` 文件名统一小写连字符：`package-sort.ts`、`install-history.ts`、`gen-list/render-list.ts`。目录名同样适用（`gen-list/` 而不是 `genList/`）。
+
+例外只有两类：
+
+- `README*` / `LICENSE*` / `THIRD_PARTY-*` 这类约定名；
+- `src/i18n/` 下的 locale 文件名（`zh-CN.json`、`zh-TW.json`、`pt-BR.json`），它们是 BCP 47 标识，不是代码标识符。
+
+`pnpm check` 会拦下 camelCase / PascalCase 的源码文件名。改名的同时用「符号级 rename」或 `git mv` + 全仓替换 import 路径，别只改一半。
+
+### 2.7 README 不写 H1
+
+集市详情页的页头已经展示包名与图标，README 里再写一遍 `# <displayName>` 只是噪音。所有 `README*.md` 都**不允许出现一级标题**，直接从正文或 `##` 开始，`pnpm check` 会拦。
+
+### 2.8 i18n 一律是 JSON
+
+界面文案只有一种形态：`src/i18n/<locale>.json`，代码里 `import type zhCN from "./i18n/zh-CN.json"` 拿到键名（`declare i18n: typeof zhCN` / `PluginI18n`），少一个键会在 tsc 阶段报错。目录里不允许出现非 JSON 文件。
+
+各包的类型自查写法：`export type I18n = typeof en;` 再加一句键集合断言（`keyof` 双向 extends），多语言之间键不一致同样在 tsc 阶段报错。
+
+三种包的差别只在构建：
+
+| 包类型 | 文案如何进产物                                                                                                      |
+| ------ | ------------------------------------------------------------------------------------------------------------------- |
+| 插件   | `src/i18n/` 整目录复制到产物 `i18n/`，内核按 `Conf.Lang` 注入 `Plugin.i18n`（siyuan 仓库 `kernel/model/plugin.go`） |
+| 挂件   | **内核没有这条路径**：JSON 由代码导入、打包器内联进 `index.html`                                                    |
+| 主题   | 无文案，不需要 i18n                                                                                                 |
+
+### 2.9 测试布局
+
+| 类型       | 位置               | 说明                                                            |
+| ---------- | ------------------ | --------------------------------------------------------------- |
+| 单元测试   | `src/**/*.test.ts` | 与源码同目录，跟着 `tsc` 一起被检查                             |
+| 端到端测试 | `e2e/**/*.test.ts` | 包根独立目录，不进产物                                          |
+| 测试替身   | `src/__mocks__/`   | 例如 `src/__mocks__/siyuan.ts`，`vitest.config.ts` alias 指过去 |
+
+不允许 `tests/` 或 `test/`（单数/复数）目录，也不允许 `.test.mjs`：来源一是 Node 直接跑 TS 时的遗留，二是 webpack 时代的测试目录。`pnpm check` 会拦。
+
+每个有测试的包都有 `vitest.config.ts`，写法全仓一致，`include` 固定为两项：
+
+```ts
+include: ["src/**/*.test.ts", "e2e/**/*.test.ts"];
+```
+
+除 `include` 外只允许两类差异：`resolve.alias`（把 `siyuan` 指向 `src/__mocks__/siyuan.ts`，且必须是绝对路径）与 `test.environment`（整包需要 DOM 时设 `jsdom`，如 `highlight-search`）。
+
 ### 2.5 清单分三层
 
 包里的清单**不是集市读的那一份**，它只是覆盖层。集市读的是构建写进产物的完整清单。
 
-| 层   | 字段                                                                                                                 | 写在哪                                                                                                       |
-| ---- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| 推导 | `name`、`url`、`readme`、`icon`、`preview`                                                                           | 不写。`name` ← 目录名、`url` ← `TCOTC/<name>`、`readme` ← 包根 `README*.md`、`icon`/`preview` ← 包根同名图片 |
-| 共用 | `author`、`funding`（顶层）；`backends`、`frontends`（按类型分节）                                                   | [`manifests/base.json`](../manifests/base.json)                                                              |
-| 独有 | `version`、`minAppVersion`、`displayName`、`description`、`disabledInPublish`、`keywords`、`settingsWindow`、`modes` | 包内清单                                                                                                     |
+| 层   | 字段                                                                                               | 写在哪                                                                                                       |
+| ---- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 推导 | `name`、`url`、`readme`、`icon`、`preview`                                                         | 不写。`name` ← 目录名、`url` ← `TCOTC/<name>`、`readme` ← 包根 `README*.md`、`icon`/`preview` ← 包根同名图片 |
+| 共用 | `author`、`funding`（顶层）；`backends`、`frontends`（按类型分节）                                 | [`manifests/base.json`](../manifests/base.json)                                                              |
+| 独有 | `version`、`minAppVersion`、`displayName`、`description`、`disabledInPublish`、`keywords`、`modes` | 包内清单                                                                                                     |
 
 合成顺序是「共用顶层 → 该类型分节 → 包内 → 推导」，后者覆盖前者；推导最后写入，不会被覆盖。字段按固定顺序输出，所以同一份源码两次构建出的清单逐字节相同。
 
@@ -111,6 +193,8 @@ plugins/move-doc/
 - **`manifests/base.json` 只有两层**：顶层放三种包类型取值相同的字段（`author`、`funding`），`plugin` / `theme` / `widget` 分节放该类型特有的默认值（如 theme 没有 `backends`，widget 没有前后端）。同一个字段不许同时出现在两层——`pnpm check` 会报「与顶层重复」。
 - **`backends` / `frontends` 里 `["all"]` 与省略等价**：内核 `IsTargetSupported` 遇到 `all` 直接返回兼容，所以「全平台」不要写成一长串枚举再加 `all`。
 - **`disabledInPublish` 只对插件与挂件有效**：插件走 `CheckPluginAccessableInPublish`、挂件走 `CheckWidgetAccessableInPublish`（均在 siyuan 仓库 `kernel/model/publish_resource_access.go`），主题没有任何读取点，写了也不生效。插件与挂件必须显式声明（零值等价于 `false`），主题写了会被 `pnpm check` 报错。
+- **`settingsWindow` 一律不写**：本仓目前没有任何包实现设置窗口，声明了只会在集市卡片上给出一个打不开的「设置」入口。等真正做了设置界面再加，`pnpm check` 现在会拦。
+- **包内键序固定为** `version` → `minAppVersion` →（`backends` → `frontends`）→ `disabledInPublish` → `displayName` → `description` →（`keywords` → `modes` → `settingsWindow`）。产物清单由 `MANIFEST_FIELD_ORDER` 重排，这里的顺序只影响源码可读性，照抄相邻包的写法即可。
 
 想随时看某包合成后的清单：
 
@@ -204,7 +288,7 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 }
 ```
 
-- 有单测的包再加 `"test": "vitest run"` 与 `vitest` 依赖；需要 DOM 的包在 `vitest.config.ts` 里设 `environment: "jsdom"`。`siyuan` 是纯类型包，测试里 alias 到桩。
+- 有单测的包再加 `"test": "vitest run"` 与 `vitest` 依赖；`vitest.config.ts` 的写法见 2.9。`siyuan` 是纯类型包，测试里 alias 到 `src/__mocks__/siyuan.ts`。
 - `@jeffrey-chen/siyuan-kit` 必须写进 `devDependencies`（`workspace:*`），否则 `siyuan-kit` bin 不会链进该包。
 - kit 从清单读 `version` / `displayName` / `description` 与共用段，再推导 `name` / `url` / `readme` / `icon` / `preview`，按约定找 `src/index.ts` 与 `src/i18n/`，用 name 算出 `/plugins/<name>/` 作为 `base`。
 
@@ -254,22 +338,26 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 `siyuan-kit check` 遍历 `{plugins,themes,widgets}/*`，把能在构建阶段判定的约定变成一条会变红的检查：
 
-| 检查项      | 具体规则                                                                                                                                                                                                                                         |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 身份一致    | 目录名 == `package.json` 的 `name`（逐字符，含大小写）；清单 `name` 由目录名推导，不再单独声明                                                                                                                                                   |
-| 脚本入口    | `build` 必须是 `siyuan-kit build`，`dev` 必须是 `siyuan-kit dev`                                                                                                                                                                                 |
-| 测试        | 有 `src/**/*.test.ts` 或 `tests/` 就必须有 `test` 脚本且为 `vitest run`                                                                                                                                                                          |
-| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.strict.json`，且不得覆盖基线管辖的选项                                                                                                                                                   |
-| 配置白名单  | 有 `build.config.ts` 就必须在 `ALLOWED_BUILD_CONFIG` 里                                                                                                                                                                                          |
-| 清单覆盖层  | 包内清单不得声明推导字段（`name` / `url` / `readme` / `icon` / `preview`）与统一字段（`author` / `funding`）；`displayName` / `description` 必须带 `default`；插件与挂件必须显式写 `disabledInPublish`、主题不得写；与 base 取值相同的声明算冗余 |
-| 共用清单    | `manifests/base.json` 顶层不得含包间不同的字段（`version` / `displayName` 等），类型分节不得与顶层重复、也不得写包间不同的字段                                                                                                                   |
-| locale      | 清单的 `displayName` / `description` key 与 `src/i18n/*.json` 文件名必须是 BCP 47                                                                                                                                                                |
-| README 命名 | 包根 `README*.md` 必须匹配 `^README(\.[\w-]+)?\.md$` 且包根必须有 `README.md`（集市在清单没有 default 时回退它）；`README_zh_CN.md` 这类下划线命名会报“不会被复制”                                                                               |
-| 图片扩展名  | 包根 `icon.*` / `preview.*` 的扩展名必须在思源白名单 `png / jpg / jpeg / webp / avif` 内，否则不进产物也拿不到 URL                                                                                                                               |
-| 产物位置    | 包目录里不允许出现 `dist/` / `package.zip` / `index.js` / `index.css` / `i18n/`，也不允许出现产物清单名 `plugin.json` / `theme.json` / `widget.json`                                                                                             |
-| 许可副本    | 包根不允许出现 `LICENSE` / `LICENSE.md` / `LICENSE.txt`，许可只在仓库根声明                                                                                                                                                                      |
-| 第三方通知  | 包根只能有 `THIRD_PARTY-NOTICES.md`，其它 `THIRD_PARTY*` 文件一律报错（它们不会进产物）                                                                                                                                                          |
-| 约定入口    | 没有 `build.config.ts` 时，`src/index.ts`（插件）/ `index.html`（挂件）/ `styles/index.scss`（主题）必须存在                                                                                                                                     |
+| 检查项      | 具体规则                                                                                                                                                                                                                                                                      |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 身份一致    | 目录名 == `package.json` 的 `name`（逐字符，含大小写）；清单 `name` 由目录名推导，不再单独声明                                                                                                                                                                                |
+| 脚本入口    | `build` 必须是 `siyuan-kit build`，`dev` 必须是 `siyuan-kit dev`                                                                                                                                                                                                              |
+| 测试布局    | 单测必须写在 `src/**/*.test.ts`、端到端测试放 `e2e/**/*.test.ts`；不允许 `tests/` / `test/` 目录与 `.test.mjs`；有测试就必须有 `test` 脚本（`vitest run`）与 `vitest.config.ts`，且 `include` 含两个固定 glob                                                                 |
+| 环境声明    | `src/` 下不允许 `declarations.d.ts` / `env.d.ts` / `ambient.d.ts` / `global.d.ts`（样式模块统一在仓库根 `types/ambient`）；包自有的全局类型与模块补充写 `src/types.d.ts`                                                                                                      |
+| 文件命名    | `src/**` 下的 `.ts` / `.scss` / `.json` 必须是 kebab-case（`README*` / `LICENSE*` / `THIRD_PARTY*` 与 `src/i18n/<locale>.json` 除外）                                                                                                                                         |
+| i18n 形态   | 只允许 `src/i18n/<locale>.json`，目录里出现非 JSON 文件即报错（挂件的 JSON 由代码导入内联，不靠内核注入）                                                                                                                                                                     |
+| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.strict.json`，且不得覆盖基线管辖的选项                                                                                                                                                                                |
+| 配置白名单  | 有 `build.config.ts` 就必须在 `ALLOWED_BUILD_CONFIG` 里                                                                                                                                                                                                                       |
+| 清单覆盖层  | 包内清单不得声明推导字段（`name` / `url` / `readme` / `icon` / `preview`）与统一字段（`author` / `funding`）；`displayName` / `description` 必须带 `default`；插件与挂件必须显式写 `disabledInPublish`、主题不得写；`settingsWindow` 一律不得写；与 base 取值相同的声明算冗余 |
+| 共用清单    | `manifests/base.json` 顶层不得含包间不同的字段（`version` / `displayName` 等），类型分节不得与顶层重复、也不得写包间不同的字段                                                                                                                                                |
+| locale      | 清单的 `displayName` / `description` key 与 `src/i18n/*.json` 文件名必须是 BCP 47                                                                                                                                                                                             |
+| README 命名 | 包根 `README*.md` 必须匹配 `^README(\.[\w-]+)?\.md$` 且包根必须有 `README.md`（集市在清单没有 default 时回退它）；`README_zh_CN.md` 这类下划线命名会报“不会被复制”                                                                                                            |
+| README 体例 | `README*.md` 不得出现一级标题（`# `），页头已展示包名，正文从二级标题开始                                                                                                                                                                                                     |
+| 图片扩展名  | 包根 `icon.*` / `preview.*` 的扩展名必须在思源白名单 `png / jpg / jpeg / webp / avif` 内，否则不进产物也拿不到 URL                                                                                                                                                            |
+| 产物位置    | 包目录里不允许出现 `dist/` / `package.zip` / `index.js` / `index.css` / `i18n/`，也不允许出现产物清单名 `plugin.json` / `theme.json` / `widget.json`                                                                                                                          |
+| 许可副本    | 包根不允许出现 `LICENSE` / `LICENSE.md` / `LICENSE.txt`，许可只在仓库根声明                                                                                                                                                                                                   |
+| 第三方通知  | 包根只能有 `THIRD_PARTY-NOTICES.md`，其它 `THIRD_PARTY*` 文件一律报错（它们不会进产物）                                                                                                                                                                                       |
+| 约定入口    | 没有 `build.config.ts` 时，`src/index.ts`（插件）/ `index.html`（挂件）/ `styles/index.scss`（主题）必须存在                                                                                                                                                                  |
 
 CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错的输入上。
 

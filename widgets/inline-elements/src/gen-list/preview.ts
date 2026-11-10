@@ -1,0 +1,34 @@
+import { escapeHtml } from "../util";
+import type { MergedItem, WidgetContext } from "../context/types";
+import { getMergedItems, renewBlockIdSuffix } from "./render-list";
+
+export async function genListPreview(ctx: WidgetContext): Promise<void> {
+  const items = await getMergedItems(ctx);
+  replaceWidgetWithPreviewList(ctx, items);
+}
+
+function replaceWidgetWithPreviewList(ctx: WidgetContext, mergedItems: MergedItem[]): void {
+  const { widgetBlock, widgetBlockId } = ctx;
+
+  if (mergedItems.length === 0) {
+    widgetBlock.remove();
+    return;
+  }
+
+  widgetBlock.outerHTML = buildPreviewListHtml(mergedItems, widgetBlockId);
+}
+
+function buildPreviewListHtml(items: MergedItem[], listId: string): string {
+  const partCount = items.length + 2;
+  const parts: string[] = [];
+  const itemId = renewBlockIdSuffix(listId);
+
+  for (let i = 0; i < items.length; i++) {
+    const text = escapeHtml(items[i].text);
+    parts[i + 1] = `<li id="${itemId}"><p id="${itemId}">${text}</p></li>`;
+  }
+
+  parts[0] = `<ul id="${listId}">`;
+  parts[partCount - 1] = "</ul>";
+  return parts.join("");
+}

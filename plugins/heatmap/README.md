@@ -1,5 +1,3 @@
-# Document Activity Stats
-
 Visualize your yearly note distribution with heatmap and calendar views.
 
 Daily activity is counted by block create / update time, so you can see at a glance which days you wrote a lot—and which stretches you slacked off.

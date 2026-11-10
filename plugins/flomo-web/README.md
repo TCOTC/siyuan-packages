@@ -1,5 +1,3 @@
-# flomo Web
-
 Open the [flomo](https://flomoapp.com/) web page in a SiYuan tab or dock.
 
 ## Usage

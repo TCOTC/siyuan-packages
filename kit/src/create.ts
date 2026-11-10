@@ -128,13 +128,16 @@ function isTextFile(fileName: string): boolean {
 function render(content: string, values: TemplateValues): string {
   // 模板文件名是任意的，这里按字符串键取值（类型别名才有隐式索引签名）
   const table: Record<string, string> = values;
-  return content.replace(TOKEN_PATTERN, (match, key: string) => {
+  const filled = content.replace(TOKEN_PATTERN, (match, key: string) => {
     const value = table[key];
     if (value === undefined) {
       throw new Error(`模板里有未定义的占位符 ${match}，可用：${Object.keys(values).join(" / ")}`);
     }
     return value;
   });
+  // 占位符留空时会在文件开头留下一串空行（README 的 description 就常为空）；
+  // 生成的包按仓库约定不该以空行开头，这里统一去掉。
+  return filled.replace(/^(?:[ \t]*\r?\n)+/, "");
 }
 
 function toTitleCase(name: string): string {

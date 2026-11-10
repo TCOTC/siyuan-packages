@@ -1,6 +1,6 @@
 import { i18n } from "../infra/i18n";
 import { electron } from "../infra/desktop";
-import { kernelProxyUrl } from "../infra/kernelProxy";
+import { kernelProxyUrl } from "../infra/kernel-proxy";
 import { extractPackageNameFromUrl } from "./github";
 import type { Logger } from "../infra/logger";
 

@@ -16,7 +16,15 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "types": ["node"],
+
+    // 环境声明集中在仓库根的 types/ 下，按 typeRoots 的「目录即包」规则接入：
+    // types/ambient/index.d.ts 会被每个继承本基线的 tsconfig 自动纳入。
+    // typeRoots 里的相对路径相对「声明它的这份文件」解析，也就是仓库根，因此包内不用写 include。
+    // 注意：这里不能引用 `siyuan` 包的类型——typeRoots 下的文件只能从仓库根解析模块，
+    // 而仓库根不依赖 `siyuan`（各包各自通过 catalog 安装）。思源的 window.siyuan / window.Lute
+    // 由 `siyuan` 包自己的 `declare global` 提供，包内 import 过它就自动生效。
+    "typeRoots": ["./types", "./node_modules/@types"],
+    "types": ["node", "ambient"],
 
     "strict": true,
     "noImplicitOverride": true,

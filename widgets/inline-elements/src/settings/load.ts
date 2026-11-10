@@ -2,7 +2,7 @@ import { WIDGET_ATTR_PREFIX } from "../util";
 import type { WidgetContext } from "../context/types";
 import { sleep } from "../util";
 import { persistSettings } from "./persist";
-import { SETTING_ATTR_DEFS, SETTING_KEYS, loadSettingAttr } from "./settingAttrs";
+import { SETTING_ATTR_DEFS, SETTING_KEYS, loadSettingAttr } from "./setting-attrs";
 
 export function loadSettings(ctx: WidgetContext): void {
   const { widgetBlock, settings, mode } = ctx;

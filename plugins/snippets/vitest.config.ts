@@ -1,20 +1,20 @@
-// Vitest 配置：单测默认 Node 环境，需要 DOM 的用例用文件头 `@vitest-environment jsdom` 单独声明。
-// - siyuan 包仅为纯类型包（无运行时 JS 入口），源码在构建时由思源宿主提供；
-//   测试环境经 alias 指向 mock（tests/mocks/siyuan.ts），使 import "siyuan" 的模块可被加载并注入可控桩。
-// - alias 目标须为绝对路径：vitest 的 jsdom（browser-like）环境对相对字符串别名按
-//   URL 语义解析会失效（裸导入 "siyuan" 解析失败），node 环境则正常。
-import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
+// 单元测试与源码同目录（src/**/*.test.ts），端到端测试放包根 e2e/。
+//
+// `siyuan` 只发布类型声明、没有运行期入口，单测经 alias 指向本包的替身；
+// 替身统一放在 src/__mocks__/siyuan.ts，与源码同目录便于随接口一起改。
+// alias 必须是绝对路径：browser-like 环境下 vitest 会把相对字符串别名按 URL 语义解析。
 export default defineConfig({
   resolve: {
     alias: {
-      siyuan: resolve(process.cwd(), "tests/mocks/siyuan.ts"),
+      siyuan: fileURLToPath(new URL("./src/__mocks__/siyuan.ts", import.meta.url)),
     },
   },
   test: {
-    environment: "node",
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "e2e/**/*.test.ts"],
+    // 每条用例前清掉 vi.fn 的调用记录，避免替身状态在用例之间泄漏
     restoreMocks: true,
   },
 });

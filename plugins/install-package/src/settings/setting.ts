@@ -8,7 +8,7 @@ import { message } from "../infra/message";
 import { createTokenVault, seedFromSiyuanSystem } from "siyuan-token-vault";
 import type { TokenVault } from "siyuan-token-vault";
 import { EYE_ICON_ID } from "../ui/icons";
-import { TOKEN_FIELD_CLASS, TOKEN_REVEAL_CLASS, supportsTextSecurity } from "./tokenField";
+import { TOKEN_FIELD_CLASS, TOKEN_REVEAL_CLASS, supportsTextSecurity } from "./token-field";
 
 /**
  * 模块级 Token Vault 单例（首次使用时按当前插件实例惰性初始化）

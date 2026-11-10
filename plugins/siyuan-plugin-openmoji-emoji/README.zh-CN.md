@@ -1,5 +1,3 @@
-# OpenMoji
-
 OpenMoji 字体文件来自：[hfg-gmuend/openmoji](https://github.com/hfg-gmuend/openmoji)
 
 ### 注意

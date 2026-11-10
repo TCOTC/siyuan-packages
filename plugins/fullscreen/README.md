@@ -1,5 +1,3 @@
-# Breadcrumb Quick Fullscreen
-
 Add a fullscreen button to the document breadcrumb. Editor fullscreen and window fullscreen can be configured separately.
 
 Works on desktop, desktop detached windows, and the desktop browser.

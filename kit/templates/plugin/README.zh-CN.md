@@ -1,5 +1,3 @@
-# {{displayNameZhCN}}
-
 {{descriptionZhCN}}
 
 ## 开发
@@ -17,11 +15,11 @@ pnpm --filter {{name}} typecheck
 
 ## 结构
 
-| 路径              | 说明                                            |
-| ----------------- | ----------------------------------------------- |
-| `plugin.json`     | 集市清单：name / version / displayName / 前后端 |
-| `src/index.ts`    | 插件入口，默认导出 `Plugin` 的子类              |
-| `src/i18n/*.json` | 界面文案，构建时复制到产物的 `i18n/`            |
-| `src/index.scss`  | 插件样式，为空时不产出 `index.css`              |
-| `icon.png`        | 集市图标                                        |
-| `preview.png`     | 集市预览图                                      |
+| 路径              | 说明                                     |
+| ----------------- | ---------------------------------------- |
+| `manifest.json`   | 集市清单：只写本包独有字段（version 等） |
+| `src/index.ts`    | 插件入口，默认导出 `Plugin` 的子类       |
+| `src/i18n/*.json` | 界面文案，构建时复制到产物的 `i18n/`     |
+| `src/index.scss`  | 插件样式，为空时不产出 `index.css`       |
+| `icon.png`        | 集市图标                                 |
+| `preview.png`     | 集市预览图                               |

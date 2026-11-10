@@ -1,5 +1,3 @@
-# flomo 浮墨笔记网页版
-
 在思源的页签或停靠栏中打开 [flomo](https://flomoapp.com/) 网页。
 
 ## 使用

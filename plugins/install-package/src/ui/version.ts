@@ -1,15 +1,15 @@
 import { Menu } from "siyuan";
 import { GITHUB_RELEASES_PER_PAGE, listReleasesPage, mergeInstallReleasePages } from "../github/github";
-import { isSelfInstallableVersion, MIN_SELF_INSTALL_VERSION, selfInstallVersionTooOldText } from "../install/selfPackage";
+import { isSelfInstallableVersion, MIN_SELF_INSTALL_VERSION, selfInstallVersionTooOldText } from "../install/self-package";
 import { SELECT_ICON_ID } from "./icons";
 import { i18n } from "../infra/i18n";
 import { escapeHtml } from "../infra/html";
-import { REPO_SUMMARY_ATTRS, isRepoSummaryRendered } from "./repoSummaryDom";
+import { REPO_SUMMARY_ATTRS, isRepoSummaryRendered } from "./repo-summary-dom";
 import type { InstallReleaseRow } from "../github/github";
 import type { Logger } from "../infra/logger";
-import type { InstallPanelData } from "./panelData";
-import type { InstallReleasesPayload } from "./repoParser";
-import { upDownHint } from "./upDownHint";
+import type { InstallPanelData } from "./panel-data";
+import type { InstallReleasesPayload } from "./repo-parser";
+import { upDownHint } from "./up-down-hint";
 
 export type InstallPanelVersionHooks = {
   /** 仅在用户在菜单中选定版本并写回 `data.version` 之后调用 */

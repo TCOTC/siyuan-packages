@@ -1,5 +1,3 @@
-# Scroll Zoom Font Size
-
 Hold <kbd>Ctrl</kbd> and use the mouse wheel or a trackpad pinch to adjust the SiYuan editor font size. Changes go through SiYuan's native API, same as changing the editor font size in settings.
 
 Works on desktop, desktop windows, and browser desktop.

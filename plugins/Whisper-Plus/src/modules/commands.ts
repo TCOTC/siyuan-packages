@@ -1,7 +1,7 @@
 import type { Plugin } from "siyuan";
 import { CONFIG_FEATURE_MENU_ITEMS, PluginConfig } from "../config";
-import { SCHEME_MENU_DEFS } from "./schemeManager";
-import { ThemeManager } from "./themeManager";
+import { SCHEME_MENU_DEFS } from "./scheme-manager";
+import { ThemeManager } from "./theme-manager";
 
 /**
  * 命令面板命令：切换主题、切换样式特性、切换到特定配色方案。

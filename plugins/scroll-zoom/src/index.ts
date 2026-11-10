@@ -1,6 +1,6 @@
 import { Plugin, adjustEditorFontSize, getAllEditor, showMessage } from "siyuan";
 import type zhCN from "./i18n/zh-CN.json";
-import { EditorFontSizeWheelZoom, WHEEL_LISTENER_OPTIONS } from "./wheelZoom";
+import { EditorFontSizeWheelZoom, WHEEL_LISTENER_OPTIONS } from "./wheel-zoom";
 
 export default class ScrollZoomPlugin extends Plugin {
   declare i18n: typeof zhCN;

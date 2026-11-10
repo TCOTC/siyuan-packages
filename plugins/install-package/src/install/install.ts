@@ -1,6 +1,6 @@
 import { Constants, getFrontend } from "siyuan";
 import { i18n } from "../infra/i18n";
-import { fetchSyncPost, getFile, getFileBlob, installLocalBazaarPackage, putFile, readDir, removeFile, unzipFile, zipFile, type KernelApiResponse } from "../infra/kernelClient";
+import { fetchSyncPost, getFile, getFileBlob, installLocalBazaarPackage, putFile, readDir, removeFile, unzipFile, zipFile, type KernelApiResponse } from "../infra/kernel-client";
 import type { Logger } from "../infra/logger";
 
 /**

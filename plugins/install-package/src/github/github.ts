@@ -7,7 +7,7 @@
 import type { operations } from "@octokit/openapi-types";
 import { i18n } from "../infra/i18n";
 import { getGitHubToken } from "../settings/setting";
-import { showGitHubAuthNotice } from "./githubNotice";
+import { showGitHubAuthNotice } from "./github-notice";
 import type { Logger } from "../infra/logger";
 
 /**

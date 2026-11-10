@@ -1,0 +1,23 @@
+{
+  "text-mark": "標記",
+  "text-strong": "粗體",
+  "text-tag": "標籤",
+  "text-em": "斜體",
+  "text-u": "下劃線",
+  "text-s": "刪除線",
+  "text-inline-memo": "備註",
+  "text-a": "超連結",
+  "text-block-ref": "塊引用",
+  "text-code": "行級代碼",
+  "text-inline-math": "行級公式",
+  "text-sup": "上標",
+  "text-sub": "下標",
+  "text-kbd": "鍵盤",
+  "embedBlocks-true": "包含嵌入塊中的元素",
+  "embedBlocks-false": "排除嵌入塊中的元素",
+  "refreshList": "刷新列表",
+  "loadingMessage": "正在解析文檔，請稍候...",
+  "noResultsMessage": "無查詢結果",
+  "errorMessage": "異常：無法獲取到必要的掛件元素，掛件加載失敗",
+  "docIdNotFoundMessage": "異常：無法獲取文檔 ID"
+}

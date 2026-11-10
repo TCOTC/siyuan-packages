@@ -24,7 +24,10 @@ export function copyAssets(pkg: ResolvedPackage, outDir: string): void {
     copyFileSync(asset.from, dest);
   }
 
-  if (pkg.hasI18n) {
+  // 只有插件的 i18n 目录会被内核读取（siyuan 仓库 kernel/model/plugin.go 的 loadPlugin
+  // 按 Conf.Lang → en → zh-CN 挑一份注入 Plugin.i18n）。主题与挂件没有这条路径，
+  // 产物的 i18n/ 目录白放着也不会有人读，所以只给插件复制。
+  if (pkg.hasI18n && pkg.kind === "plugin") {
     copyDirectory(join(pkg.root, "src", "i18n"), join(outDir, "i18n"));
   }
 }

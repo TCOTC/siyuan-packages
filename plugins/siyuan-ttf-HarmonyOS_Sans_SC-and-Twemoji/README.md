@@ -1,5 +1,3 @@
-# HarmonyOS Sans and Twemoji
-
 HarmonyOS Sans font files sourced from: [HarmonyOS Design Resources](https://developer.huawei.com/consumer/cn/design/resource/)/[Developer Documentation](https://developer.huawei.com/consumer/cn/doc/design-guides/font-0000001828772001). Converted from .ttf format to .woff format using [CloudConvert](https://cloudconvert.com/ttf-to-woff).
 
 Twemoji font file sourced from: [TCOTC/twemoji-colr](https://github.com/TCOTC/twemoji-colr/)

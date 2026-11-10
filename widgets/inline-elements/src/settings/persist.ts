@@ -1,6 +1,6 @@
 import { setBlockAttrs } from "../api/siyuan";
 import type { WidgetContext } from "../context/types";
-import { SETTING_ATTR_DEFS, SETTING_KEYS, settingToAttrValue } from "./settingAttrs";
+import { SETTING_ATTR_DEFS, SETTING_KEYS, settingToAttrValue } from "./setting-attrs";
 
 function buildSettingBlockAttrs(ctx: WidgetContext): Record<string, string> {
   const attrs: Record<string, string> = {};

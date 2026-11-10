@@ -1,13 +1,13 @@
 import "./index.scss";
 import { initI18n } from "./i18n";
 import { markWidgetDocument } from "./util";
-import { createContext } from "./context/createContext";
+import { createContext } from "./context/create-context";
 import { loadSettings } from "./settings/load";
 import { formatError, showError } from "./ui/message";
-import { runNormalMode } from "./genList/normal";
-import { genListPreview } from "./genList/preview";
-import { genListExportImg } from "./genList/export-img";
-import { genListExportPdf } from "./genList/export-pdf";
+import { runNormalMode } from "./gen-list/normal";
+import { genListPreview } from "./gen-list/preview";
+import { genListExportImg } from "./gen-list/export-img";
+import { genListExportPdf } from "./gen-list/export-pdf";
 
 async function main(): Promise<void> {
   // 先写入挂件标识属性，注入主题样式后第三方主题即可据此适配本挂件

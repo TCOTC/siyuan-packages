@@ -1,10 +1,10 @@
 import { getActiveEditor, type IEventBusMap, type IProtyle, Plugin, Setting, showMessage } from "siyuan";
 import { DEFAULT_CONFIG, normalizeConfig, type RecognitionConfig } from "./config";
-import { BetlangEngine } from "./detector/BetlangEngine";
-import { LanguageDetector } from "./detector/LanguageDetector";
-import { RuleDetector } from "./detector/RuleDetector";
+import { BetlangEngine } from "./detector/betlang-engine";
+import { LanguageDetector } from "./detector/language-detector";
+import { RuleDetector } from "./detector/rule-detector";
 import type zhCN from "./i18n/zh-CN.json";
-import { CodeBlockRecognizer } from "./siyuan/CodeBlockRecognizer";
+import { CodeBlockRecognizer } from "./siyuan/code-block-recognizer";
 
 const STORAGE_NAME = "config.json";
 const TOP_BAR_BUTTON_ID = "recognize-code-blocks";
