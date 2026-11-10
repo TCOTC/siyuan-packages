@@ -3,7 +3,17 @@ name: CI
 on:
   push:
     branches: [main]
+    # 改文档/编辑器配置不会影响任何包的产物，没必要跑全量
+    # （README 不能进这里：它会被复制进 package.zip，check 也校验它与清单一致）
+    paths-ignore: ["docs/**", ".vscode/**"]
   pull_request:
+    paths-ignore: ["docs/**", ".vscode/**"]
+
+# 连推多个提交时只验最后一次：前几次的结果已经没有意义，取消掉能省时间也省额度。
+# 注意 group 里带 ref —— PR 与 main 是两条线，不能互相取消。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
