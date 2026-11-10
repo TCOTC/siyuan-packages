@@ -1,4 +1,4 @@
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 import { formatLegendTooltip, type LevelThresholds } from "./levels";
 
 export function renderFooter(i18n: I18n, totalBlocks: number, totalDocs: number, thresholds: LevelThresholds): HTMLElement {

@@ -1,7 +1,7 @@
 import { Dialog } from "siyuan";
 import { isLevelMode, normalizeLevelCuts } from "./config";
 import { DEFAULT_COUNT_THRESHOLDS, DEFAULT_PERCENTILE_THRESHOLDS } from "./levels";
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 import type { LevelCuts, LevelMode } from "./types";
 
 export interface OpenLevelsDialogOptions {

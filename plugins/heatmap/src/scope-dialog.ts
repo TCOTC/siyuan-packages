@@ -1,6 +1,6 @@
 import { Dialog, fetchSyncPost } from "siyuan";
 import { setDocIconContent } from "./icons";
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 import type { ScopeNotebook } from "./types";
 
 export interface OpenScopeDialogOptions {

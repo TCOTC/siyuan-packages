@@ -1,4 +1,4 @@
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 import type { LevelCuts, LevelMode } from "./types";
 
 /** 分位 / 块数解析后的绝对块数阈值：依次为 1/2/3 级上限 */

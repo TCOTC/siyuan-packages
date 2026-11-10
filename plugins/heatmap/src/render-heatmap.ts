@@ -1,7 +1,7 @@
 import { formatDisplayDate, isSparseWeekday, orderWeekdays } from "./date";
 import { applyHeatColor } from "./config";
 import { buildMonthLabels, buildPeriods, measureMonthLabelReserve, measureWeekdayColumnWidth, type PeriodGrid } from "./grid";
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 import { calcLevels } from "./levels";
 import { renderCalendarView } from "./render-calendar";
 import { renderFooter } from "./render-shared";

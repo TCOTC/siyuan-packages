@@ -1,6 +1,6 @@
 import { fetchSyncPost } from "siyuan";
 import { alignToWeekStart, formatDateKey } from "./date";
-import { getDefaultWeekStart } from "./i18n";
+import { getDefaultWeekStart } from "./locale";
 import type { DayCount, DayDoc, DayDocsResult, HeatMapConfigOptions, StatMode } from "./types";
 
 /** 容器块：文档 / 列表 / 列表项 / 引述 / 超级块 / 标注 */

@@ -1,6 +1,6 @@
 import * as assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 import { calcLevels, formatLegendTooltip } from "./levels";
 
 const i18n = {

@@ -1,5 +1,5 @@
 import { Dialog, getFrontend, openMobileFileById, openTab, Plugin, showMessage } from "siyuan";
-import { getDefaultWeekStart, getI18n } from "./i18n";
+import { getDefaultWeekStart, type I18n } from "./locale";
 import {
   applyHeatColor,
   buildDisplayRangeOptions,
@@ -63,6 +63,16 @@ interface PluginConfig {
 }
 
 export default class HeatMap extends Plugin {
+  /**
+   * 文案由内核按界面语言注入（siyuan 仓库 `kernel/model/plugin.go` 的 loadPlugin），这里只负责收窄类型。
+   * 上游把 `Plugin.i18n` 声明成 `Record<string, string>`，而本包有几项是数组
+   * （`weekdays` / `months` / `levelsCutLabels`）——内核注入的是整份 JSON，数组在运行期原样保留，
+   * 所以这一处收窄是安全的；其余包值全是字符串，直接在类上 `declare i18n: typeof zhCN` 即可。
+   */
+  private get i18nText(): I18n {
+    return this.i18n as unknown as I18n;
+  }
+
   private isMobile = false;
   private dialog?: Dialog;
   private config: PluginConfig = {
@@ -134,7 +144,7 @@ export default class HeatMap extends Plugin {
   override onLayoutReady() {
     const frontEnd = getFrontend();
     this.isMobile = frontEnd === "mobile" || frontEnd === "browser-mobile";
-    const i18n = getI18n();
+    const i18n = this.i18nText;
 
     this.addTopBar({
       icon: "iconJCHMFlame",
@@ -264,7 +274,7 @@ export default class HeatMap extends Plugin {
     this.cachedHeatmapPanel = null;
     this.openAbort = new AbortController();
     const { signal } = this.openAbort;
-    const i18n = getI18n();
+    const i18n = this.i18nText;
 
     try {
       const { days, totalDocs } = await this.awaitWithLoadingDelay(
@@ -315,7 +325,7 @@ export default class HeatMap extends Plugin {
       return;
     }
 
-    const i18n = getI18n();
+    const i18n = this.i18nText;
     const content = document.createElement("div");
     content.className = "b3-dialog__content jchm-dialog";
     if (withLoading) {
@@ -370,7 +380,7 @@ export default class HeatMap extends Plugin {
       return;
     }
 
-    const i18n = getI18n();
+    const i18n = this.i18nText;
     header.classList.add("jchm-dialog__header");
 
     const title = document.createElement("span");
@@ -452,7 +462,7 @@ export default class HeatMap extends Plugin {
     }
 
     const gap = 8;
-    const i18n = getI18n();
+    const i18n = this.i18nText;
 
     // 先恢复文案再量；与设置重叠则只留箭头
     if (label) {
@@ -480,7 +490,7 @@ export default class HeatMap extends Plugin {
     if (!nav) {
       return;
     }
-    const i18n = getI18n();
+    const i18n = this.i18nText;
     const options = buildDisplayRangeOptions(this.rangeNavYearOptions);
     const index = getDisplayRangeIndex(this.config, options);
     const label = nav.querySelector(".jchm-range-nav__label");
@@ -628,7 +638,7 @@ export default class HeatMap extends Plugin {
 
   private mountHeatmapPanel(container: HTMLElement, days: DayCount[], totalDocs: number) {
     this.view = "heatmap";
-    const i18n = getI18n();
+    const i18n = this.i18nText;
     const panel = document.createElement("div");
     panel.className = "jchm-panel";
     const chartHost = document.createElement("div");
@@ -654,7 +664,7 @@ export default class HeatMap extends Plugin {
       return;
     }
 
-    const i18n = getI18n();
+    const i18n = this.i18nText;
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "jchm-dialog__setting block__icon block__icon--show ariaLabel";
@@ -695,7 +705,7 @@ export default class HeatMap extends Plugin {
 
   private openSettingsMenu(rect: DOMRect) {
     const chartHost = this.dialog?.element.querySelector(".jchm-panel__chart") as HTMLElement | null;
-    const i18n = getI18n();
+    const i18n = this.i18nText;
 
     openConfigMenu({
       i18n,
@@ -766,7 +776,7 @@ export default class HeatMap extends Plugin {
   private createLoadingEl(): HTMLElement {
     const el = document.createElement("div");
     el.className = "jchm-loading";
-    el.setAttribute("aria-label", getI18n().loading);
+    el.setAttribute("aria-label", this.i18nText.loading);
     el.innerHTML = '<img width="48" height="48" src="/stage/loading-pure.svg" alt="">';
     return el;
   }
@@ -835,7 +845,7 @@ export default class HeatMap extends Plugin {
   }
 
   private mountChart(chartHost: HTMLElement, days: DayCount[], totalDocs: number) {
-    const i18n = getI18n();
+    const i18n = this.i18nText;
     chartHost.replaceChildren(
       renderHeatMap(
         days,
@@ -866,7 +876,7 @@ export default class HeatMap extends Plugin {
       do {
         this.refreshQueued = false;
         const queryKey = getActivityCacheKey(this.config.statMode, this.config);
-        const i18n = getI18n();
+        const i18n = this.i18nText;
 
         // 查询边界未变（如只改年份排序）时复用数据，跳过全表扫描
         if (this.cachedDays && this.cachedDaysKey === queryKey) {
@@ -935,7 +945,7 @@ export default class HeatMap extends Plugin {
   }
 
   private mountDayDocPanel(container: HTMLElement, dateKey: string, result: DayDocsResult) {
-    const i18n = getI18n();
+    const i18n = this.i18nText;
     this.view = "day";
     const panel = document.createElement("div");
     panel.className = "jchm-panel jchm-panel--day";
@@ -991,7 +1001,7 @@ export default class HeatMap extends Plugin {
     this.dayAbort?.abort();
     this.dayAbort = new AbortController();
     const { signal } = this.dayAbort;
-    const i18n = getI18n();
+    const i18n = this.i18nText;
     let switchedToLoading = false;
 
     const showDayLoading = () => {

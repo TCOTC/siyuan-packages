@@ -1,6 +1,6 @@
 import { Dialog } from "siyuan";
 import { heatHexFromHue, hexToOklch, type Oklch } from "./color-oklch";
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 
 export interface OpenColorDialogOptions {
   i18n: I18n;

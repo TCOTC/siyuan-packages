@@ -1,6 +1,6 @@
 import { Menu } from "siyuan";
 import { heatHexFromHue, hexToOklch } from "./color-oklch";
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 import { DEFAULT_COUNT_THRESHOLDS, DEFAULT_PERCENTILE_THRESHOLDS } from "./levels";
 import type { DisplayMode, HeatMapConfigOptions, LevelCuts, LevelMode, StatMode, ViewMode, WeekStart, YearOrder } from "./types";
 

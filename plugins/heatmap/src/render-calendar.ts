@@ -1,7 +1,7 @@
 import { formatDisplayDate, orderWeekdays } from "./date";
 import { applyHeatColor } from "./config";
 import { buildMonthGrid, buildMonthSpecs, groupMonthsByYear, type MonthGrid } from "./grid";
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 import { calcLevels } from "./levels";
 import { renderFooter } from "./render-shared";
 import type { DayCount, HeatMapConfigOptions } from "./types";

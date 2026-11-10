@@ -1,6 +1,6 @@
 import { formatDisplayDate } from "./date";
 import { setDocIconContent } from "./icons";
-import type { I18n } from "./i18n";
+import type { I18n } from "./locale";
 import type { DayDoc } from "./types";
 
 export interface RenderDayDocListOptions {
