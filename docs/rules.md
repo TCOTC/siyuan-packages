@@ -440,7 +440,8 @@ CI 顺序：`install --frozen-lockfile` → `check` → `format:check` → `lint
         ├─ 校验产物清单的 version == 检测到的版本（防检测与构建不是同一棵树）
         ├─ cp dist/<name>.zip package.zip     ← 集市按资产名找，必须改名
         └─ gh release create v<version> --repo TCOTC/<name> package.zip
-               └─ 必须是正式 release，不能是 prerelease
+               ├─ 必须是正式 release，不能是 prerelease
+               └─ 正文自己写（--notes-file），不用 --generate-notes
                 ↓
         bazaar Stage 下一轮抓到新 release → 集市可见
 ```
@@ -477,8 +478,8 @@ pnpm release
 它读 `PACKAGES` / `EVENT` / `INPUT_DRY_RUN` / `INPUT_FORCE` 四个环境变量，本地也能直接跑 dry-run：
 
 ```bash
-# PACKAGES 每行六列（制表符分隔）：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本（新包留空）
-PACKAGES=$'plugins/move-doc\tmove-doc\t1.0.2\tTCOTC/move-doc\tplugin\t1.0.1' \
+# PACKAGES 每行七列（制表符分隔）：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本（新包留空）/ 基准 ref
+PACKAGES=$'plugins/move-doc\tmove-doc\t1.0.2\tTCOTC/move-doc\tplugin\t1.0.1\trelease/20261001-120000' \
 EVENT=workflow_dispatch INPUT_DRY_RUN=true bash .github/scripts/publish.sh
 ```
 
@@ -488,6 +489,24 @@ EVENT=workflow_dispatch INPUT_DRY_RUN=true bash .github/scripts/publish.sh
 
 **运行汇总表**由 `publish.sh` 输出（`| 类型 | 包名 | 前一个版本 | 当前发布版本 | Release |`）：
 Release 链接只有发布后才知道，所以表格不能放在检测步骤——放两处必然不一致。
+
+**release 正文是脚本自己写的，不用 `gh --generate-notes`。** GitHub 的自动正文按**目标仓库**的提交生成，
+而每个包的收录仓库迁移后已归档、只剩 README，自动生成的 `Full Changelog` 指过去永远是空区间。
+GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只能在同一仓库里换起点，所以只能自写：
+
+```text
+## 更新内容
+
+- <基准 ref → HEAD 区间里本包目录的提交>（本包目录没有直接提交时退一步列 kit / libs 的提交）
+
+**Full Changelog**: https://github.com/<本仓>/compare/<基准 sha>...<HEAD sha>
+
+源码：https://github.com/<本仓>/tree/<HEAD sha>/<包目录>
+```
+
+`Full Changelog` 指向本仓的同区间对比（含其他包的改动——这是本仓唯一的「区间」概念，
+本包的精确改动由上面的提交列表给出）。`force` 重发时会用 `gh release edit` 把正文一起换掉，
+否则重发后还挂着上一次的提交列表。基准 ref 由检测阶段作为第 7 列传给 `publish.sh`。
 
 四条语义：
 

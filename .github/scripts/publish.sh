@@ -7,8 +7,9 @@
 # 塞在 YAML 里既没法 lint 也没法直接执行。
 #
 # 环境变量（都由 workflow 注入，脚本本身不读任何仓库配置）：
-#   PACKAGES            待发包清单，每行六列，制表符分隔：
-#                       包目录 \t 包名 \t 版本 \t 目标仓库 \t 类型 \t 上一个版本（新包为空）
+#   PACKAGES            待发包清单，每行七列，制表符分隔：
+#                       包目录 \t 包名 \t 版本 \t 目标仓库 \t 类型 \t 上一个版本（新包为空）\t 基准 ref
+#                       基准 ref 只用来生成 release 正文（本仓的提交区间）
 #   EVENT               push | workflow_dispatch；只有 dispatch 才认下面的两个布尔值
 #   INPUT_DRY_RUN       dispatch 下为 true 时只构建与校验，不调 gh
 #   INPUT_FORCE         dispatch 下为 true 时允许覆盖目标仓库已存在的同版本 release
@@ -45,6 +46,12 @@ rows=()
 asset_dir=$(mktemp -d)
 trap 'rm -rf "$asset_dir"' EXIT
 
+# release 正文里的「源码仓」：CI 用 GITHUB_REPOSITORY，本地从 origin 推。
+source_repo="${GITHUB_REPOSITORY:-}"
+if [ -z "$source_repo" ]; then
+  source_repo=$(git remote get-url origin 2>/dev/null | sed -e 's#^[^@]*@[^:]*:##' -e 's#^https\?://[^/]*/##' -e 's#\.git$##')
+fi
+
 # 汇总表的一行：类型 | 包名 | 前一个版本 | 当前发布版本 | Release
 # 参数是 Release 单元格；其余取循环里的当前包。
 add_row() {
@@ -59,7 +66,7 @@ release_url() {
 mapfile -t LINES <<< "${PACKAGES:-}"
 
 for line in "${LINES[@]}"; do
-  IFS=$'\t' read -r dir name version target kind previous <<< "$line"
+  IFS=$'\t' read -r dir name version target kind previous base <<< "$line"
   if [ -z "${dir:-}" ]; then
     continue
   fi
@@ -129,6 +136,33 @@ for line in "${LINES[@]}"; do
   tag="v${version}"
   cp "$zip" "$asset_dir/package.zip"
 
+  # 正文自己写，不用 gh 的 --generate-notes：那是按**目标收录仓库**的提交生成的，
+  # 而收录仓库早已归档、只剩 README，生成的 Full Changelog 永远指向一片空白。
+  # GitHub 没有「跨仓库生成 notes」的能力，--notes-start-tag 也只能在同一仓库里换起点。
+  notes_file="${asset_dir}/notes.md"
+  base_sha=""
+  head_sha=$(git rev-parse HEAD)
+  if [ -n "$base" ] && base_sha=$(git rev-parse --verify "${base}^{commit}" 2>/dev/null); then
+    # `-n 30` 而不是 `| head -30`：head 提前退出会让 git 吃 SIGPIPE，在 pipefail 下整条命令判失败
+    commits=$(git log -n 30 --no-merges --pretty='- %s（%h）' "${base_sha}..${head_sha}" -- "$dir")
+    if [ -z "$commits" ]; then
+      # 本包目录没有直接提交（改动来自 kit / libs 这类共享代码），退一步列共享部分的提交
+      commits=$(git log -n 30 --no-merges --pretty='- %s（%h）' "${base_sha}..${head_sha}" -- kit libs)
+    fi
+  fi
+  note_body=""
+  if [ -n "${commits:-}" ]; then
+    note_body+=$(printf '## 更新内容\n\n%s' "$commits")
+  fi
+  # 链接指向源码仓：收录仓库里没有这些提交，指过去只会得到一片空白
+  if [ -n "$base_sha" ] && [ -n "$source_repo" ]; then
+    note_body+="${note_body:+$'\n\n'}**Full Changelog**: https://github.com/${source_repo}/compare/${base_sha}...${head_sha}"
+  fi
+  if [ -n "$source_repo" ]; then
+    note_body+="${note_body:+$'\n\n'}源码：https://github.com/${source_repo}/tree/${head_sha}/${dir}"
+  fi
+  printf '%s\n' "$note_body" > "$notes_file"
+
   if gh release view "$tag" --repo "$target" > /dev/null 2>&1; then
     # 集市要求 version 单调递增；同版本覆盖会让已安装用户收不到更新
     if [ "$FORCE" != "true" ]; then
@@ -146,7 +180,10 @@ for line in "${LINES[@]}"; do
       echo "::endgroup::"
       continue
     fi
-  elif ! gh release create "$tag" "$asset_dir/package.zip" --repo "$target" --title "$tag" --generate-notes; then
+    # 资产覆盖了，正文也要一起换掉，否则重发后还挂着上一次的改动列表
+    gh release edit "$tag" --repo "$target" --notes-file "$notes_file" > /dev/null \
+      || echo "::warning::${name} 的 release 正文更新失败（资产已替换）"
+  elif ! gh release create "$tag" "$asset_dir/package.zip" --repo "$target" --title "$tag" --notes-file "$notes_file"; then
     # 注意：不要加 --prerelease，集市只读 /releases/latest
     echo "::error::${name} 创建 release 失败"
     failed+=("${name}: 创建 release 失败")

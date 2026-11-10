@@ -13,7 +13,7 @@
  *
  * 输出（$GITHUB_OUTPUT）：
  *   count   要发布的包数
- *   list    每行四列，制表符分隔：包目录 \t 名称 \t 版本 \t 目标收录仓库
+ *   list    每行七列，制表符分隔：包目录 \t 名称 \t 版本 \t 目标收录仓库 \t 类型 \t 上一个版本 \t 基准 ref
  *
  * 加 `--json` 则只往 stdout 打一份 JSON（count / noBase / packages / notes），
  * 不碰 $GITHUB_OUTPUT —— `release.mjs` 用它做打标签前的预检。
@@ -233,9 +233,9 @@ function finish(rows, notes, extra = {}) {
   }
 
   setOutput("count", String(rows.length));
-  // 六列：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本。
-  // 上一个版本为空字符串表示新包（基准里没有它）。
-  setOutput("list", rows.map((row) => [row.dir, row.name, row.version, row.target, row.kind, row.previous ?? ""].join("\t")).join("\n"));
+  // 七列：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本 / 基准 ref。
+  // 上一个版本为空字符串表示新包（基准里没有它）；基准 ref 用来在 publish.sh 里生成 release 正文。
+  setOutput("list", rows.map((row) => [row.dir, row.name, row.version, row.target, row.kind, row.previous ?? "", row.base ?? ""].join("\t")).join("\n"));
 
   // 表格由 publish.sh 输出：Release 链接只有发布后才知道，放两处必然不一致。
   // 这里只留基准行 —— 逐个包列「1.0.1 → 1.0.2」与表格完全重复。
@@ -262,8 +262,10 @@ function main() {
       .map((token) => token.trim())
       .filter(Boolean)
       .map(findPackageDir);
+    // 上一版未知，但正文仍需要一个区间下界，取离 HEAD 最近的 release 标签
+    const base = previousTag("HEAD") ?? "";
     finish(
-      dirs.map((dir) => ({ ...resolvePackage(dir), previous: MANUAL_PREVIOUS })),
+      dirs.map((dir) => ({ ...resolvePackage(dir), previous: MANUAL_PREVIOUS, base })),
       [`手动指定 ${dirs.length} 个包，未做变更检测。`],
     );
     return;
@@ -292,7 +294,7 @@ function main() {
 
     if (previous === null) {
       progress(`- ${pkg.name}：新包，直接发布`);
-      rows.push({ ...pkg, previous: null });
+      rows.push({ ...pkg, previous: null, base });
       continue;
     }
 
@@ -307,7 +309,7 @@ function main() {
       throw new Error(`${pkg.name} 的 version 从 ${previous} 降到了 ${pkg.version}`);
     }
     progress(`- ${pkg.name}：${previous} → ${pkg.version}`);
-    rows.push({ ...pkg, previous });
+    rows.push({ ...pkg, previous, base });
   }
 
   // 跳过的包不在表格里，不写一句没人知道它们为什么没发

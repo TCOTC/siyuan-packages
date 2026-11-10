@@ -12,6 +12,9 @@ name: Publish
 #   ③ 首次打标签时前面没有更早的标签 → 只建立基准，不发布
 #   ④ 逐个构建并推到各自的收录仓库 TCOTC/<name>，tag 用 v<version>
 #
+# 注意 release 正文：收录仓库里没有对应的提交（已归档只剩 README），所以不能用
+# --generate-notes —— 正文由 publish.sh 按本仓的提交区间自己生成。
+#
 # 所以「只改代码、不抬 version」不会发布；要补发漏掉的包用 workflow_dispatch 的 packages。
 #
 # 具体实现都在 .github/scripts/ 下：检测是 detect-packages.mjs，构建与发布是 publish.sh。
