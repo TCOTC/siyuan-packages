@@ -225,7 +225,8 @@ function finish(rows, notes, extra = {}) {
   // 上一个版本为空字符串表示新包（基准里没有它）。
   setOutput("list", rows.map((row) => [row.dir, row.name, row.version, row.target, row.kind, row.previous ?? ""].join("\t")).join("\n"));
 
-  // 表格由 publish.sh 输出：Release 链接只有发布后才知道，放两处必然不一致
+  // 表格由 publish.sh 输出：Release 链接只有发布后才知道，放两处必然不一致。
+  // 这里只留基准行 —— 逐个包列「1.0.1 → 1.0.2」与表格完全重复。
   setSummary(rows.length === 0 ? `${notes.join("\n")}\n\n**本次没有需要发布的包。**` : notes.join("\n"));
 
   for (const note of notes) {
@@ -266,7 +267,10 @@ function main() {
     throw new Error(`基准标签 ${base} 不存在（本地缺少它的提交？checkout 需要 fetch-depth: 0）`);
   }
 
-  const notes = [`基准：\`${base}\` → \`${currentRef}\``, `区间内清单有变化的包：`];
+  // notes 只放表格里没有的信息：基准、以及被跳过的包及其原因。
+  // 已发布包逐个列「旧 → 新」与汇总表重复，不再写进 summary（日志里另有）。
+  const notes = [`基准：\`${base}\` → \`${currentRef}\``];
+  const skipped = [];
   const rows = [];
 
   for (const path of changedManifests(base, currentRef)) {
@@ -275,7 +279,7 @@ function main() {
     const pkg = resolvePackage(dir);
 
     if (previous === null) {
-      notes.push(`- ${pkg.name}：新包，直接发布`);
+      console.log(`- ${pkg.name}：新包，直接发布`);
       rows.push({ ...pkg, previous: null });
       continue;
     }
@@ -283,14 +287,20 @@ function main() {
     const order = compareVersions(pkg.version, previous);
     if (order === 0) {
       // 只改了 displayName / description 之类，没有新版本可发
-      notes.push(`- ${pkg.name}：清单变了但 version 仍是 ${pkg.version}，跳过`);
+      console.log(`- ${pkg.name}：清单变了但 version 仍是 ${pkg.version}，跳过`);
+      skipped.push(`${pkg.name}（version 仍是 ${pkg.version}）`);
       continue;
     }
     if (order < 0) {
       throw new Error(`${pkg.name} 的 version 从 ${previous} 降到了 ${pkg.version}`);
     }
-    notes.push(`- ${pkg.name}：${previous} → ${pkg.version}`);
+    console.log(`- ${pkg.name}：${previous} → ${pkg.version}`);
     rows.push({ ...pkg, previous });
+  }
+
+  // 跳过的包不在表格里，不写一句没人知道它们为什么没发
+  if (skipped.length > 0) {
+    notes.push(`跳过 ${skipped.length} 个包（清单变了但版本未变）：${skipped.join("、")}`);
   }
 
   finish(rows, notes);
