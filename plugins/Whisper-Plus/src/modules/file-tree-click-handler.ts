@@ -1,5 +1,19 @@
+import { getModelByDockType } from "siyuan";
+
 import { logging } from "../logger";
 import { waitForElement } from "../utils";
+
+/**
+ * 文档树模型里持有选中态的原生控制器
+ *
+ * 选中态存在控制器里，`.b3-list-item--focus` 只是它渲染时写上的类名。文档树自
+ * siyuan 仓库 `app/src/layout/dock/docTree/DocTreeController.ts` 起是扁平虚拟列表，
+ * `Files.element` 只含可视区，直接改 DOM 类名会在行被回收重挂后失效。
+ * 上游类型包里没有导出这个控制器，只按这里用到的成员收窄。
+ */
+interface IDocTreeModel {
+  docTree?: { clearSelection: () => void };
+}
 
 /**
  * 点击文档树空白处，取消选中文档或笔记本
@@ -70,10 +84,9 @@ export class FileTreeClickHandler {
         notebook.style.backgroundColor = styleBgColor ? styleBgColor : "";
       }
 
-      // 去掉 .sy__file 下的所有 .b3-list-item--focus 类名，取消选中所有笔记本和文档
-      this.syFileElement?.querySelectorAll(".b3-list-item--focus")?.forEach((item) => {
-        item.classList.remove("b3-list-item--focus");
-      });
+      // 交给原生控制器清空选中：它同时重置选区锚点，并按新的选中态重渲染（含离屏行）
+      const file = getModelByDockType("file") as IDocTreeModel | undefined;
+      file?.docTree?.clearSelection();
     });
   };
 }

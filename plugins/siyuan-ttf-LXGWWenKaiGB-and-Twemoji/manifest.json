@@ -10,5 +10,6 @@
     "default": "Use LXGW WenKai and Twemoji in SiYuan",
     "zh-CN": "在思源笔记中使用霞鹜文楷和 Twemoji"
   },
-  "keywords": ["font", "字体", "Twitter Emoji", "表情包", "表情符号", "图标", "icon"]
+  "keywords": ["font", "字体", "Twitter Emoji", "表情包", "表情符号", "图标", "icon"],
+  "settingsWindow": true
 }

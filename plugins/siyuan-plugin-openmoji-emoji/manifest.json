@@ -10,5 +10,6 @@
     "default": "Use OpenMoji in SiYuan",
     "zh-CN": "在思源笔记中使用 OpenMoji"
   },
-  "keywords": ["emoji", "表情包", "图标", "icon"]
+  "keywords": ["emoji", "表情包", "图标", "icon"],
+  "settingsWindow": true
 }

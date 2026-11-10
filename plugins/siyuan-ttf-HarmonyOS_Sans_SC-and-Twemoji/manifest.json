@@ -10,5 +10,6 @@
     "default": "Use HarmonyOS Sans and Twemoji in SiYuan",
     "zh-CN": "在思源笔记中使用鸿蒙黑体和 Twemoji"
   },
-  "keywords": ["font", "Twitter Emoji", "鸿蒙字体", "表情包", "表情符号", "图标", "icon"]
+  "keywords": ["font", "Twitter Emoji", "鸿蒙字体", "表情包", "表情符号", "图标", "icon"],
+  "settingsWindow": true
 }

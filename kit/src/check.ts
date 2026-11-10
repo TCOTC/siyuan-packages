@@ -402,10 +402,16 @@ function checkManifestFields(pkg: ResolvedPackage, push: (message: string) => vo
     push(`${pkg.kind === "plugin" ? "插件" : "挂件"}清单必须显式写 disabledInPublish（true / false），不要省略：它决定发布服务里能否访问`);
   }
 
-  // settingsWindow 目前没有任何包提供设置窗口（集市会据此在插件卡片上给出「设置」入口，
-  // 点了却打不开任何界面）。确认做了设置界面之后再声明，别在迁移时顺手带上。
+  // settingsWindow 决定该插件是否会在「独立设置窗口」里被加载：内核只返回声明了它的插件
+  // （siyuan 仓库 `kernel/model/plugin.go` 的 LoadSettingsWindowPetals），前端再按 `=== true` 过滤一遍
+  // （siyuan 仓库 `app/src/plugin/loader.ts` 的 fetchPluginData）。它不控制主窗口的插件设置入口，
+  // 所以只有「需要在设置窗口里配置」的插件才写；false 与省略等价，写了只会让人以为有区别。
   if ("settingsWindow" in pkg.override) {
-    push("包内清单不允许声明 settingsWindow：本仓目前没有任何包实现设置窗口，等真正做了设置界面再加");
+    if (pkg.kind !== "plugin") {
+      push("只有插件清单可以声明 settingsWindow：主题与挂件不会在独立设置窗口里被加载");
+    } else if (pkg.override["settingsWindow"] !== true) {
+      push("包内清单的 settingsWindow 只允许写 true：false 与省略等价，内核也只在值为 true 时加载该插件");
+    }
   }
 }
 

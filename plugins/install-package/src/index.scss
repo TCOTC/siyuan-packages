@@ -437,12 +437,12 @@ $jcip-repo-summary-avatar-size: 50px;
 
     &--prerelease {
       border-color: var(--b3-border-color);
-      color: var(--b3-theme-warning);
+      color: var(--b3-card-warning-color);
     }
   }
 
   &__chip--prerelease &__chip-mark {
-    color: var(--b3-theme-warning);
+    color: var(--b3-card-warning-color);
   }
 
   &__chip-body {
