@@ -49,7 +49,7 @@ catalog:
   oxfmt: "^0.77.0"
   oxlint: "^1.92.0"
   # 与 engines.node 的最低版本对齐：类型定义了 Node 的 API 面
-  "@types/node": "^24.6.2"
+  "@types/node": "^26.6.6"
 
   # 单元测试：
   vitest: "^5.1.0"

@@ -6,7 +6,7 @@
   "description": "思源集市包单一源码仓库：插件 / 主题 / 挂件统一构建，构建产物分发到各自的集市收录仓库",
   "packageManager": "pnpm@11.25.0",
   "engines": {
-    "node": ">=24.0.0"
+    "node": ">=26.0.0"
   },
   "scripts": {
     "create:plugin": "siyuan-kit create",

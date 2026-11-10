@@ -365,6 +365,9 @@ CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错�
 
 ## 7. 依赖治理
 
+- **Node 版本是 26**：根 `engines.node` 是 `>=26.0.0`，`.nvmrc` 写 `26`，CI 两个 workflow 的 `node-version` 都是 `"26"`。四处必须同步改。
+  - 为什么是 26：`jsdom` 的 `engines` 是 `^22.22.2 || ^24.15.0 || >=26.0.0`，**跳过了 25**。Node 25 是奇数版、已于 2026-03-31 EOL，两头都不支持，所以只能在 24 与 26 之间选。26 于 2026-05 发布、2026-10 转 LTS，是当前该依赖支持的最高档，也是 `.nvmrc` 选它而不是 24 的理由。
+  - `@types/node` 跟着 `engines.node` 走（catalog 里写 `^26.6.6`），它定义的就是 Node 的 API 面；两者脱节会让代码用到类型库没有的 API，或者反过来被过期的类型骗过。
 - **一份 lockfile**：`pnpm-lock.yaml` 只有根目录一份。
 - **catalog 是唯一真相源**：升级思源 API 或构建工具只改 `pnpm-workspace.yaml`，全仓一起动。
 - **`siyuan` 类型包钉在 petal 的具体提交**（当前 `github:siyuan-note/petal#edc4b0494a`）：插件需要的几处声明还没发到 npm。单一 pin、单一升级点，lockfile 仍可复现；petal 发布后改回 semver 即可。

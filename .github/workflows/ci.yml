@@ -25,7 +25,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: "24"
+          node-version: "26"
           cache: pnpm
 
       # 首次接入前需要先在本地 pnpm install 并把 pnpm-lock.yaml 提交上来，
