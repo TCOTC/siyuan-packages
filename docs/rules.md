@@ -304,15 +304,15 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 偏离约定用同一套 API 声明。只有「有东西不在 vite 模块图里」或「需要多入口」才需要这份配置：
 
-| 包                                         | 需要什么                                                | 怎么表达                                                                                                                                                     |
-| ------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `image-squeeze`                            | 主入口 CJS + Worker 入口 IIFE；wasm 由 `new URL` 引用   | `passes: [{format:"cjs"}, {format:"iife", name, inlineDynamicImports}]`，另加 `define: {"import.meta.url": "self.location.href"}`（iife 没有 `import.meta`） |
-| `code-recognition`                         | wasm 不在模块图里（运行期按绝对路径动态 import）        | `copy: ["wasm/**/*"]`，原样复制到产物根                                                                                                                      |
-| `flomo-web`                                | 主进程挂钩脚本由 `remote.require()` 按路径加载          | `copy: ["devtools-hook.cjs"]`                                                                                                                                |
-| `siyuan-ttf-LXGWWenKaiGB-and-Twemoji`      | 14 MB 字体不能进模块图（会被当成 url() 依赖再打包一份） | `copy: ["LXGWWenKai/**/*", "Twemoji/**/*", "!**/*.bak"]`；样式里写 `/plugins/<name>/...` 绝对 URL                                                            |
-| `siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` | 11 MB 字体不能进模块图                                  | `copy: ["HarmonyOS_Sans/**/*", "Twemoji/**/*"]`，同上                                                                                                        |
-| `siyuan-plugin-openmoji-emoji`             | 953 KiB 字体不能进模块图                                | `copy: ["OpenMoji/**/*"]`（字体自带的 `OpenMoji/LICENSE.txt` 一并复制）                                                                                      |
-| `inline-elements`                          | 生产构建要去掉 `console.*`                              | `dropConsole: true`：挂件 preset 把它传给 rolldown 的 `output.minify.compress.dropConsole`，dev 不生效                                                       |
+| 包                                         | 需要什么                                                | 怎么表达                                                                                                                               |
+| ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `image-squeeze`                            | 主入口 CJS + Worker 入口 IIFE；wasm 由 `new URL` 引用   | `passes: [{format:"cjs"}, {format:"iife", name}]`，另加 `define: {"import.meta.url": "self.location.href"}`（iife 没有 `import.meta`） |
+| `code-recognition`                         | wasm 不在模块图里（运行期按绝对路径动态 import）        | `copy: ["wasm/**/*"]`，原样复制到产物根                                                                                                |
+| `flomo-web`                                | 主进程挂钩脚本由 `remote.require()` 按路径加载          | `copy: ["devtools-hook.cjs"]`                                                                                                          |
+| `siyuan-ttf-LXGWWenKaiGB-and-Twemoji`      | 14 MB 字体不能进模块图（会被当成 url() 依赖再打包一份） | `copy: ["LXGWWenKai/**/*", "Twemoji/**/*", "!**/*.bak"]`；样式里写 `/plugins/<name>/...` 绝对 URL                                      |
+| `siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` | 11 MB 字体不能进模块图                                  | `copy: ["HarmonyOS_Sans/**/*", "Twemoji/**/*"]`，同上                                                                                  |
+| `siyuan-plugin-openmoji-emoji`             | 953 KiB 字体不能进模块图                                | `copy: ["OpenMoji/**/*"]`（字体自带的 `OpenMoji/LICENSE.txt` 一并复制）                                                                |
+| `inline-elements`                          | 生产构建要去掉 `console.*`                              | `dropConsole: true`：挂件 preset 把它传给 rolldown 的 `output.minify.compress.dropConsole`，dev 不生效                                 |
 
 这份表是**白名单**：新增条目必须先登记到 `kit/src/check.ts` 的 `ALLOWED_BUILD_CONFIG`（附理由），否则 `pnpm check` 会红。
 
@@ -414,6 +414,34 @@ CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错�
 
 **已知取舍**：oxfmt 是 Prettier 系，会把能塞进 320 的手动折行合并回一行，也会改写 Markdown 列表标记（`*` → `-`）。需要保留自己的断行时在上一行写 `// oxfmt-ignore`（`// prettier-ignore` 同样有效）。
 
+### 8.1 oxlint 的规则取舍
+
+`suspicious` 与 `perf` 两类全开会刷出两百多条警告，而 GitHub 的注解面板只显示前十条 —— 等于**没有信号**。所以规则按「这条警告是否指向需要动手的代码」筛，当前 `pnpm lint` 是**零警告**：新出现的警告一定有指认价值。
+
+只有三条规则整条关掉，其余能改的都改了代码，剩下的极少数在命中处用 `// oxlint-disable-next-line` 就地豁免——规则自身保持开启，新代码不能无声地把同一个问题再写一遍。
+
+| 规则                          | 为什么整条关掉                                                                                                                                                                                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `no-array-sort`               | 它要求改写 `toSorted()`，那是 ES2023；而产物要跑在 iOS 15.6 的 WKWebView 上（`siyuan-ios` 的 `IPHONEOS_DEPLOYMENT_TARGET = 15.6`），那里没有这个方法。这是**全仓统一的运行时约束**，不是逐点的代码决策。                                                          |
+| `no-await-in-loop`            | 本仓的串行 `await` 是**顺序语义**而非「漏写并发」：轮询等渲染、重试写入、按序改 `document.head`、按序调内核 install/uninstall、按批限流（批内仍是 `Promise.all`）。规则分不出这两者，逐处豁免要写三十多条内容雷同的注释。关掉后每处仍保留一句「为什么必须串行」。 |
+| `consistent-function-scoping` | 纯风格（建议把不捕获外部变量的函数提到外层），对正确性零收益；命中处多是工厂内部的小工具，提出来反而破坏封装。                                                                                                                                                    |
+
+就地豁免的三类（都是「规则不认识这里的语义」，不是不想改）：
+
+| 规则                                 | 处理方式                                                                                                                             |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `prefer-add-event-listener`          | **全部真改**为 `addEventListener`。`menu-drag-sort` 是唯一保留 `on*` 语义的地方：它要在拖拽期间接管并成对移除 document 上的监听      |
+| `no-useless-concat`                  | **全部真改**：合并成单个字面量，多段 HTML 夹具改成数组 `join("")`                                                                    |
+| `no-unmodified-loop-condition`       | **全部真改**：写成 `for (let cursor = new Date(start); ; cursor.setDate(…)) { if (cursor > end) break; }`（`setDate` 是原地改 Date） |
+| `require-post-message-target-origin` | 命中处是 Worker 的 `postMessage`（协议里没有 targetOrigin），加 disable 注释（`sync.ts` 的私有方法已改名 `sendBroadcastMessage`）    |
+
+两个选项式的放宽：
+
+- `no-underscore-dangle` 配 `allow` 白名单：`__heatmapSiyuanStub`、`__flomoWebInjected`、`_config`、`_kernel`、`l_/m_/s_` 都是有意义的名字（测试替身的全局挂名、语言代码拆出的分量）。
+- `no-unused-vars` 同时配 `argsIgnorePattern` 与 `caughtErrorsIgnorePattern` 为 `^_`：`catch (_)` 是「这个异常我不关心」的惯用写法。
+
+`plugins/install-package/tools/**` 与 `themes/Whisper/tools/**` 进 `ignorePatterns`：它们是本地辅助脚本，不进产物、也不在 tsconfig 的 `include` 里。
+
 ---
 
 ## 9. 脚本与 CI
@@ -421,6 +449,11 @@ CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错�
 根目录脚本见 [README](../README.md#快速开始)。
 
 CI 顺序：`install --frozen-lockfile` → `check` → `format:check` → `lint` → `typecheck` → `test` → `build`。
+
+- **runner 镜像写具体版本**（`ubuntu-26.04`）：`ubuntu-latest` 会在镜像换代时静默换环境，还会每次运行挂一条迁移注解。
+- **每个 job 都有 `timeout-minutes`**：默认上限 360 分钟，卡住时白烧额度；实测全流程约 65s，留十倍余量。
+- **workflow 级声明最小权限**（`contents: read`）：默认 token 还带 `packages` 等本流程用不到的权限。
+- **`dependency-review` job 只在 `pull_request` 上跑**：Dependabot 的 PR 会直接改 lockfile，这里按 `moderate` 拦「升到有已知漏洞的版本」。它单独成一个 job，故障不影响全量校验。
 
 ### 9.1 workflow 依赖锁
 
