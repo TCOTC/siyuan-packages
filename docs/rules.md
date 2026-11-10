@@ -457,6 +457,18 @@ pnpm release
 检测逻辑在 `.github/scripts/detect-packages.mjs`，也能单独跑：
 `node .github/scripts/detect-packages.mjs`（加 `--json` 输出机器可读结果），不上传任何东西。
 
+构建与发布的循环在 `.github/scripts/publish.sh`（YAML 里只留 `bash .github/scripts/publish.sh`）。
+它读 `PACKAGES` / `EVENT` / `INPUT_DRY_RUN` / `INPUT_FORCE` 四个环境变量，本地也能直接跑 dry-run：
+
+```bash
+PACKAGES=$'plugins/move-doc\tmove-doc\t1.0.2\tTCOTC/move-doc' \
+EVENT=workflow_dispatch INPUT_DRY_RUN=true bash .github/scripts/publish.sh
+```
+
+之所以是 bash 而不是 Node：这段逻辑已经在本仓 CI 上实跑验证过，重写会把三个已修好的坑
+（`grep` 提前退出导致的 SIGPIPE、`set -u` 下 `$GITHUB_STEP_SUMMARY` unbound、`mapfile` 读清单）重新引入一遍。
+单独成文件是为了能 `bash -n` 检查语法、能本地执行；塞在 YAML 里两者都做不到。
+
 四条语义：
 
 - **只改代码、不抬 `version` → 不发布**。版本号是唯一的发布信号。
