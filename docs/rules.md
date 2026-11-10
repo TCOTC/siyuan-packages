@@ -1,6 +1,6 @@
 # 仓库规则
 
-22 个集市包的源码收在一处，共享一套构建契约。其中能在构建阶段判定的部分由 `pnpm check` 拦住（第 6 节）。
+集市包的源码收在一处，共享一套构建契约。其中能在构建阶段判定的部分由 `pnpm check` 拦住（第 6 节）。
 
 ---
 
@@ -16,7 +16,7 @@
 | prerelease 不参与索引                   | GitHub `/releases/latest` 忽略 prerelease                                                            | 自动发布必须直接建正式 release            |
 | `version` 单调递增且不带 `v` 前缀       | `rules/manifest.go`                                                                                  | 清单写 `1.0.2`，tag 写 `v1.0.2`           |
 
-即「单源码仓 + 每个包一个发布端点」，不是把 22 个包并成一个集市包。
+即「单源码仓 + 每个包一个发布端点」，不是把全部包并成一个集市包。
 
 ---
 
@@ -159,7 +159,7 @@ include: ["src/**/*.test.ts", "e2e/**/*.test.ts"];
 
 除 `include` 外只允许两类差异：`resolve.alias`（把 `siyuan` 指向 `src/__mocks__/siyuan.ts`，且必须是绝对路径）与 `test.environment`（整包需要 DOM 时设 `jsdom`，如 `highlight-search`）。
 
-### 2.5 清单分三层
+### 2.10 清单分三层
 
 包里的清单**不是集市读的那一份**，它只是覆盖层。集市读的是构建写进产物的完整清单。
 
@@ -226,7 +226,7 @@ plugins/move-doc/           源码  {manifest.json, README*.md, icon.png, previe
 - 清单 `version` 不带 `v` 前缀；release tag 带 `v`
 - `dist/` 与 `siyuan.config.json` 都 gitignore
 
-产物里的清单是**生成**的（三层合并，见 2.5），不是从包目录复制。包目录里那份只是覆盖层，复制过去会变成缺 `name` / 缺 `url` 的半成品。
+产物里的清单是**生成**的（三层合并，见 2.10），不是从包目录复制。包目录里那份只是覆盖层，复制过去会变成缺 `name` / 缺 `url` 的半成品。
 
 ### 3.2 运行期形态
 
@@ -248,10 +248,12 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 `dev` 是持续监听：插件/挂件由 vite 的 `build.watch` 负责；主题是唯一不走打包器的形态，由 kit 用 `fs.watch` 盯住入口目录（递归，含 partial 子目录）、入口之外被 `@use` 引用过的目录与 `icons/`（sass 的 `compileAsync` 没有 watch API）。编译错误只打到控制台、不中断监听；`dev` **不清空产物目录**——它已经链进思源，先清后编一旦失败（SCSS 报错、进程 OOM）思源里就只剩一个空主题。
 
-需要仓库根的 `siyuan.config.json`（gitignore，模板见 `siyuan.config.example.json`）：
+需要仓库根的 `siyuan.config.json`（gitignore，模板见 `siyuan.config.example.json`，照抄后改成自己的路径）：
 
 ```json
-{ "workspace": "D:/SiYuan" }
+{
+  "workspace": "D:/路径/到/思源工作空间(data文件夹的上一层)"
+}
 ```
 
 指向工作空间根目录（含 `data/` 的那一层）。**只有 `dev` 读这份配置**：缺文件时只构建不链接（同一批启动的进程里只提示一次）；路径不存在、填成 `data` 本身、目录下没有 `data/` 各有报错。`build` / `check` 不读它，本机路径失效也不会让打包失败。
@@ -322,12 +324,12 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 包内 `tsconfig.json` 只写 `extends` 与 `include`（必要时再补个别「更严」的开关），不许自创第三份基线：
 
-| 基线                   | 严格度                                                                  | 谁用                        |
-| ---------------------- | ----------------------------------------------------------------------- | --------------------------- |
-| `tsconfig.base.json`   | `strict` + `noImplicitOverride` + `verbatimModuleSyntax`                | 全部 21 个发布包 + 新包模板 |
-| `tsconfig.strict.json` | base 之上再开 `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` | `kit`、`libs/*`             |
+| 基线                   | 严格度                                                                  | 谁用                  |
+| ---------------------- | ----------------------------------------------------------------------- | --------------------- |
+| `tsconfig.base.json`   | `strict` + `noImplicitOverride` + `verbatimModuleSyntax`                | 全部发布包 + 新包模板 |
+| `tsconfig.strict.json` | base 之上再开 `noUncheckedIndexedAccess` + `exactOptionalPropertyTypes` | `kit`、`libs/*`       |
 
-默认档就是严格档：`strict` 全仓开启，没有「宽松档」。加强档只给那些「一个错误会扩散到很多包」的代码——kit 自身出错会让 21 个包的构建一起崩，`libs/*` 会被多个消费方的 tsc 程序一并检查。某个发布包整体重构时可以临时改成 `../../../tsconfig.strict.json` 收紧，`pnpm typecheck` 会列出要收的全部位置。
+默认档就是严格档：`strict` 全仓开启，没有「宽松档」。加强档只给那些「一个错误会扩散到很多包」的代码——kit 自身出错会让全部包的构建一起崩，`libs/*` 会被多个消费方的 tsc 程序一并检查。某个发布包整体重构时可以临时改成 `../../../tsconfig.strict.json` 收紧，`pnpm typecheck` 会列出要收的全部位置。
 
 四条硬规则：
 
@@ -383,7 +385,7 @@ CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错�
   - `@types/node` 跟着 `engines.node` 走（catalog 里写 `^26.6.6`），它定义的就是 Node 的 API 面；两者脱节会让代码用到类型库没有的 API，或者反过来被过期的类型骗过。
 - **一份 lockfile**：`pnpm-lock.yaml` 只有根目录一份。
 - **catalog 是唯一真相源**：升级思源 API 或构建工具只改 `pnpm-workspace.yaml`，全仓一起动。
-- **`siyuan` 类型包钉在 petal 的具体提交**（当前 `github:siyuan-note/petal#edc4b0494a`）：插件需要的几处声明还没发到 npm。单一 pin、单一升级点，lockfile 仍可复现；petal 发布后改回 semver 即可。
+- **`siyuan` 类型包用 semver**（catalog 写 `siyuan: "1.3.0"`，包本身由 petal 仓库发布到 npm）：升级只改 catalog 一处，lockfile 仍可复现。petal 发版之前曾钉在具体提交（`github:siyuan-note/petal#<sha>`），现在已经不需要。
 - **仓内共享库用 `workspace:*`**：解析结果永远是 `link:../../libs/<name>`，不会出现两个消费方锁在不同提交。
 - **仓内构建不了的预编译产物也放 `libs/*`**：如 `libs/vconsole`。
 - **不开 `shamefully-hoist`**：开了会拍平全部插件的依赖解析，幽灵依赖被静默接受。
@@ -408,7 +410,7 @@ CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错�
 - `tabWidth: 2`、LF、双引号、分号、`trailingComma: "all"`、`objectWrap: "preserve"`。
 - YAML 不参与（`ignorePatterns` 排掉 `**/*.{yml,yaml}`）。
 - `src/i18n/` 参与格式化，包根的 `i18n/`（构建产物）排除。
-- 压缩产物与生成物排除：`libs/vconsole/dist`、`libs/vconsole/build`、`plugins/code-recognition/wasm` 与 `docs/`。格式化 wasm-bindgen 产物会让每次构建都漂移，格式化基准语料会毁掉基准。
+- 压缩产物与生成物排除：`dist/`、`package.zip`、`libs/vconsole/{dist,build}`、`plugins/code-recognition/wasm` 与 `plugins/code-recognition/docs`。格式化 wasm-bindgen 产物会让每次构建都漂移，格式化基准语料会毁掉基准。仓库根的 `docs/`（本文件所在处）**参与**格式化。
 
 **已知取舍**：oxfmt 是 Prettier 系，会把能塞进 320 的手动折行合并回一行，也会改写 Markdown 列表标记（`*` → `-`）。需要保留自己的断行时在上一行写 `// oxfmt-ignore`（`// prettier-ignore` 同样有效）。
 
@@ -511,7 +513,7 @@ GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只�
 四条语义：
 
 - **只改代码、不抬 `version` → 不发布**。版本号是唯一的发布信号。
-- **首次标签只建立基准**：在此之前没有任何 `release/*` 标签时，区间无从算起，直接跳过。所以迁移进本仓的第一批标签不会把 22 个包全量重发。
+- **首次标签只建立基准**：在此之前没有任何 `release/*` 标签时，区间无从算起，直接跳过。所以迁移进本仓的第一批标签不会把全部包重发一遍。
 - **版本必须严格变大**：变小会让集市索引回退，检测阶段直接报错。
 - **同版本已存在即失败**：目标仓库已有 `v<version>` 时整包报错，不静默覆盖（`--clobber` 会让已安装用户收不到更新）。真需要覆盖时用 `workflow_dispatch` 勾 `force`。
 - **补发漏掉的包要推进基准**：用 `workflow_dispatch` 的 `packages` 手动发过之后，本地标签的基准还停在旧位置，

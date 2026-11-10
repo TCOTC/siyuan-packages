@@ -1,55 +1,53 @@
-# siyuan-packages
+# SiYuan Packages
 
-思源笔记集市包的单一源码仓库。20 个插件、1 个主题、1 个挂件在这里统一构建，产物分发到各自的集市收录仓库——**集中开发，各自发布**。
+Jeffrey Chen 的思源笔记集市包的单一源码仓库。
 
-每个包都是独立的集市条目，版本、README、清单互不影响；把它们放在一起是为了共用一套构建工具链、一份依赖版本清单（catalog）和一条发布流水线。
+集市包共用一套构建工具链、一份依赖版本清单（catalog）和一条发布流水线，在这里统一构建，产物分发到各自的集市收录仓库。
 
 ---
 
-## 包含的包
-
 ### 插件
 
-- [code-languages](plugins/code-languages) —— 编辑代码块的语言列表：排序、添加、删除
-- [code-recognition](plugins/code-recognition) —— 用本地模型自动识别代码块的语言
-- [devtools](plugins/devtools) —— 重载窗口、打开插件相关目录、切换开发者工具（移动端使用 vConsole）
-- [exit-confirm](plugins/exit-confirm) —— 用系统快捷键退出桌面端时弹出确认框
-- [flomo-web](plugins/flomo-web) —— 在页签或停靠栏里打开 flomo
-- [fullscreen](plugins/fullscreen) —— 在文档面包屑上添加全屏按钮，可分别配置编辑器全屏与窗口全屏
-- [heatmap](plugins/heatmap) —— 用热力图与日历展示全年笔记分布
-- [highlight-search](plugins/highlight-search) —— 在当前文档中搜索并高亮结果
-- [image-squeeze](plugins/image-squeeze) —— 压缩工作空间图片并转成 WebP，自动改写引用
-- [install-package](plugins/install-package) —— 从 GitHub 链接安装任意版本的插件、主题、图标、挂件与模板
-- [move-doc](plugins/move-doc) —— 把当前文档移动到文档树的指定位置
-- [scroll-zoom](plugins/scroll-zoom) —— 按住 Ctrl 滚动滚轮或触控板缩放，调整编辑器字号
-- [select-opened-doc](plugins/select-opened-doc) —— 选中当前打开的文档并折叠其他已打开文档
-- [siyuan-plugin-openmoji-emoji](plugins/siyuan-plugin-openmoji-emoji) —— 在思源里使用 OpenMoji 表情字体
-- [siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji](plugins/siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji) —— 在思源里使用 HarmonyOS Sans 与 Twemoji 字体
-- [siyuan-ttf-LXGWWenKaiGB-and-Twemoji](plugins/siyuan-ttf-LXGWWenKaiGB-and-Twemoji) —— 在思源里使用霞鹜文楷 GB 与 Twemoji 字体
-- [snippets](plugins/snippets) —— 管理并编辑代码片段
-- [temp-edit](plugins/temp-edit) —— 从顶栏打开临时编辑页签，内容不会写入工作空间
-- [top-bar-text](plugins/top-bar-text) —— 在顶栏显示文字与倒计时
-- [Whisper-Plus](plugins/Whisper-Plus) —— Whisper 主题的配套插件，提供配色方案与功能开关
+- [code-languages](plugins/code-languages) —— 代码块语言列表的排序、新增、删除
+- [code-recognition](plugins/code-recognition) —— 使用快速的本地模型自动识别代码块语言
+- [devtools](plugins/devtools) —— 支持重载窗口、打开插件相关目录、切换开发者工具（移动端使用 vConsole）。
+- [exit-confirm](plugins/exit-confirm) —— 通过系统快捷键 Alt+F4 或 Command+Q 退出桌面端思源笔记时，弹窗确认
+- [flomo-web](plugins/flomo-web) —— 在页签或停靠栏中打开 flomo 网页。
+- [fullscreen](plugins/fullscreen) —— 在文档面包屑上添加全屏按钮，支持分别配置编辑器全屏和窗口全屏
+- [heatmap](plugins/heatmap) —— 直观展示全年笔记分布，支持热力图与日历两种形式
+- [highlight-search](plugins/highlight-search) —— 【全新重制版】在当前文档搜索，并高亮搜索结果
+- [image-squeeze](plugins/image-squeeze) —— 压缩工作空间内的图片，可转换为 WebP 并自动改写引用
+- [install-package](plugins/install-package) —— 不等集市上架，用 GitHub 链接装任意版本集市包，比官方集市更快一步。也支持从集市 PR 直接安装；涵盖插件、主题、图标、挂件、模板五类包，能集中列出本地包一键启停、批量查更新，还可查看仓库摘要、Release 信息与安装历史。
+- [move-doc](plugins/move-doc) —— 将当前打开的文档移动到文档树指定位置
+- [scroll-zoom](plugins/scroll-zoom) —— 按住 Ctrl，用鼠标滚轮或触控板捏合调整编辑器字号。
+- [select-opened-doc](plugins/select-opened-doc) —— 定位打开的文档，同时折叠其他展开的文档
+- [siyuan-plugin-openmoji-emoji](plugins/siyuan-plugin-openmoji-emoji) —— 在思源笔记中使用 OpenMoji
+- [siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji](plugins/siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji) —— 在思源笔记中使用鸿蒙黑体和 Twemoji
+- [siyuan-ttf-LXGWWenKaiGB-and-Twemoji](plugins/siyuan-ttf-LXGWWenKaiGB-and-Twemoji) —— 在思源笔记中使用霞鹜文楷和 Twemoji
+- [snippets](plugins/snippets) —— 管理与编辑代码片段最好用的插件
+- [temp-edit](plugins/temp-edit) —— 在顶栏打开一个临时编辑页签，使用 Protyle Lite 编辑器，内容不会写入工作空间。
+- [top-bar-text](plugins/top-bar-text) —— 在顶栏显示文本、倒计时
+- [Whisper-Plus](plugins/Whisper-Plus) —— 浅吟主题的配套插件，提供配色方案、功能开关。
 
 ### 主题
 
-- [Whisper](themes/Whisper) —— 主题（配色与排版）
+- [Whisper](themes/Whisper) —— 浅吟时光的絮语，让心灵于静谧中邂逅繁花盛绽的绮梦。
 
 ### 挂件
 
-- [inline-elements](widgets/inline-elements) —— 汇总文档中的行内元素
+- [inline-elements](widgets/inline-elements) —— 在文档中汇总行级元素
 
 ### 共享代码
 
-- [libs/token-vault](libs/token-vault) —— 加密 Token 存储，被 `install-package` 与 `snippets` 直接打包
-- [libs/vconsole](libs/vconsole) —— vConsole 官方构建产物，供 `devtools` 使用
-- [kit](kit) —— 构建内核 `@jeffrey-chen/siyuan-kit`
+- [kit](kit) —— 本仓库的构建内核
+- [libs/token-vault](libs/token-vault) —— 加密 Token 存储
+- [libs/vconsole](libs/vconsole) —— vConsole 官方构建产物
 
 ---
 
 ## 快速开始
 
-要求 Node.js ≥ 24、pnpm 11。
+要求 Node.js ≥ 26、pnpm 11。
 
 ```bash
 pnpm install
@@ -70,10 +68,12 @@ pnpm dev move-doc                   # 只监听一个包，并把产物目录链
 
 `--filter` 与 `pnpm dev` 的包名都**区分大小写**：包目录名与清单里的 `name` 逐字符一致，所以是 `Whisper`、`Whisper-Plus`。`pnpm dev` 也接受目录，例如 `pnpm dev themes/Whisper`。
 
-`dev` 需要仓库根的 `siyuan.config.json`（已 gitignore），指向思源工作空间的根目录（含 `data/` 的那层）：
+`dev` 需要仓库根的 `siyuan.config.json`（已 gitignore），复制模板 [`siyuan.config.example.json`](siyuan.config.example.json) 后改成自己的路径即可。它指向思源工作空间的根目录（含 `data/` 的那层）：
 
 ```json
-{ "workspace": "D:/SiYuan" }
+{
+  "workspace": "D:/路径/到/思源工作空间(data文件夹的上一层)"
+}
 ```
 
 没有这个文件时 `dev` 只构建、不链接（提示只打一次）。`build` 完全不读它：本机工作空间路径配错或换机器都不会影响打包。
@@ -87,9 +87,9 @@ pnpm dev move-doc                   # 只监听一个包，并把产物目录链
 ## 目录结构
 
 ```
-plugins/            插件（20 个），每个目录一个包
-themes/             主题（1 个）
-widgets/            挂件（1 个）
+plugins/            插件：每个目录一个包
+themes/             主题
+widgets/            挂件
 libs/               共享库：会被打进别人产物，但自己不发布
 kit/                构建内核：把源码变成 dist/<name>/ 与 dist/<name>.zip
 manifests/          清单的共用层（base.json）与三份 JSON Schema
