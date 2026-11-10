@@ -30,6 +30,11 @@ const MANIFEST_GLOBS = ["plugins/*/manifest.json", "themes/*/manifest.json", "wi
 const KIND_DIRS = ["plugins", "themes", "widgets"];
 /** 目录 → 清单里的包类型，用于发布汇总表。 */
 const KIND_BY_DIR = { plugins: "plugin", themes: "theme", widgets: "widget" };
+/**
+ * 手动指定包（workflow_dispatch 的 packages）时上一版是未知的 ——
+ * 不能与「新包」混为一谈，否则汇总表会误导。
+ */
+const MANUAL_PREVIOUS = "—（未检测）";
 const jsonMode = process.argv.includes("--json");
 
 const event = process.env.EVENT ?? "";
@@ -245,7 +250,7 @@ function main() {
       .filter(Boolean)
       .map(findPackageDir);
     finish(
-      dirs.map((dir) => ({ ...resolvePackage(dir), previous: null })),
+      dirs.map((dir) => ({ ...resolvePackage(dir), previous: MANUAL_PREVIOUS })),
       [`手动指定 ${dirs.length} 个包，未做变更检测。`],
     );
     return;
