@@ -1,35 +1,41 @@
 name: Publish
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 发布链路（原因见根 README 第 8 节）
+# 发布链路（规则见 docs/rules.md 第 10 节）
 #
-# 主入口是按 tag 发布，tag 约定 `<包目录名>/v<version>`：
+# 一个仓库级标签可以发布多个包，发哪些由清单版本变化决定。标签用根目录命令生成：
 #
-#   git tag move-doc/v1.0.3 && git push origin move-doc/v1.0.3
+#   pnpm release                        # 形如 release/20261110-153012（时间戳，同一天可发多批）
 #
-# 手动触发保留下来做 dry-run：只构建、校验 zip 结构，不创建 release。
+#   ① 取「上一个可达的 release/* 标签 → 本标签」区间
+#   ② 挑出 manifest.json 有变化、且 version 真的变大的包（新包也算）
+#   ③ 首次打标签时前面没有更早的标签 → 只建立基准，不发布
+#   ④ 逐个构建并推到各自的收录仓库 TCOTC/<name>，tag 用 v<version>
+#
+# 所以「只改代码、不抬 version」不会发布；要补发漏掉的包用 workflow_dispatch 的 packages。
 #
 # 三个必须遵守的点：
 #   1. 跨仓库写必须用 PAT，GITHUB_TOKEN 只能写本仓库
 #   2. 必须建「正式」release，prerelease 不会进集市索引
-#   3. 目标仓库原来的 release.yml 要先删掉，否则创建 tag 会触发它重复构建
+#   3. 目标收录仓库里不能残留旧的发布工作流，否则创建 tag 会触发它重复构建
 # ─────────────────────────────────────────────────────────────────────────────
 on:
   push:
-    tags: ["*/v*"]
+    tags: ["release/*"]
   workflow_dispatch:
     inputs:
-      package:
-        description: "包目录名，例如 move-doc"
-        required: true
-      version:
-        description: "版本号，不带 v，必须与清单一致"
-        required: true
-      target:
-        description: "目标收录仓库 owner/repo；留空则从清单 url 推导"
+      base:
+        description: "对比基准；留空则自动取最近一个可达的 release/* 标签"
         required: false
+      packages:
+        description: "只发这些包（包目录名，逗号分隔）；留空则按清单版本变化自动检测"
+        required: false
+      force:
+        description: "允许覆盖目标仓库已存在的同版本 release"
+        type: boolean
+        default: false
       dry_run:
-        description: "只构建，不创建 release"
+        description: "只构建与校验，不创建 release"
         type: boolean
         default: true
 
@@ -41,6 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 要用「上一个标签 → 本标签」做 diff，浅克隆拿不到历史与别的标签
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: pnpm/action-setup@v4
 
@@ -51,137 +61,163 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: 解析包名、版本与目标仓库
-        id: meta
+      - name: 检测要发布的包
+        id: detect
         env:
           EVENT: ${{ github.event_name }}
           REF_NAME: ${{ github.ref_name }}
-          INPUT_PACKAGE: ${{ inputs.package }}
-          INPUT_VERSION: ${{ inputs.version }}
-          INPUT_TARGET: ${{ inputs.target }}
-          INPUT_DRY_RUN: ${{ inputs.dry_run }}
-        run: |
-          set -euo pipefail
+          INPUT_BASE: ${{ inputs.base }}
+          INPUT_PACKAGES: ${{ inputs.packages }}
+        run: node .github/scripts/detect-packages.mjs
 
-          # tag 形如 `move-doc/v1.0.3`：`${REF%%/*}` 取包目录名，`${REF#*/v}` 取版本
-          if [ "$EVENT" = "workflow_dispatch" ]; then
-            PKG="$INPUT_PACKAGE"
-            WANT_VERSION="$INPUT_VERSION"
-            TARGET="$INPUT_TARGET"
-            DRY_RUN="$INPUT_DRY_RUN"
-          else
-            PKG="${REF_NAME%%/*}"
-            WANT_VERSION="${REF_NAME#*/v}"
-            TARGET=""
-            DRY_RUN="false"
-          fi
-
-          if [ -z "$PKG" ] || [ -z "$WANT_VERSION" ] || [ "$WANT_VERSION" = "$REF_NAME" ]; then
-            echo "::error::tag 必须形如 <包目录名>/v<version>，实际是 $REF_NAME"
-            exit 1
-          fi
-
-          DIR=""
-          for kind in plugins themes widgets; do
-            if [ -d "$kind/$PKG" ]; then DIR="$kind/$PKG"; break; fi
-          done
-          if [ -z "$DIR" ]; then
-            echo "::error::找不到包目录 {plugins,themes,widgets}/$PKG"
-            exit 1
-          fi
-
-          # 包内清单是覆盖层（没有 name / url），必须问 kit 要三层合成后的那一份，
-          # 否则这里读到的 name 为空、url 缺失，发布目标会算错。
-          if [ ! -f "$DIR/manifest.json" ]; then
-            echo "::error::$DIR 下没有 manifest.json"
-            exit 1
-          fi
-
-          read -r NAME VERSION MANIFEST_URL <<< "$(node kit/src/cli.ts manifest "$DIR" | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>{const m=JSON.parse(s);console.log([m.name,m.version,m.url??""].join(" "))})')"
-
-          # 集市要求清单里的 version 不带 v 前缀
-          case "$VERSION" in v*|V*) echo "::error::清单 version 不能带 v 前缀: $VERSION"; exit 1;; esac
-
-          # tag / 手动输入与清单必须逐字符一致：typo 会安静地发一个内容不对的版本
-          if [ "$VERSION" != "$WANT_VERSION" ]; then
-            echo "::error::版本不一致：tag 是 $WANT_VERSION，$DIR 合成后的清单是 $VERSION"
-            exit 1
-          fi
-
-          # 目录名必须等于合成清单的 name（kit 从目录名推导，这里防一手推导逻辑回归）
-          if [ "$(basename "$DIR")" != "$NAME" ]; then
-            echo "::error::包目录名 $(basename "$DIR") 与合成清单 name $NAME 不一致"
-            exit 1
-          fi
-
-          # 目标收录仓库：手动输入优先，否则从清单 url 推导，最后回退 TCOTC/<name>
-          if [ -z "$TARGET" ] && [ -n "$MANIFEST_URL" ]; then
-            TARGET=$(node -e 'const u = new URL(process.argv[1]); console.log(u.pathname.replace(/^\/|\/$/g, ""))' "$MANIFEST_URL")
-          fi
-          if [ -z "$TARGET" ]; then
-            TARGET="TCOTC/$NAME"
-          fi
-
-          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
-          echo "name=$NAME" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
-          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
-
-          echo "包目录 $DIR / 名称 $NAME / 版本 $VERSION / 目标 $TARGET / dry_run=$DRY_RUN"
-
-      - name: 构建
-        run: pnpm --dir "${{ steps.meta.outputs.dir }}" build
-
-      - name: 产物与清单一致性检查
-        run: |
-          set -euo pipefail
-          NAME="${{ steps.meta.outputs.name }}"
-          ZIP="dist/$NAME.zip"
-          test -f "$ZIP" || { echo "::error::没有产出 $ZIP"; exit 1; }
-
-          # 集市要求清单在 zip 根目录（不能多一层包装目录），且上传的资产名必须恰好是 package.zip
-          unzip -Z1 "$ZIP" > /tmp/zip-entries.txt
-          if ! awk '/^(plugin|theme|widget)\.json$/{found=1} END{exit !found}' /tmp/zip-entries.txt; then
-            echo "::error::zip 根目录缺少清单文件"
-            cat /tmp/zip-entries.txt
-            exit 1
-          fi
-          echo "zip 根目录清单检查通过"
-
-      - name: 创建 release
-        if: ${{ !inputs.dry_run }}
+      - name: 构建并发布
+        if: steps.detect.outputs.count != '0'
         env:
           # fine-grained PAT，contents: write，覆盖全部收录仓库
           GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+          INPUT_FORCE: ${{ inputs.force }}
+          PACKAGES: ${{ steps.detect.outputs.list }}
         run: |
-          set -euo pipefail
-          VERSION="${{ steps.meta.outputs.version }}"
-          TAG="v$VERSION"
-          TARGET="${{ inputs.target }}"
-          NAME="${{ steps.meta.outputs.name }}"
+          # 不用 set -e：一个包失败不能挡住其它包，最后统一汇总
+          set -uo pipefail
 
-          # 本地叫 <name>.zip，但集市按资产名找 package.zip，所以上传前改名
-          cp "dist/$NAME.zip" package.zip
-
-          # 幂等：已存在就只补传资产
-          if gh release view "$TAG" --repo "$TARGET" > /dev/null 2>&1; then
-            gh release upload "$TAG" package.zip --repo "$TARGET" --clobber
-          else
-            gh release create "$TAG" package.zip \
-              --repo "$TARGET" \
-              --title "$TAG" \
-              --generate-notes
-            # 注意：不要加 --prerelease
+          DRY_RUN="false"
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "${INPUT_DRY_RUN:-}" = "true" ]; then
+            DRY_RUN="true"
+          fi
+          FORCE="false"
+          if [ "$EVENT" = "workflow_dispatch" ] && [ "${INPUT_FORCE:-}" = "true" ]; then
+            FORCE="true"
           fi
 
-      # TODO(P4)：可选，把源码镜像回收录仓库，保住 GitHub 上的可浏览性。
-      # 需要 fetch-depth: 0 与 subtree 拆分；与 release 的先后顺序要定。
-      #
-      # - name: 镜像源码
-      #   if: ${{ !inputs.dry_run }}
-      #   run: |
-      #     git remote add mirror "https://x-access-token:${{ secrets.PUBLISH_TOKEN }}@github.com/${{ inputs.target }}.git"
-      #     git subtree push --prefix "${{ steps.meta.outputs.dir }}" mirror main
+          if [ "$DRY_RUN" != "true" ] && [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error::缺少 PUBLISH_TOKEN secret（fine-grained PAT，contents: write）"
+            exit 1
+          fi
 
+          published=0
+          failed=()
 
+          # 用数组而不是 while read：构建工具偶尔读 stdin，会把还没读的清单吞掉（漏包很难发现）
+          mapfile -t LINES <<< "$PACKAGES"
+
+          for line in "${LINES[@]}"; do
+            IFS=$'\t' read -r DIR NAME VERSION TARGET <<< "$line"
+            if [ -z "${DIR:-}" ]; then
+              continue
+            fi
+            echo "::group::${NAME} ${VERSION} → ${TARGET}"
+
+            if ! pnpm --dir "$DIR" build; then
+              echo "::error::${NAME} 构建失败"
+              failed+=("${NAME}: 构建失败")
+              echo "::endgroup::"
+              continue
+            fi
+
+            ZIP="dist/${NAME}.zip"
+            if [ ! -f "$ZIP" ]; then
+              echo "::error::没有产出 $ZIP"
+              failed+=("${NAME}: 没有产出 zip")
+              echo "::endgroup::"
+              continue
+            fi
+
+            # 集市要求清单在 zip 根目录（不能多一层包装目录）。
+            # 用 case 匹配而不是 `grep -m1`：grep 命中后提前退出会让上游吃 SIGPIPE，
+            # 在 pipefail 下整条管道会被判成失败（同一类坑见下面的 ASSETS 检查）。
+            ENTRIES=$(unzip -Z1 "$ZIP")
+            ARTIFACT=""
+            while IFS= read -r entry; do
+              case "$entry" in
+                plugin.json | theme.json | widget.json)
+                  ARTIFACT="$entry"
+                  break
+                  ;;
+              esac
+            done <<< "$ENTRIES"
+            if [ -z "$ARTIFACT" ]; then
+              echo "::error::zip 根目录缺少清单文件"
+              printf '%s\n' "$ENTRIES"
+              failed+=("${NAME}: zip 根目录缺清单")
+              echo "::endgroup::"
+              continue
+            fi
+
+            # 检测阶段读的是合成清单，这里核对产物里那一份，防「检测与构建不是同一棵树」
+            BUILT_VERSION=$(node -e 'const fs=require("fs");const m=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));process.stdout.write(String(m.version))' "dist/${NAME}/${ARTIFACT}")
+            if [ "$BUILT_VERSION" != "$VERSION" ]; then
+              echo "::error::产物清单 version 是 ${BUILT_VERSION}，与检测到的 ${VERSION} 不一致"
+              failed+=("${NAME}: 版本不一致")
+              echo "::endgroup::"
+              continue
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "dry-run：跳过创建 release（将发布 v${VERSION} 到 ${TARGET}）"
+              published=$((published + 1))
+              echo "::endgroup::"
+              continue
+            fi
+
+            TAG="v${VERSION}"
+            cp "$ZIP" package.zip
+
+            if gh release view "$TAG" --repo "$TARGET" > /dev/null 2>&1; then
+              # 集市要求 version 单调递增；同版本覆盖会让已安装用户收不到更新
+              if [ "$FORCE" != "true" ]; then
+                echo "::error::${TARGET} 已存在 ${TAG}，请先抬清单 version 再发（或手动指定 force）"
+                failed+=("${NAME}: ${TAG} 已存在")
+                echo "::endgroup::"
+                continue
+              fi
+              echo "${TARGET} 已有 ${TAG}，force 覆盖资产"
+              if ! gh release upload "$TAG" package.zip --repo "$TARGET" --clobber; then
+                echo "::error::${NAME} 覆盖资产失败"
+                failed+=("${NAME}: 覆盖资产失败")
+                echo "::endgroup::"
+                continue
+              fi
+            elif ! gh release create "$TAG" package.zip --repo "$TARGET" --title "$TAG" --generate-notes; then
+              # 注意：不要加 --prerelease，集市只读 /releases/latest
+              echo "::error::${NAME} 创建 release 失败"
+              failed+=("${NAME}: 创建 release 失败")
+              echo "::endgroup::"
+              continue
+            fi
+
+            # 集市按资产名找 package.zip，名字错了等于没发。
+            # 先落到变量再 grep：`gh ... | grep -qx` 的提前退出会让 gh 吃 SIGPIPE，
+            # 在 pipefail 下整条管道会被判成失败。
+            ASSETS=$(gh release view "$TAG" --repo "$TARGET" --json assets --jq '.assets[].name')
+            if ! grep -qx 'package.zip' <<< "$ASSETS"; then
+              echo "::error::${TARGET} 的 ${TAG} 里没有 package.zip 资产"
+              failed+=("${NAME}: 缺 package.zip 资产")
+              echo "::endgroup::"
+              continue
+            fi
+
+            echo "已发布 ${TARGET}@${TAG}"
+            published=$((published + 1))
+            echo "::endgroup::"
+          done
+
+          echo "成功 ${published} 个，失败 ${#failed[@]} 个"
+          if [ ${#failed[@]} -gt 0 ]; then
+            # $GITHUB_STEP_SUMMARY 在本地跑时不存在，`set -u` 下直接展开会中止脚本
+            if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+              {
+                echo "## 发布失败的包"
+                echo
+                printf -- '- %s\n' "${failed[@]}"
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+            printf '%s\n' "${failed[@]}"
+            exit 1
+          fi
+
+      - name: 汇总
+        if: steps.detect.outputs.count == '0'
+        run: echo "本次没有需要发布的包，详见上方检测步骤的输出"

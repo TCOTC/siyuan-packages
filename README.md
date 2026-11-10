@@ -126,13 +126,17 @@ pnpm create:plugin my-plugin \
 
 ## 发布
 
-改完清单里的 `version` 后打 tag：
+抬完要发的包的清单 `version` 后，提交推送，然后：
 
 ```bash
-git tag move-doc/v1.0.3 && git push origin move-doc/v1.0.3
+pnpm release
 ```
 
-`.github/workflows/publish.yml` 会校验 tag 与清单、只构建这一个包、把 `dist/<name>.zip` 改名为 `package.zip`，在对应的集市收录仓库创建正式 release。集市下一轮抓取后即可见。细则见 [`docs/rules.md`](docs/rules.md) 第 10 节。
+这一个命令就够了：它会先检测区间内哪些包的版本变大了，打时间戳标签（如 `release/20261110-153012`），再推送到 origin。同一天可以发多批；工作区有未提交改动、或区间内没有版本变化时直接拒绝。
+
+`.github/workflows/publish.yml` 随后取「上一个标签 → 本标签」区间里清单版本变大的包，逐个构建、把 `dist/<name>.zip` 改名为 `package.zip`，在各自的集市收录仓库创建正式 release。集市下一轮抓取后即可见。
+
+两个要点：**只改代码没抬 `version` 不会发布**；**第一次打标签只建立基准**，不发布任何包。细则见 [`docs/rules.md`](docs/rules.md) 第 10 节。
 
 ---
 

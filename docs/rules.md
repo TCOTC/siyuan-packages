@@ -408,35 +408,74 @@ CI 顺序：`install --frozen-lockfile` → `check` → `format:check` → `lint
 
 ## 10. 发布链路
 
+发布是「**仓库级标签 + 版本变化检测**」：一个标签可以发布多个包，发哪些由清单版本决定。
+
 ```
-打 tag `move-doc/v1.0.3`
+打 tag `release/20261110-153012`（时间戳，用 pnpm release 生成）
         │
-        ├─ 从 github.ref_name 切出 package=move-doc、version=1.0.3
+        ├─ 取「上一个可达的 release/* 标签 → 本标签」区间（git diff）
+        │    └─ 首次打标签（前面没有更早的标签）→ 只建立基准，不发布任何包
+        ├─ 挑出 manifest.json 被新增或修改的包
+        ├─ 逐个跳过：基准与现在 version 相同（只改了文案）／版本变小（报错）
         ├─ siyuan-kit manifest <目录> 取合成清单（包里那份没有 name / url）
-        ├─ 校验：tag 格式 / 包目录存在 / 清单 version == tag / 目录名 == 清单 name
-        ├─ 从清单 url 推导目标仓库（回退 TCOTC/<name>）
-        ├─ 只构建这一个包（不是全量）→ dist/move-doc.zip
-        ├─ cp dist/move-doc.zip package.zip     ← 集市按资产名找，必须改名
-        └─ gh release create v1.0.3 --repo TCOTC/move-doc package.zip
+        ├─ 从清单 url 推导目标仓库 TCOTC/<name>，校验目录名 == 清单 name
+        ├─ 只构建这些包（不是全量）→ dist/<name>.zip
+        ├─ 校验 zip 根目录直接是 plugin.json / theme.json / widget.json
+        ├─ 校验产物清单的 version == 检测到的版本（防检测与构建不是同一棵树）
+        ├─ cp dist/<name>.zip package.zip     ← 集市按资产名找，必须改名
+        └─ gh release create v<version> --repo TCOTC/<name> package.zip
                └─ 必须是正式 release，不能是 prerelease
                 ↓
         bazaar Stage 下一轮抓到新 release → 集市可见
 ```
 
-发一个版本就两句：
+发一个版本：
 
 ```bash
-# 改完清单里的 version 后
-git tag move-doc/v1.0.3 && git push origin move-doc/v1.0.3
+# 1. 抬高要发的包的清单 version
+# 2. 提交并推送
+# 3. 发版（检测 → 打标签 → 推送，没有待发包就拒绝）
+pnpm release
 ```
 
-`workflow_dispatch` 保留做 dry-run（`dry_run` 默认 true）：只构建、校验 zip 根目录有清单，不创建 release。
+`pnpm release` 是 `.github/scripts/release.mjs`，默认动作就是「检测 + 打标签 + 推送」，不需要任何参数。
+
+| 开关            | 作用                                                       |
+| --------------- | ---------------------------------------------------------- |
+| 无              | 检测 → 打标签 → `git push origin <标签>`，Publish 立刻开始 |
+| `--dry-run`     | 只检测并打印标签名与待发清单，不建标签、不推送             |
+| `--no-push`     | 只打标签，稍后自己 `git push origin <标签>`                |
+| `--allow-empty` | 区间内没有版本变化时也打标签（只推进基准，见下文「补发」） |
+
+**标签名是时间戳 `release/<YYYYMMDD>-<HHmmss>`**，因为同一天可能发多个批次。唯一性靠时间戳保证，
+「上一个标签」靠 git 的 `creatordate` 排序取，**与标签名的字典序无关** —— 不要试图从名字里解析顺序。
+格式定义在 `.github/scripts/tag.mjs`，检测与打标签两个脚本共用它，不存在第二份。
+
+打标签前会自动做两件检查：工作区已跟踪文件必须干净（标签指向 commit，未提交改动不会进发布包）；
+区间内没有待发的包就拒绝（除非 `--allow-empty`）。
+
+检测逻辑在 `.github/scripts/detect-packages.mjs`，也能单独跑：
+`node .github/scripts/detect-packages.mjs`（加 `--json` 输出机器可读结果），不上传任何东西。
+
+四条语义：
+
+- **只改代码、不抬 `version` → 不发布**。版本号是唯一的发布信号。
+- **首次标签只建立基准**：在此之前没有任何 `release/*` 标签时，区间无从算起，直接跳过。所以迁移进本仓的第一批标签不会把 22 个包全量重发。
+- **版本必须严格变大**：变小会让集市索引回退，检测阶段直接报错。
+- **同版本已存在即失败**：目标仓库已有 `v<version>` 时整包报错，不静默覆盖（`--clobber` 会让已安装用户收不到更新）。真需要覆盖时用 `workflow_dispatch` 勾 `force`。
+- **补发漏掉的包要推进基准**：用 `workflow_dispatch` 的 `packages` 手动发过之后，本地标签的基准还停在旧位置，
+  下次 `pnpm release` 会重复检测到同一个包（然后撞「同版本已存在」）。此时用 `pnpm release --allow-empty`
+  建一个只推进基准的标签。
+
+`workflow_dispatch` 四个输入：`base`（对比基准，留空自动取最近的标签）、`packages`（只发这些包，逗号分隔，**跳过变更检测**，用于补发漏掉的包）、`force`、`dry_run`（默认 true，只构建与校验，不创建 release）。
 
 三个容易做错的地方：
 
 1. **用 PAT，不能用 `GITHUB_TOKEN`**：后者只能写当前仓库，跨 20 多个收录仓库需要 fine-grained PAT（`contents: write`），存在 `PUBLISH_TOKEN`。
 2. **目标仓库不能有自己的发布工作流**：创建 release 会在目标仓库建 tag，若那里还有 `on: push: tags` 的旧工作流，同一版本会被构建两次、互相覆盖资产。
 3. **不要用「推 tag 让目标仓库自己构建」**：那等于保留 20 多份 lockfile 和 20 多份工具链。
+
+checkout 必须 `fetch-depth: 0` 且取全部标签：浅克隆既拿不到上一个标签，也做不了 `git diff`。
 
 ---
 

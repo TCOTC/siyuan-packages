@@ -10,6 +10,7 @@
   },
   "scripts": {
     "create:plugin": "siyuan-kit create",
+    "release": "node .github/scripts/release.mjs",
     "lint": "oxlint",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
