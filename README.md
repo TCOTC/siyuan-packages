@@ -54,17 +54,18 @@
 ```bash
 pnpm install
 pnpm --filter move-doc build        # 只构建一个包
-pnpm --filter move-doc dev          # 监听构建，并同步到思源工作空间
+pnpm --filter move-doc dev          # 监听构建，并把产物目录链接进思源工作空间
 ```
 
-| 命令                              | 作用                                             |
-| --------------------------------- | ------------------------------------------------ |
-| `pnpm build`                      | 构建全部包 → `dist/<name>/` 与 `dist/<name>.zip` |
-| `pnpm --filter <name> build\|dev` | 只构建 / 监听一个包                              |
-| `pnpm check`                      | 校验目录、清单、脚本、locale 等契约              |
-| `pnpm typecheck` / `pnpm test`    | 全仓 `tsc -p .` / vitest                         |
-| `pnpm lint` / `pnpm format`       | oxlint / oxfmt                                   |
-| `pnpm create:plugin <name>`       | 基于模板新建插件                                 |
+| 命令                              | 作用                                                           |
+| --------------------------------- | -------------------------------------------------------------- |
+| `pnpm build`                      | 构建全部包 → `dist/<name>/` 与 `dist/<name>.zip`               |
+| `pnpm dev`                        | 同时监听全部包（每个包一个 vite 实例，只适合真要多包联动时用） |
+| `pnpm --filter <name> build\|dev` | 只构建 / 监听一个包                                            |
+| `pnpm check`                      | 校验目录、清单、脚本、locale 等契约                            |
+| `pnpm typecheck` / `pnpm test`    | 全仓 `tsc -p .` / vitest                                       |
+| `pnpm lint` / `pnpm format`       | oxlint / oxfmt                                                 |
+| `pnpm create:plugin <name>`       | 基于模板新建插件                                               |
 
 `--filter` **区分大小写**：包目录名与清单里的 `name` 逐字符一致，所以是 `--filter Whisper`、`--filter Whisper-Plus`。
 
@@ -74,7 +75,7 @@ pnpm --filter move-doc dev          # 监听构建，并同步到思源工作空
 { "workspace": "D:/SiYuan" }
 ```
 
-没有这个文件时 `dev` 只构建、不同步。
+没有这个文件时 `dev` 只构建、不链接（提示只打一次）。`build` 完全不读它：本机工作空间路径配错或换机器都不会影响打包。
 
 ---
 

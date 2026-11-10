@@ -11,5 +11,5 @@ export { ALLOWED_BUILD_CONFIG, checkWorkspace } from "./check.ts";
 export type { CheckIssue, CheckResult } from "./check.ts";
 
 export { copyAssets, copyExtras, zipDir } from "./pack.ts";
-export { CONFIG_FILE, loadWorkspaceConfig, mirrorDirectory, syncToWorkspace, workspaceTarget } from "./workspace.ts";
-export type { WorkspaceConfig } from "./workspace.ts";
+export { CONFIG_FILE, linkToWorkspace, loadWorkspaceConfig, workspaceTarget } from "./workspace.ts";
+export type { LinkResult, WorkspaceConfig } from "./workspace.ts";

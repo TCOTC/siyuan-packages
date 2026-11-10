@@ -8,7 +8,7 @@
 
 ```bash
 pnpm install                   # 仓库根执行，首次或依赖变更后
-pnpm --filter {{name}} dev     # 监听构建，并同步进思源工作空间
+pnpm --filter {{name}} dev     # 监听构建，并把产物目录链接进思源工作空间
 pnpm --filter {{name}} build   # 产物：dist/{{name}}/ 与 dist/{{name}}.zip
 pnpm --filter {{name}} typecheck
 ```

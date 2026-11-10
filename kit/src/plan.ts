@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { InlineConfig, Plugin } from "vite";
+import type { InlineConfig } from "vite";
 import type { BuildOptions } from "./define.ts";
 import { pluginSteps } from "./presets/plugin.ts";
 import { themeSteps } from "./presets/theme.ts";
@@ -25,10 +25,7 @@ export interface Plan {
   zip: boolean;
 }
 
-/**
- * @param onBundle 每次产物落盘后的回调，参数是产物目录（dev 模式下用来同步工作空间）。
- */
-export function plan(pkg: ResolvedPackage, options: BuildOptions, dev: boolean, onBundle?: (outDir: string) => void): Plan {
+export function plan(pkg: ResolvedPackage, options: BuildOptions, dev: boolean): Plan {
   const repoRoot = findRepoRoot(pkg.root);
   const outDir = join(repoRoot, "dist", pkg.name);
   const zipPath = join(repoRoot, "dist", `${pkg.name}.zip`);
@@ -47,22 +44,5 @@ export function plan(pkg: ResolvedPackage, options: BuildOptions, dev: boolean, 
       break;
   }
 
-  if (onBundle) {
-    for (const step of steps) {
-      if (step.runner === "vite") {
-        step.config.plugins = [...(step.config.plugins ?? []), bundleHook(() => onBundle(outDir))];
-      }
-    }
-  }
-
   return { pkg, repoRoot, dev, outDir, zipPath, steps, zip };
-}
-
-function bundleHook(onBundle: () => void): Plugin {
-  return {
-    name: "siyuan-workspace-sync",
-    closeBundle() {
-      onBundle();
-    },
-  };
 }

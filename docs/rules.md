@@ -151,9 +151,16 @@ plugins/move-doc/           源码  {manifest.json, README*.md, icon.png, previe
 - 入口 import 了样式但编译结果为空时，build 不产出 `index.css`，dev 补一个空文件。
 - dev 与 build 只差两处：dev 不压缩 + inline sourcemap，build 压缩 + 无 sourcemap。`base` / `external` / CSS 命名两边一致，否则会「本地能跑、装了包不行」。
 
-### 3.3 dev 同步
+### 3.3 dev 链接
 
-产物落盘后 `dist/<name>/` 会被镜像进 `<工作空间>/data/<类型>/<name>/`：新增复制、变化覆盖、产物里没有的删除。
+`siyuan-kit dev` 在工作空间里为产物目录建一个**目录链接**：
+
+```
+<工作空间>/data/<类型>/<name>  →  <仓库>/dist/<name>/
+```
+
+链接建一次就够，构建写的就是链接指向的那个目录，所以不存在「漏同步」：改完源码刷新思源就能看到新产物。
+Windows 用**目录联接**（junction），不需要开发者模式或管理员权限；其它平台用符号链接。主题（sass）与插件/挂件一样适用。
 
 需要仓库根的 `siyuan.config.json`（gitignore，模板见 `siyuan.config.example.json`）：
 
@@ -161,9 +168,17 @@ plugins/move-doc/           源码  {manifest.json, README*.md, icon.png, previe
 { "workspace": "D:/SiYuan" }
 ```
 
-指向工作空间根目录（含 `data/` 的那一层）。缺文件时只构建不同步；路径不存在、填成 `data` 本身、目录下没有 `data/` 各有报错。
+指向工作空间根目录（含 `data/` 的那一层）。**只有 `dev` 读这份配置**：缺文件时只构建不链接（同一批启动的进程里只提示一次）；路径不存在、填成 `data` 本身、目录下没有 `data/` 各有报错。`build` / `check` 不读它，本机路径失效也不会让打包失败。
 
-同步前会校验目标目录的清单与本包 `name` 一致，否则拒绝写入——镜像会删多余文件，配错就会清掉别人的插件目录。也不要把源码 checkout 当目标。
+建链接时会校验已有目标：
+
+- 已经是链到本包 `dist/<name>` 的链接 → 直接复用。
+- 是**真实目录**（例如从集市装过的同一个包）→ 校验目录里的清单 `name` 与本包一致后删除，改成链接；不一致则拒绝，不会清掉别人的目录。
+- 是**指向别处的链接** → 拒绝，不擅自删除。
+
+链接是持久的：停掉 dev 之后它仍指向 `dist/<name>/`。要让思源恢复集市安装的版本，删掉这条链接（或整个 `dist/` 后重装）即可。
+
+根目录的 `pnpm dev` 是 `pnpm -r --parallel --if-present dev`，会同时给全部包各起一个监听实例并各建一条链接；日常仍建议 `pnpm --filter <name> dev`，只开当前在改的那个包。
 
 ---
 
