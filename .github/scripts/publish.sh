@@ -189,9 +189,9 @@ fi
 # $GITHUB_STEP_SUMMARY 在本地跑时不存在，`set -u` 下直接展开会中止脚本
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   printf '%s\n' "$summary" >> "$GITHUB_STEP_SUMMARY"
-else
-  printf '%s\n' "$summary"
 fi
+# 同一份也打到日志：summary 页面只有打开运行详情才看得到，排查时更需要日志里有
+printf '%s\n' "$summary"
 
 if [ ${#failed[@]} -gt 0 ]; then
   printf '%s\n' "${failed[@]}"
