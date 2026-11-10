@@ -575,12 +575,16 @@ GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只�
 ```text
 ## 更新内容
 
-- <基准 ref → HEAD 区间里本包目录的提交>（本包目录没有直接提交时退一步列 kit / libs 的提交）
+- <提交标题>（[<短 sha>](https://github.com/<本仓>/commit/<完整 sha>)）
+- …（基准 ref → HEAD 区间里本包目录的提交；本包目录没有直接提交时退一步列 kit / libs 的提交）
 
 **Full Changelog**: https://github.com/<本仓>/compare/<基准 sha>...<HEAD sha>
 
 源码：https://github.com/<本仓>/tree/<HEAD sha>/<包目录>
 ```
+
+提交列表里的哈希必须带完整链接（显示短 sha，链接用完整 sha）：只写裸哈希时读者没法一键跳到那次改动，
+而收录仓库里又没有这些提交。
 
 `Full Changelog` 指向本仓的同区间对比（含其他包的改动——这是本仓唯一的「区间」概念，
 本包的精确改动由上面的提交列表给出）。`force` 重发时会用 `gh release edit` 把正文一起换掉，

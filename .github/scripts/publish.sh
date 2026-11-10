@@ -142,12 +142,20 @@ for line in "${LINES[@]}"; do
   notes_file="${asset_dir}/notes.md"
   base_sha=""
   head_sha=$(git rev-parse HEAD)
+  # 括号里显示短哈希，但要链到本仓的完整提交页 —— 正文里只写裸哈希，读者没法一键看到改动。
+  # %h 只用于显示，链接用 %H（缩写长度会随仓库规模变化，不保证唯一）。
+  if [ -n "$source_repo" ]; then
+    commit_format="- %s（[%h](https://github.com/${source_repo}/commit/%H)）"
+  else
+    commit_format="- %s（%h）"
+  fi
+  commits=""
   if [ -n "$base" ] && base_sha=$(git rev-parse --verify "${base}^{commit}" 2>/dev/null); then
     # `-n 30` 而不是 `| head -30`：head 提前退出会让 git 吃 SIGPIPE，在 pipefail 下整条命令判失败
-    commits=$(git log -n 30 --no-merges --pretty='- %s（%h）' "${base_sha}..${head_sha}" -- "$dir")
+    commits=$(git log -n 30 --no-merges --pretty="$commit_format" "${base_sha}..${head_sha}" -- "$dir")
     if [ -z "$commits" ]; then
       # 本包目录没有直接提交（改动来自 kit / libs 这类共享代码），退一步列共享部分的提交
-      commits=$(git log -n 30 --no-merges --pretty='- %s（%h）' "${base_sha}..${head_sha}" -- kit libs)
+      commits=$(git log -n 30 --no-merges --pretty="$commit_format" "${base_sha}..${head_sha}" -- kit libs)
     fi
   fi
   note_body=""
