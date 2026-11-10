@@ -1,5 +1,5 @@
 import { existsSync, globSync, readFileSync, readdirSync } from "node:fs";
-import { basename, join } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 import { BASE_FORBIDDEN_FIELDS, BASE_MANIFEST_FILE, BASE_SECTION_KEYS, DERIVED_FIELDS, IMAGE_EXTENSIONS, loadBaseManifest, README_FILE_PATTERN, resolvePackage, SOURCE_MANIFEST_FILE, THIRD_PARTY_NOTICES, type ResolvedPackage } from "./resolve.ts";
 
 /**
@@ -155,6 +155,7 @@ function checkPackage(root: string, issues: CheckIssue[]): void {
   checkEntry(pkg, push);
   checkAmbientDeclarations(root, push);
   checkFileNaming(root, push);
+  checkNoNodeApiInSource(root, push);
 }
 
 /** 所有包必须使用同一套脚本入口。 */
@@ -546,4 +547,141 @@ function checkEntry(pkg: ResolvedPackage, push: (message: string) => void): void
   if (!existsSync(join(pkg.root, entry))) {
     push(`缺少约定入口 ${entry}`);
   }
+}
+
+/**
+ * Node 内置模块。产物跑在思源的内核与浏览器前端里，浏览器桌面端既没有 `process`
+ * 也没有 `Buffer`，用到就是装上去之后才炸的 `ReferenceError`。
+ *
+ * 为什么必须在这里拦：`tsconfig.base.json` 给每个包注入了 `types: ["node"]`
+ * （测试与构建脚本要用 node:assert / node:url），所以 `process.env` 这类代码
+ * `tsc` 是放行的。类型系统这条路走不通，只能在契约门禁里补。
+ */
+const NODE_BUILTIN_MODULES = new Set([
+  "assert",
+  "async_hooks",
+  "buffer",
+  "child_process",
+  "cluster",
+  "console",
+  "constants",
+  "crypto",
+  "dgram",
+  "dns",
+  "events",
+  "fs",
+  "fs/promises",
+  "http",
+  "http2",
+  "https",
+  "module",
+  "net",
+  "os",
+  "path",
+  "path/posix",
+  "path/win32",
+  "perf_hooks",
+  "process",
+  "punycode",
+  "querystring",
+  "readline",
+  "repl",
+  "stream",
+  "string_decoder",
+  "timers",
+  "timers/promises",
+  "tls",
+  "tty",
+  "url",
+  "util",
+  "v8",
+  "vm",
+  "worker_threads",
+  "zlib",
+]);
+
+/** `from "x"` / `require("x")` / `import("x")` 里的模块名。只认「裸名」，相对路径不会命中。 */
+const SPECIFIER_PATTERN = /(?:\bfrom\s+|\brequire\s*\(\s*|\bimport\s*\(\s*)["']([^"']+)["']/g;
+
+/**
+ * 判断一个模块名是不是 Node 内置。
+ *
+ * 除了精确匹配，还看**首段**：内置模块有 `fs/promises`、`assert/strict`、`util/types`、
+ * `timers/promises` 这类子路径，漏掉就会放过一半写法。首段撞上内置名的 npm 包极少，
+ * 而且真撞上（`events` / `buffer` 这类垫片）在插件里用同样不合适。
+ */
+function isNodeBuiltin(specifier: string): boolean {
+  if (specifier.startsWith("node:")) {
+    return true;
+  }
+  return NODE_BUILTIN_MODULES.has(specifier.split("/")[0] ?? "");
+}
+
+/**
+ * 只在 Node 里存在的全局量。刻意逐个列出成员名，不用裸 `process\.`：
+ * 后者会命中注释里的说明文字，也会命中 `someProcess.x` 这类无关代码。
+ */
+const NODE_GLOBAL_PATTERN = /\b(?:process\.(?:env|argv|exit|cwd|platform|versions|stdout|stderr|stdin|nextTick|hrtime|memoryUsage|kill|pid)\b|Buffer\.(?:from|alloc|allocUnsafe|concat|isBuffer|byteLength)\b|new\s+Buffer\b|__(?:dirname|filename)\b)/;
+
+/** 测试与类型声明跑在 Node 里（vitest + node:assert），不参与这条检查。 */
+const NODE_API_EXEMPT = /(\.test\.ts|\.d\.ts)$/;
+
+/**
+ * 发行代码里不允许出现 Node API。
+ *
+ * 只看 `src/**`：`build.config.ts`、`vitest.config.ts` 与 `scripts/` 本来就跑在 Node 上，
+ * `src/__mocks__/` 是测试替身，同样在 Node 里执行。
+ */
+function checkNoNodeApiInSource(root: string, push: (message: string) => void): void {
+  const src = join(root, "src");
+  if (!existsSync(src)) {
+    return;
+  }
+  const mocks = join(src, "__mocks__");
+
+  for (const entry of readdirSync(src, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".ts") || NODE_API_EXEMPT.test(entry.name)) {
+      continue;
+    }
+    const parent = (entry as { parentPath?: string }).parentPath ?? "";
+    if (parent === mocks || parent.startsWith(`${mocks}${sep}`)) {
+      continue;
+    }
+
+    const file = join(parent, entry.name);
+    const display = relative(root, file).split(sep).join("/");
+    for (const issue of findNodeApi(readFileSync(file, "utf8"))) {
+      push(`${display} 第 ${issue.line} 行用了 ${issue.hint}：产物跑在思源里，浏览器前端没有 Node API`);
+    }
+  }
+}
+
+/** 找出文件里的 Node API 用法。注释行整行跳过，避免把说明文字当成代码。 */
+function findNodeApi(content: string): { line: number; hint: string }[] {
+  const found: { line: number; hint: string }[] = [];
+
+  const lineAt = (index: number) => content.slice(0, index).split("\n").length;
+  const isCommentLine = (index: number) => {
+    const start = content.lastIndexOf("\n", index - 1) + 1;
+    const prefix = content.slice(start, index).trimStart();
+    return prefix.startsWith("//") || prefix.startsWith("*") || prefix.startsWith("/*");
+  };
+
+  for (const match of content.matchAll(SPECIFIER_PATTERN)) {
+    const specifier = match[1] ?? "";
+    if (!isNodeBuiltin(specifier) || isCommentLine(match.index)) {
+      continue;
+    }
+    found.push({ line: lineAt(match.index), hint: `模块 ${specifier}` });
+  }
+
+  // 逐个找而不是只找第一个：一个文件里可能同时用了 process.env 与 Buffer
+  const globalPattern = new RegExp(NODE_GLOBAL_PATTERN.source, "g");
+  for (const match of content.matchAll(globalPattern)) {
+    if (!isCommentLine(match.index)) {
+      found.push({ line: lineAt(match.index), hint: `全局量 ${match[0]}` });
+    }
+  }
+
+  return found;
 }

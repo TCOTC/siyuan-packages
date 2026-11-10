@@ -332,6 +332,12 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 `kit` 自己额外叠两条只有它需要的开关：`allowImportingTsExtensions`（`bin` 直接指向 `src/cli.ts`，由 Node 剥离类型运行，导入必须带 `.ts`）与 `erasableSyntaxOnly`（禁掉 `enum` / `namespace` / 参数属性这类 Node 剥不掉的语法）。`allowImportingTsExtensions` 留在基线里是因为各包的 tsc 程序会顺带编译 kit 源码，它只是「允许」而非「强制」。
 
+### 5.1 `types: ["node"]` 的副作用
+
+基线给每个包注入了 `"types": ["node", "ambient"]`，因为单元测试（`node:assert/strict`）、`vitest.config.ts` 与 `build.config.ts` 都跑在 Node 上。代价是**发行代码里误用 Node API 时 `tsc` 不报错**：浏览器桌面端既没有 `process` 也没有 `Buffer`，装上去就是 `ReferenceError`。
+
+类型系统这条路走不通（`*.test.ts` 与源码同目录，拆 `types` 需要第二个 tsconfig），所以由 `pnpm check` 的「Node API」一项兜住（详见第 6 节）。
+
 ---
 
 ## 6. 契约门禁：`pnpm check`
@@ -358,6 +364,7 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 | 许可副本    | 包根不允许出现 `LICENSE` / `LICENSE.md` / `LICENSE.txt`，许可只在仓库根声明                                                                                                                                                                                                   |
 | 第三方通知  | 包根只能有 `THIRD_PARTY-NOTICES.md`，其它 `THIRD_PARTY*` 文件一律报错（它们不会进产物）                                                                                                                                                                                       |
 | 约定入口    | 没有 `build.config.ts` 时，`src/index.ts`（插件）/ `index.html`（挂件）/ `styles/index.scss`（主题）必须存在                                                                                                                                                                  |
+| Node API    | `src/**` 下的发行代码（`.test.ts` / `.d.ts` / `src/__mocks__/` 除外）不允许出现 Node 内置模块（`node:*`、`fs`、`path`、`fs/promises` 等，按首段判断）与只在 Node 里存在的全局量（`process.env`、`Buffer.from`、`__dirname` …）                                                |
 
 CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错的输入上。
 
