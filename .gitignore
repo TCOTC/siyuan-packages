@@ -4,6 +4,9 @@ node_modules
 # 构建产物
 /dist
 
+# Rust 构建目录（code-recognition 的 wasm 由 pnpm --filter code-recognition build:wasm 生成）
+plugins/code-recognition/wasm-detector/target
+
 # 本机配置
 /siyuan.config.json
 
