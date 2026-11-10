@@ -14,19 +14,16 @@ export type TemplateValues = {
   displayNameZhCN: string;
   description: string;
   descriptionZhCN: string;
-  author: string;
-  url: string;
 };
 
 const TEMPLATE_KIND = "plugin";
-const DEFAULT_AUTHOR = "Jeffrey Chen";
 const NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TOKEN_PATTERN = /\{\{([a-zA-Z][a-zA-Z0-9]*)\}\}/g;
 
 /** 按扩展名判断文本文件；其余（图片等）原样复制。 */
 const TEXT_EXTENSIONS = new Set([".json", ".md", ".scss", ".ts"]);
 
-const FLAGS = new Set(["display-name", "zh-name", "description", "zh-description", "author", "url"]);
+const FLAGS = new Set(["display-name", "zh-name", "description", "zh-description"]);
 
 export function parseCreateArgs(args: string[]): TemplateValues {
   const positional: string[] = [];
@@ -56,7 +53,7 @@ export function parseCreateArgs(args: string[]): TemplateValues {
 
   const [name, ...extra] = positional;
   if (name === undefined) {
-    throw new Error("用法：siyuan-kit create <name> [--display-name <显示名>] [--zh-name <中文显示名>] [--description <描述>] [--zh-description <中文描述>] [--author <作者>] [--url <仓库地址>]");
+    throw new Error("用法：siyuan-kit create <name> [--display-name <显示名>] [--zh-name <中文显示名>] [--description <描述>] [--zh-description <中文描述>]");
   }
   if (extra.length > 0) {
     throw new Error(`只接受一个包名，多余的参数：${extra.join(" ")}`);
@@ -74,8 +71,6 @@ export function parseCreateArgs(args: string[]): TemplateValues {
     displayNameZhCN: flags.get("zh-name") ?? displayName,
     description,
     descriptionZhCN: flags.get("zh-description") ?? description,
-    author: flags.get("author") ?? DEFAULT_AUTHOR,
-    url: flags.get("url") ?? `https://github.com/TCOTC/${name}`,
   };
 }
 

@@ -5,7 +5,7 @@
  * 没有配置文件时完全按目录约定推断，标准插件不需要任何构建配置。
  */
 
-/** 集市包类型，决定清单文件名，与 bazaar 的 rules.ManifestFile() 一一对应。 */
+/** 集市包类型，决定产物清单的文件名（plugin.json / theme.json / widget.json），与 bazaar 的 rules.ManifestFile() 一一对应。 */
 export type PackageKind = "plugin" | "theme" | "widget";
 
 /**

@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "思源集市包清单（构建产物）",
+  "description": "dist/<name>/plugin.json 的形态：包内覆盖层、manifests/base.json 共用段与推导字段的合并结果。\n本文件仅用于阅读与校验产物；可编辑的源清单按 override.schema.json 编写。\n字段与 siyuan 仓库 kernel/bazaar/package.go 的 Package 里可写在清单中的那部分对应；Package 另外包含 API 运行时字段（preferred*、repoURL、installed、rating 等）与仅由集市索引提供的弃用信息，它们都不属于清单。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["name", "url", "version", "minAppVersion", "displayName", "description", "readme"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "包名，与包目录名、集市收录仓库名一致，由构建从目录名推导。需满足 siyuan 仓库 kernel/bazaar/package.go 的 IsValidPackageName：1–255 字节、不能以 . 开头或以 . / 空格结尾、不含 .. 、不含 < > & ' \" : / \\ | ? * 与控制字符，且不得为 Windows 保留名（CON / PRN / AUX / NUL / COM1-9 / LPT1-9）。"
+    },
+    "url": {
+      "type": "string",
+      "description": "仓库地址。由构建推导为 https://github.com/TCOTC/<name>。"
+    },
+    "author": { "type": "string", "description": "作者名。" },
+    "version": { "$ref": "#/definitions/version" },
+    "minAppVersion": { "$ref": "#/definitions/version" },
+    "displayName": { "$ref": "#/definitions/localeStrings" },
+    "description": { "$ref": "#/definitions/localeStrings" },
+    "readme": {
+      "type": "object",
+      "description": "locale → 包内 README 文件名。由构建从包根 README*.md 推导。",
+      "additionalProperties": false,
+      "required": ["default"],
+      "properties": {
+        "default": { "type": "string" },
+        "ar": { "type": "string" },
+        "de": { "type": "string" },
+        "en": { "type": "string" },
+        "es": { "type": "string" },
+        "fr": { "type": "string" },
+        "he": { "type": "string" },
+        "hi": { "type": "string" },
+        "id": { "type": "string" },
+        "it": { "type": "string" },
+        "ja": { "type": "string" },
+        "ko": { "type": "string" },
+        "nl": { "type": "string" },
+        "pl": { "type": "string" },
+        "pt-BR": { "type": "string" },
+        "ru": { "type": "string" },
+        "sk": { "type": "string" },
+        "sr": { "type": "string" },
+        "th": { "type": "string" },
+        "tr": { "type": "string" },
+        "uk": { "type": "string" },
+        "zh-CN": { "type": "string" },
+        "zh-TW": { "type": "string" }
+      }
+    },
+    "icon": {
+      "type": "string",
+      "pattern": "^[^\\\\/:]+\\.[A-Za-z0-9]+$",
+      "description": "图标文件名，必须是包根下的单个文件名。仅在文件名不是默认的 icon.png 时出现：不声明时集市按 icon.png 回退（siyuan 仓库 kernel/bazaar/bazaar.go 的 packageImageName）。可供识别的扩展名为 png / jpg / jpeg / webp / avif。"
+    },
+    "preview": {
+      "type": "string",
+      "pattern": "^[^\\\\/:]+\\.[A-Za-z0-9]+$",
+      "description": "预览图文件名，必须是包根下的单个文件名。仅在文件名不是默认的 preview.png 时出现：不声明时集市按 preview.png 回退。扩展名限制同 icon；png / jpg / jpeg 的预览图会追加 ?imageslim 做瘦身。"
+    },
+    "disabledInPublish": { "type": "boolean", "description": "仅插件与挂件。是否在思源发布服务中禁用，与集市上架状态无关；零值等价于 false。主题没有对应读取点，产物里不会出现。" },
+    "settingsWindow": { "type": "boolean", "description": "仅插件。是否声明支持在独立设置窗口中运行。字段带 omitempty，写 false 与省略完全等价；siyuan 仓库 kernel/model/plugin.go 的 LoadSettingsWindowPetals 只收录该值为 true 的插件。" },
+    "kernels": { "$ref": "#/definitions/kernels" },
+    "backends": { "$ref": "#/definitions/backends" },
+    "frontends": { "$ref": "#/definitions/frontends" },
+    "bootAppearances": { "type": "array", "items": { "type": "string" }, "description": "仅插件。启动页外观 ID 列表。每项需对应插件内可加载的外观资源（siyuan 仓库 kernel/model 的 loadBootAppearance）；重复项去重，加载失败的项被跳过。无枚举。" },
+    "keywords": { "type": "array", "items": { "type": "string" }, "description": "集市检索关键词。展示前会做一次 HTML 反转义。" },
+    "modes": { "type": "array", "items": { "enum": ["light", "dark"] }, "description": "仅主题。提供的配色模式：siyuan 仓库 kernel/model/appearance.go 只识别 light 与 dark（分别归入浅色 / 深色主题列表），其它取值被忽略。" },
+    "funding": { "$ref": "#/definitions/funding" }
+  },
+  "definitions": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$",
+      "description": "语义化版本号（SemVer），不带 v 前缀；发布 tag 写作 v<version>。"
+    },
+    "localeStrings": {
+      "type": "object",
+      "description": "以 BCP 47 语言标签为键的文案表。键取值限于思源支持的语言（见 siyuan 仓库 app/appearance/langs/）；除 zh-CN、zh-TW、pt-BR 外不带地区码，default 必填。",
+      "additionalProperties": false,
+      "required": ["default"],
+      "properties": {
+        "default": { "type": "string" },
+        "ar": { "type": "string" },
+        "de": { "type": "string" },
+        "en": { "type": "string" },
+        "es": { "type": "string" },
+        "fr": { "type": "string" },
+        "he": { "type": "string" },
+        "hi": { "type": "string" },
+        "id": { "type": "string" },
+        "it": { "type": "string" },
+        "ja": { "type": "string" },
+        "ko": { "type": "string" },
+        "nl": { "type": "string" },
+        "pl": { "type": "string" },
+        "pt-BR": { "type": "string" },
+        "ru": { "type": "string" },
+        "sk": { "type": "string" },
+        "sr": { "type": "string" },
+        "th": { "type": "string" },
+        "tr": { "type": "string" },
+        "uk": { "type": "string" },
+        "zh-CN": { "type": "string" },
+        "zh-TW": { "type": "string" }
+      }
+    },
+    "funding": {
+      "type": "object",
+      "description": "资助渠道。集市列表卡片的心形只取第一条可用链接（优先级 openCollective → patreon → github → custom → links）；README 页会把全部链接列出。",
+      "additionalProperties": false,
+      "properties": {
+        "openCollective": { "type": "string", "description": "OpenCollective 用户名或完整 URL；填用户名时补 https://opencollective.com/。" },
+        "patreon": { "type": "string", "description": "Patreon 用户名或完整 URL；填用户名时补 https://www.patreon.com/。" },
+        "github": { "type": "string", "description": "GitHub Sponsors 用户名或完整 URL；填用户名时补 https://github.com/sponsors/。" },
+        "custom": { "type": "array", "items": { "type": "string" }, "description": "无标签的链接或说明文本，README 页按域名显示。" },
+        "links": {
+          "type": "array",
+          "description": "带展示名的链接，README 页显示 label。",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "url"],
+            "properties": {
+              "label": { "type": "string", "description": "展示名，如「爱发电」。" },
+              "url": { "type": "string", "description": "链接地址，须为 http(s) 或 mailto:。" }
+            }
+          }
+        }
+      }
+    },
+    "backends": {
+      "type": "array",
+      "description": "支持的后端。取值对应 siyuan 仓库 kernel/bazaar/plugin.go 的 GetCurrentBackend：非容器环境为 runtime.GOOS（windows / linux / darwin），容器环境为 docker / android / ios / harmony。含 all 时 IsTargetSupported 直接判定兼容；空数组等价于 all。",
+      "items": { "enum": ["windows", "linux", "darwin", "ios", "android", "harmony", "docker", "all"] }
+    },
+    "frontends": {
+      "type": "array",
+      "description": "支持的前端环境。含 all 时 IsTargetSupported 直接判定兼容；空数组等价于 all，但主题例外：siyuan 仓库 kernel/bazaar/theme.go 的 IsIncompatibleTheme 规定 frontends 为空的主题在 mobile / browser-mobile 下视为不兼容。",
+      "items": { "enum": ["desktop", "mobile", "browser-desktop", "browser-mobile", "desktop-window", "all"] }
+    },
+    "kernels": {
+      "type": "array",
+      "description": "仅插件。内核插件支持的后端，与 backends 同一套取值；但 siyuan 仓库 kernel/bazaar/plugin.go 的 IsIncompatibleKernelPlugin 把缺省或空数组视为不支持内核插件，需要内核能力的插件必须显式声明。",
+      "items": { "enum": ["windows", "linux", "darwin", "ios", "android", "harmony", "docker", "all"] }
+    }
+  }
+}

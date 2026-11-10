@@ -86,11 +86,26 @@ themes/             主题（1 个）
 widgets/            挂件（1 个）
 libs/               共享库：会被打进别人产物，但自己不发布
 kit/                构建内核：把源码变成 dist/<name>/ 与 dist/<name>.zip
+manifests/          清单的共用层（base.json）与三份 JSON Schema
 docs/               仓库规则
 dist/               所有产物（生成，gitignore）
 ```
 
-包放在哪个类型目录下就决定它的类型：`plugins/*` → `plugin`（`plugin.json`）、`themes/*` → `theme`（`theme.json`）、`widgets/*` → `widget`（`widget.json`）。
+包放在哪个类型目录下就决定它的类型：`plugins/*` → `plugin`、`themes/*` → `theme`、`widgets/*` → `widget`。三种包的源清单统一叫 `manifest.json`，产物里的清单则按集市要求叫 `plugin.json` / `theme.json` / `widget.json`——两个名字不同，避免把源清单当成可直接发布的产物。
+
+### 清单分三层
+
+包里的清单**只写本包独有的值**，不再是集市直接读的那一份：
+
+| 层   | 内容                                                                             | 写在哪                                                                                  |
+| ---- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 推导 | `name`、`url`、`readme`、`icon`、`preview`                                       | 不写（构建从目录名与包根文件推导；`icon.png` / `preview.png` 是集市默认名，不写进清单） |
+| 共用 | `author`、`funding` 顶层写一次；`backends`、`frontends` 按包类型分节             | [`manifests/base.json`](manifests/base.json)                                            |
+| 独有 | `version`、`minAppVersion`、`displayName`、`description`、`disabledInPublish` 等 | 包内 `manifest.json`                                                                    |
+
+构建时三层合并，合并结果写进 `dist/<name>/plugin.json`（主题是 `theme.json`、挂件是 `widget.json`）——集市读的是这一份。运行 `siyuan-kit manifest <目录>` 可以随时看合成结果。
+
+清单的 schema 与共用清单同目录：`manifests/override.schema.json`（包内清单）、`manifests/base.schema.json`（共用清单）、`manifests/dist.schema.json`（产物清单）。VS Code 通过 `.vscode/settings.json` 自动绑定，写清单时会有字段补全与错误提示。
 
 ---
 
@@ -103,6 +118,8 @@ pnpm create:plugin my-plugin \
 ```
 
 命令会把 `kit/templates/plugin/` 复制成 `plugins/my-plugin/` 并替换占位符（清单、两份 README 与 `package.json` 都会带上新名字）。之后执行 `pnpm install` 把新包接进 workspace。占位符清单见 [`kit/templates/README.md`](kit/templates/README.md)。
+
+生成的清单已经是覆盖层形态：`name` / `url` / `readme` 由构建推导，`author` / `funding` / 前后端来自 `manifests/base.json`，只有 `displayName` / `description` 需要你改。
 
 ---
 

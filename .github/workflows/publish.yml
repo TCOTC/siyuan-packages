@@ -90,36 +90,33 @@ jobs:
             exit 1
           fi
 
-          MANIFEST=$(ls "$DIR"/plugin.json "$DIR"/theme.json "$DIR"/widget.json 2>/dev/null | head -n1)
-          if [ -z "$MANIFEST" ]; then
-            echo "::error::$DIR 下没有清单文件"
+          # 包内清单是覆盖层（没有 name / url），必须问 kit 要三层合成后的那一份，
+          # 否则这里读到的 name 为空、url 缺失，发布目标会算错。
+          if [ ! -f "$DIR/manifest.json" ]; then
+            echo "::error::$DIR 下没有 manifest.json"
             exit 1
           fi
 
-          NAME=$(node -p "require('./$MANIFEST').name")
-          VERSION=$(node -p "require('./$MANIFEST').version")
+          read -r NAME VERSION MANIFEST_URL <<< "$(node kit/src/cli.ts manifest "$DIR" | node -e 'let s="";process.stdin.on("data",(d)=>s+=d).on("end",()=>{const m=JSON.parse(s);console.log([m.name,m.version,m.url??""].join(" "))})')"
 
           # 集市要求清单里的 version 不带 v 前缀
           case "$VERSION" in v*|V*) echo "::error::清单 version 不能带 v 前缀: $VERSION"; exit 1;; esac
 
           # tag / 手动输入与清单必须逐字符一致：typo 会安静地发一个内容不对的版本
           if [ "$VERSION" != "$WANT_VERSION" ]; then
-            echo "::error::版本不一致：tag 是 $WANT_VERSION，$MANIFEST 是 $VERSION"
+            echo "::error::版本不一致：tag 是 $WANT_VERSION，$DIR 合成后的清单是 $VERSION"
             exit 1
           fi
 
-          # 目录名必须等于清单 name（kit 的 resolvePackage 也会拦，这里先给出可读的原因）
+          # 目录名必须等于合成清单的 name（kit 从目录名推导，这里防一手推导逻辑回归）
           if [ "$(basename "$DIR")" != "$NAME" ]; then
-            echo "::error::包目录名 $(basename "$DIR") 与清单 name $NAME 不一致"
+            echo "::error::包目录名 $(basename "$DIR") 与合成清单 name $NAME 不一致"
             exit 1
           fi
 
           # 目标收录仓库：手动输入优先，否则从清单 url 推导，最后回退 TCOTC/<name>
-          if [ -z "$TARGET" ]; then
-            URL=$(node -p "require('./$MANIFEST').url || ''")
-            if [ -n "$URL" ]; then
-              TARGET=$(node -e 'const u = new URL(process.argv[1]); console.log(u.pathname.replace(/^\/|\/$/g, ""))' "$URL")
-            fi
+          if [ -z "$TARGET" ] && [ -n "$MANIFEST_URL" ]; then
+            TARGET=$(node -e 'const u = new URL(process.argv[1]); console.log(u.pathname.replace(/^\/|\/$/g, ""))' "$MANIFEST_URL")
           fi
           if [ -z "$TARGET" ]; then
             TARGET="TCOTC/$NAME"

@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "minAppVersion": "3.8.3-alpha.8",
+  "disabledInPublish": true,
+  "displayName": {
+    "default": "Image Squeeze",
+    "zh-CN": "图片压缩"
+  },
+  "description": {
+    "default": "Compress images in the workspace and convert them to WebP with references rewritten automatically",
+    "zh-CN": "压缩工作空间内的图片，可转换为 WebP 并自动改写引用"
+  }
+}

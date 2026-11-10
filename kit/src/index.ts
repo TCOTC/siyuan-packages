@@ -1,7 +1,7 @@
 export { defineBuild } from "./define.ts";
 export type { BuildOptions, PackageKind, PassOptions } from "./define.ts";
 
-export { collectStaticAssets, findRepoRoot, inferKind, manifestFileName, PLURAL_DIR, resolvePackage } from "./resolve.ts";
+export { BASE_FORBIDDEN_FIELDS, BASE_MANIFEST_FILE, BASE_SECTION_KEYS, collectStaticAssets, DERIVED_FIELDS, findImage, findRepoRoot, IMAGE_EXTENSIONS, inferKind, loadBaseManifest, manifestFileName, PLURAL_DIR, resolvePackage, SOURCE_MANIFEST_FILE, writeManifest } from "./resolve.ts";
 export type { ResolvedPackage, StaticAsset } from "./resolve.ts";
 
 export { plan } from "./plan.ts";

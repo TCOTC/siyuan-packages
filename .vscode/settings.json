@@ -1,0 +1,16 @@
+{
+  "json.schemas": [
+    {
+      "fileMatch": ["/plugins/*/manifest.json", "/themes/*/manifest.json", "/widgets/*/manifest.json"],
+      "url": "./manifests/override.schema.json"
+    },
+    {
+      "fileMatch": ["/manifests/base.json"],
+      "url": "./manifests/base.schema.json"
+    },
+    {
+      "fileMatch": ["/dist/*/plugin.json", "/dist/*/theme.json", "/dist/*/widget.json"],
+      "url": "./manifests/dist.schema.json"
+    }
+  ]
+}

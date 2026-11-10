@@ -1,10 +1,6 @@
 {
-  "name": "fullscreen",
-  "author": "Jeffrey Chen",
-  "url": "https://github.com/TCOTC/fullscreen",
   "version": "1.0.1",
   "minAppVersion": "3.8.2-alpha.3",
-  "backends": ["all"],
   "frontends": ["desktop", "browser-desktop", "desktop-window"],
   "disabledInPublish": false,
   "displayName": {
@@ -14,10 +10,5 @@
   "description": {
     "default": "Add a fullscreen button to the document breadcrumb, support configuring editor fullscreen and window fullscreen separately",
     "zh-CN": "在文档面包屑上添加全屏按钮，支持分别配置编辑器全屏和窗口全屏"
-  },
-  "readme": {
-    "default": "README.md",
-    "zh-CN": "README.zh-CN.md"
-  },
-  "funding": { "custom": ["https://mytemos.com/"] }
+  }
 }

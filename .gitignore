@@ -9,7 +9,9 @@ node_modules
 
 # 工具与系统
 .idea
-.vscode
+# 只提交 schema 绑定，其余本机配置不进仓
+.vscode/*
+!/.vscode/settings.json
 .DS_Store
 Thumbs.db
 *.log

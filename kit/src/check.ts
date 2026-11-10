@@ -1,6 +1,6 @@
 import { existsSync, globSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
-import { README_FILE_PATTERN, resolvePackage, THIRD_PARTY_NOTICES, type ResolvedPackage } from "./resolve.ts";
+import { BASE_FORBIDDEN_FIELDS, BASE_MANIFEST_FILE, BASE_SECTION_KEYS, DERIVED_FIELDS, IMAGE_EXTENSIONS, loadBaseManifest, README_FILE_PATTERN, resolvePackage, SOURCE_MANIFEST_FILE, THIRD_PARTY_NOTICES, type ResolvedPackage } from "./resolve.ts";
 
 /**
  * 仓库级契约门禁：把 README 里的约定变成 CI 会变红的检查。
@@ -24,8 +24,11 @@ export const ALLOWED_BUILD_CONFIG: Record<string, string> = {
   "siyuan-ttf-LXGWWenKaiGB-and-Twemoji": "14 MB 字体不能进模块图，需要 copy",
 };
 
-/** 包目录里不允许出现的产物。 */
-const FORBIDDEN_ENTRIES = ["dist", "package.zip", "index.js", "index.css", "i18n"];
+/** 产物清单名（随包类型变化），包根出现它们就是旧命名没改干净。 */
+const ARTIFACT_MANIFEST_NAMES = ["plugin.json", "theme.json", "widget.json"];
+
+/** 包目录里不允许出现的产物。plugin.json / theme.json / widget.json 是产物清单名，包内清单叫 manifest.json。 */
+const FORBIDDEN_ENTRIES = ["dist", "package.zip", "index.js", "index.css", "i18n", ...ARTIFACT_MANIFEST_NAMES];
 
 /** 包类型 → 必须存在的约定入口。 */
 const REQUIRED_ENTRY: Record<string, string> = {
@@ -50,6 +53,8 @@ export function checkWorkspace(repoRoot: string): CheckResult {
   const packages: string[] = [];
   const issues: CheckIssue[] = [];
 
+  checkBaseManifest(repoRoot, issues);
+
   for (const kind of PACKAGE_KINDS) {
     const dir = join(repoRoot, kind);
     if (!existsSync(dir)) {
@@ -66,6 +71,60 @@ export function checkWorkspace(repoRoot: string): CheckResult {
   }
 
   return { packages, issues };
+}
+
+/**
+ * 共用清单只能在两层放字段：顶层（跨类型相同）与类型分节（该类型特有）。
+ * 两层都不许出现「每包必然不同」或「构建推导」的字段，否则合并时要么被包内清单盖掉，要么被发现时已晚。
+ */
+function checkBaseManifest(repoRoot: string, issues: CheckIssue[]): void {
+  const file = join(repoRoot, BASE_MANIFEST_FILE);
+  if (!existsSync(file)) {
+    return;
+  }
+
+  const push = (message: string) => issues.push({ package: BASE_MANIFEST_FILE, message });
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
+  } catch (error) {
+    push(error instanceof Error ? error.message : String(error));
+    return;
+  }
+
+  const common: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (key === "$schema" || (BASE_SECTION_KEYS as readonly string[]).includes(key)) {
+      continue;
+    }
+    common[key] = value;
+  }
+
+  for (const field of BASE_FORBIDDEN_FIELDS) {
+    if (field in common) {
+      push(`顶层不允许声明 ${field}：它每包不同（或由构建推导），包内清单必须各自声明`);
+    }
+  }
+
+  for (const kind of BASE_SECTION_KEYS) {
+    const section = parsed[kind];
+    if (section === undefined) {
+      continue;
+    }
+    if (typeof section !== "object" || section === null || Array.isArray(section)) {
+      push(`${kind} 必须是对象`);
+      continue;
+    }
+    for (const field of Object.keys(section)) {
+      if (field in common) {
+        push(`${kind}.${field} 与顶层重复：三层合并时类型分节会盖掉顶层，两份取值容易漂移`);
+      }
+      if ((BASE_FORBIDDEN_FIELDS as readonly string[]).includes(field)) {
+        push(`${kind}.${field} 不允许写：该字段每包必然不同`);
+      }
+    }
+  }
 }
 
 function checkPackage(root: string, issues: CheckIssue[]): void {
@@ -85,11 +144,13 @@ function checkPackage(root: string, issues: CheckIssue[]): void {
   checkTests(root, push);
   checkTsconfig(root, push);
   checkBuildConfig(pkg, push);
+  checkManifestFields(pkg, push);
   checkLocales(pkg, push);
   checkReadmeFiles(pkg, push);
   checkI18nFileNames(pkg, push);
   checkForbiddenEntries(root, push);
   checkLicenseCopy(root, push);
+  checkImages(pkg, push);
   checkEntry(pkg, push);
 }
 
@@ -178,7 +239,7 @@ function checkBuildConfig(pkg: ResolvedPackage, push: (message: string) => void)
 }
 
 /**
- * 思源用 BCP 47 作为 locale 标识（`kernel/util/lang.go` 的 LangLegacyToBCP47）。
+ * 思源用 BCP 47 作为 locale 标识（siyuan 仓库 `kernel/util/lang.go` 的 LangLegacyToBCP47）。
  * 下划线写法只是回退链里的兼容分支，不应出现在新代码里。
  */
 const BCP47_LOCALES = new Set(["zh-CN", "zh-TW", "en", "de", "fr", "es", "pt-BR", "it", "ja", "ko", "ru", "uk", "pl", "nl", "ar", "he", "hi", "id", "th", "tr", "sk", "sr"]);
@@ -204,31 +265,88 @@ function checkLocales(pkg: ResolvedPackage, push: (message: string) => void): vo
   }
 }
 
+/** 包内清单是覆盖层：只能写本包独有的值。 */
+const UNIFIED_FIELDS = ["author", "funding"] as const;
+
 /**
- * 集市的 README 来自清单 `readme` 字段（缺省回退 README.md），产物里的 README 来自包根文件通配。
- * 两套规则各自独立，所以两个集合必须逐项相等：
- * 声明了但复制不到 → 产物缺文件；复制到了但没声明 → 集市根本看不到它。
+ * 包内清单是覆盖层：只能写本包独有的值。
+ * 推导字段（name / url / readme / icon / preview）写了也不生效，直接报错避免两份真相。
  */
-function checkReadmeFiles(pkg: ResolvedPackage, push: (message: string) => void): void {
-  const copied = readdirSync(pkg.root).filter((file) => README_FILE_PATTERN.test(file));
-
-  const readme = pkg.manifest["readme"];
-  const declared: [string, string][] = typeof readme === "object" && readme !== null ? Object.entries(readme as Record<string, unknown>).flatMap(([locale, file]) => (typeof file === "string" ? [[locale, file] as [string, string]] : [])) : [["default", "README.md"]];
-
-  const copiedSet = new Set(copied);
-  const declaredFiles = new Set(declared.map(([, file]) => file));
-
-  for (const file of copied) {
-    if (!declaredFiles.has(file)) {
-      push(`${file} 会被复制进产物，但清单 readme 没有声明它；补上对应 locale，或删掉这个文件`);
+function checkManifestFields(pkg: ResolvedPackage, push: (message: string) => void): void {
+  for (const field of DERIVED_FIELDS) {
+    if (field in pkg.override) {
+      push(`包内清单不允许声明 ${field}：它由构建推导（name / url 来自目录名，readme / icon / preview 来自包根文件），写了也不会生效`);
     }
   }
 
-  for (const [locale, file] of declared) {
-    if (copiedSet.has(file)) {
-      continue;
+  // 全仓统一的身份信息：包内出现一份就会盖掉共用值，改 base 时也改不到它
+  for (const field of UNIFIED_FIELDS) {
+    if (field in pkg.override) {
+      push(`包内清单不允许声明 ${field}：全仓统一在 manifests/base.json 里声明，这里写一份会覆盖它，改 base 时也同步不到`);
     }
-    push(existsSync(join(pkg.root, file)) ? `清单 readme.${locale} 的 ${file} 不匹配复制规则 ${README_FILE_PATTERN.source}，产物里不会有它（请改成 README.<locale>.md）` : `清单 readme.${locale} 指向不存在的 ${file}`);
+  }
+
+  // 与共用清单取值完全相同的本地声明是纯冗余：删掉行为不变，留着只会成为下一次漂移的起点
+  const base = loadBaseManifest(pkg.kind, pkg.repoRoot);
+  for (const [field, value] of Object.entries(pkg.override)) {
+    const fromBase = field in base.section ? base.section[field] : base.common[field];
+    if (fromBase !== undefined && sameValue(fromBase, value)) {
+      push(`包内清单的 ${field} 与 manifests/base.json 取值相同，是冗余声明；删掉这一项，以后改 base 才能生效`);
+    }
+  }
+
+  for (const field of ["displayName", "description"] as const) {
+    const map = pkg.manifest[field];
+    const hasDefault = typeof map === "object" && map !== null && typeof (map as Record<string, unknown>)["default"] === "string";
+    if (!hasDefault) {
+      push(`清单 ${field} 必须带 default 文案，否则非目标语言的用户看不到任何文字`);
+    }
+  }
+
+  // 插件与挂件在发布服务里会被这个字段拦住（siyuan 仓库 kernel/model/publish_resource_access.go 的
+  // CheckPluginAccessableInPublish / CheckWidgetAccessableInPublish）；省略虽等价于 false，
+  // 但会让人误以为忘了写，所以要求显式声明。主题没有对应读取点，写了也不会生效。
+  if (pkg.kind === "theme") {
+    if ("disabledInPublish" in pkg.override) {
+      push("主题清单不允许声明 disabledInPublish：内核没有读取主题这个字段的地方，写了也不生效");
+    }
+  } else if (typeof pkg.manifest["disabledInPublish"] !== "boolean") {
+    push(`${pkg.kind === "plugin" ? "插件" : "挂件"}清单必须显式写 disabledInPublish（true / false），不要省略：它决定发布服务里能否访问`);
+  }
+}
+
+/** 归类时忽略键顺序：`{a:1,b:2}` 与 `{b:2,a:1}` 视为同一个值。 */
+function sameValue(left: unknown, right: unknown): boolean {
+  const normalize = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      return value.map(normalize);
+    }
+    if (typeof value === "object" && value !== null) {
+      const sorted: Record<string, unknown> = {};
+      for (const key of Object.keys(value).sort()) {
+        sorted[key] = normalize((value as Record<string, unknown>)[key]);
+      }
+      return sorted;
+    }
+    return value;
+  };
+  return JSON.stringify(normalize(left)) === JSON.stringify(normalize(right));
+}
+
+/**
+ * 集市的 README 来自清单 `readme`（缺省回退 README.md），产物里的 README 来自包根文件通配。
+ * 现在 readme 由构建推导，两边天然一致；这里改为盯住推导抓不到的情况：
+ * 写法不匹配通配的文件会静默不进产物，而缺 README.md 会让集市没有回退目标。
+ */
+function checkReadmeFiles(pkg: ResolvedPackage, push: (message: string) => void): void {
+  for (const file of readdirSync(pkg.root)) {
+    if (/^readme/i.test(file) && !README_FILE_PATTERN.test(file)) {
+      push(`${file} 不会被复制进产物：多语言 README 必须写成 README.<locale>.md（如 README.zh-CN.md，下划线不匹配）`);
+    }
+  }
+
+  if (!existsSync(join(pkg.root, "README.md"))) {
+    push("缺少 README.md：清单 readme 没有 default 时集市会回退到它，产物里也必须有");
   }
 }
 
@@ -252,7 +370,8 @@ function checkI18nFileNames(pkg: ResolvedPackage, push: (message: string) => voi
 function checkForbiddenEntries(root: string, push: (message: string) => void): void {
   for (const entry of FORBIDDEN_ENTRIES) {
     if (existsSync(join(root, entry))) {
-      push(`包目录里出现产物 ${entry}；产物只能落在 <仓库>/dist/ 下`);
+      // 清单名单独说明，否则容易被当成「清单该放这里」而改错文件
+      push(ARTIFACT_MANIFEST_NAMES.includes(entry) ? `包目录里出现 ${entry}：那是产物清单的名字，包内清单统一叫 ${SOURCE_MANIFEST_FILE}，产物只能落在 <仓库>/dist/ 下` : `包目录里出现产物 ${entry}；产物只能落在 <仓库>/dist/ 下`);
     }
   }
 }
@@ -277,6 +396,24 @@ function checkLicenseCopy(root: string, push: (message: string) => void): void {
 }
 
 /** 每种类型都有一个约定入口，缺了构建必然失败，不如先在这里报。 */
+/**
+ * 图标与预览图：思源只认 png / jpg / jpeg / webp / avif（siyuan 仓库 kernel/bazaar/bazaar.go 的 isSupportedPackageImageName）。
+ * 包根放了 icon.svg 这类文件时，构建不会把它写进清单，集市也就永远拿不到图标——属于静默失效，必须提前报。
+ * 完全缺图不在这里报：那是包自身的内容缺口（如 temp-edit 本来就没图），不是契约违规。
+ */
+function checkImages(pkg: ResolvedPackage, push: (message: string) => void): void {
+  for (const file of readdirSync(pkg.root)) {
+    const match = /^(icon|preview)\.([^.]+)$/i.exec(file);
+    if (!match) {
+      continue;
+    }
+    const extension = match[2]?.toLowerCase() ?? "";
+    if (!(IMAGE_EXTENSIONS as readonly string[]).includes(extension)) {
+      push(`${file} 的扩展名思源不支持（只认 ${IMAGE_EXTENSIONS.join(" / ")}），这个文件不会进产物、集市也拿不到图；请转成 png 或 webp`);
+    }
+  }
+}
+
 function checkEntry(pkg: ResolvedPackage, push: (message: string) => void): void {
   const entry = REQUIRED_ENTRY[pkg.kind];
   if (!entry) {

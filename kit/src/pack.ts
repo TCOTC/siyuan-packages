@@ -1,7 +1,7 @@
 import { ZipArchive } from "archiver";
 import { createWriteStream, existsSync, mkdirSync, readdirSync, copyFileSync, rmSync, globSync, statSync } from "node:fs";
 import { dirname, join, resolve, sep } from "node:path";
-import { collectStaticAssets, type ResolvedPackage } from "./resolve.ts";
+import { collectStaticAssets, writeManifest, type ResolvedPackage } from "./resolve.ts";
 
 /** 构建前清空输出目录。dev 模式下 outDir 是包根，调用方不应调用本函数。 */
 export function cleanOutput(outDir: string): void {
@@ -9,10 +9,12 @@ export function cleanOutput(outDir: string): void {
 }
 
 /**
- * 把清单 / README / 图标 / 预览图 / 通知文件复制到产物根目录。
- * dev 模式下源与目标可能是同一个文件，必须跳过，否则 Windows 上 copyFileSync 会抛错。
+ * 把清单 / README / 图标 / 预览图 / 通知文件写进产物根目录。
+ * 清单是合成结果，不是从包目录复制的——包里那份只是覆盖层。
  */
 export function copyAssets(pkg: ResolvedPackage, outDir: string): void {
+  writeManifest(pkg, outDir);
+
   for (const asset of collectStaticAssets(pkg)) {
     const dest = join(outDir, asset.to);
     if (resolve(dest) === resolve(asset.from)) {

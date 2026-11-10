@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { build } from "vite";
 import { checkWorkspace } from "./check.ts";
@@ -18,8 +18,9 @@ const USAGE = `siyuan-kit — 思源集市包统一构建
   siyuan-kit build [--no-zip]     构建当前包 → <仓库>/dist/<name>/ 与 <仓库>/dist/<name>.zip
   siyuan-kit dev                  监听构建，每次产物落盘后同步进思源工作空间
   siyuan-kit check                校验仓库里所有包是否遵守统一契约（CI 用）
+  siyuan-kit manifest [目录]      输出合成后的完整清单 JSON（默认当前包）；供 CI 与调试使用
   siyuan-kit create <name> [--display-name <显示名>] [--zh-name <中文显示名>]
-        [--description <描述>] [--zh-description <中文描述>] [--author <作者>] [--url <仓库地址>]
+        [--description <描述>] [--zh-description <中文描述>]
                                   基于 templates/plugin 生成 plugins/<name>（随后执行 pnpm install）
 
 产物位置（不写进包目录）：
@@ -30,9 +31,16 @@ dev 同步到工作空间需要在仓库根建 ${CONFIG_FILE}（已 gitignore）
   { "workspace": "D:/SiYuan" }             ← 工作空间根目录，即 data 的上一层
 
 约定（无需配置）：
-  plugins/<name>/   plugin.json  src/index.ts  src/i18n/
-  widgets/<name>/   widget.json  index.html
-  themes/<name>/    theme.json   styles/index.scss
+  plugins/<name>/   manifest.json  src/index.ts  src/i18n/
+  widgets/<name>/   manifest.json  index.html
+  themes/<name>/    manifest.json  styles/index.scss
+
+清单是三层合成结果（共用 manifests/base.json + 本包独有值 + 推导字段）：
+  name / url          ← 目录名
+  readme              ← 包根 README*.md
+  icon / preview      ← 包根 icon.* / preview.*
+
+包内清单统一叫 manifest.json；产物里叫 plugin.json / theme.json / widget.json（集市按这个名读）。
 
 需要偏离约定时，在包根放 build.config.ts：
   export default defineBuild({ passes: [{ format: "iife", entry: "src/worker.ts", name: "Worker" }] })
@@ -52,6 +60,12 @@ async function main(): Promise<void> {
   }
   if (command === "check") {
     runCheck(findRepoRoot(root));
+    return;
+  }
+  if (command === "manifest") {
+    // 包里那份只是覆盖层，外部（CI、发布脚本）要的总是合成后的完整清单
+    const pkg = resolvePackage(rest[0] === undefined ? root : resolve(root, rest[0]));
+    console.log(JSON.stringify(pkg.manifest, null, 2));
     return;
   }
   if (command === "create") {

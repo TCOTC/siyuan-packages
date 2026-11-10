@@ -1,11 +1,6 @@
 {
-  "name": "snippets",
-  "author": "Jeffrey Chen",
-  "url": "https://github.com/TCOTC/snippets",
   "version": "2.0.4",
   "minAppVersion": "3.8.3-alpha.3",
-  "backends": ["all"],
-  "frontends": ["all"],
   "disabledInPublish": true,
   "displayName": {
     "default": "Code Snippets Manager",
@@ -19,12 +14,5 @@
     "zh-TW": "管理與編輯代碼片段最好用的外掛程式",
     "ja": "コードスニペットを管理・編集する最高のプラグイン"
   },
-  "readme": {
-    "default": "README.md",
-    "zh-CN": "README.zh-CN.md",
-    "zh-TW": "README.zh-TW.md",
-    "ja": "README.ja.md"
-  },
-  "funding": { "custom": ["https://mytemos.com/"] },
   "keywords": ["css", "js", "javascript"]
 }

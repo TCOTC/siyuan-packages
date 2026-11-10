@@ -1,7 +1,4 @@
 {
-  "name": "exit-confirm",
-  "author": "Jeffrey Chen",
-  "url": "https://github.com/TCOTC/exit-confirm",
   "version": "1.0.0",
   "minAppVersion": "3.0.0",
   "backends": ["windows", "darwin"],
@@ -40,25 +37,5 @@
     "tr": "SiYuan Note masaüstünden sistem kısayolu Alt+F4 veya Command+Q ile çıkarken bir onay iletişim kutusu görüntülenecektir.",
     "zh-TW": "通過系統快捷鍵 Alt+F4 或 Command+Q 退出桌面端思源筆記時，彈窗確認",
     "zh-CN": "通过系统快捷键 Alt+F4 或 Command+Q 退出桌面端思源笔记时，弹窗确认"
-  },
-  "readme": {
-    "default": "README.md",
-    "ar": "README.ar.md",
-    "de": "README.de.md",
-    "es": "README.es.md",
-    "fr": "README.fr.md",
-    "he": "README.he.md",
-    "it": "README.it.md",
-    "ja": "README.ja.md",
-    "ko": "README.ko.md",
-    "pl": "README.pl.md",
-    "pt-BR": "README.pt-BR.md",
-    "ru": "README.ru.md",
-    "tr": "README.tr.md",
-    "zh-TW": "README.zh-TW.md",
-    "zh-CN": "README.zh-CN.md"
-  },
-  "funding": {
-    "custom": ["https://mytemos.com/"]
   }
 }

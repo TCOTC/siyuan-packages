@@ -25,44 +25,46 @@
 ### 2.1 类型目录与支撑目录
 
 ```
-plugins/          发布包，类型 plugin  → plugin.json
-themes/           发布包，类型 theme   → theme.json
-widgets/          发布包，类型 widget  → widget.json
+plugins/          发布包，类型 plugin  → 包内 manifest.json，产物 plugin.json
+themes/           发布包，类型 theme   → 包内 manifest.json，产物 theme.json
+widgets/          发布包，类型 widget  → 包内 manifest.json，产物 widget.json
 libs/             不发布的共享库
 kit/              构建内核 @jeffrey-chen/siyuan-kit
 ```
 
-目录决定类型，类型决定清单文件名。`libs/*` 不是集市包：无清单、无 `build` 脚本、不进 `dist/`，`exports` 指向 `src/index.ts`，由消费方 vite 一并编译进 bundle。
+目录决定类型。**包内清单与产物清单不同名**：手写的那份统一叫 `manifest.json`，产物里那份按集市要求叫 `plugin.json` / `theme.json` / `widget.json`。同名会让人分不清哪个该改、哪个是生成结果，也容易把缺 `name` / `url` 的源清单直接当产物发出去。
+
+`libs/*` 不是集市包：无清单、无 `build` 脚本、不进 `dist/`，`exports` 指向 `src/index.ts`，由消费方 vite 一并编译进 bundle。
 
 `libs/vconsole` 是唯一例外：上游只发源码、打包需要整套 svelte + webpack，仓内无法复现，所以直接提交官方构建产物（更新方式见该目录 README）。
 
 ### 2.2 目录名 == 清单 `name` == `package.json` 的 `name`
 
-三者逐字符相同（含大小写），`resolvePackage` 里是**硬错误**。`name` 决定 `dist/<name>`、`data/<类型>/<name>` 与发布仓库 `TCOTC/<name>`，任何一处漂移都会让同一个包出现多种写法。
+三者逐字符相同（含大小写）。清单里的 `name` 现在**由构建从目录名推导**，所以真正要维护的只有两处：目录名与 `package.json` 的 `name`，`resolvePackage` 里是**硬错误**。`name` 决定 `dist/<name>`、`data/<类型>/<name>` 与发布仓库 `TCOTC/<name>`，任何一处漂移都会让同一个包出现多种写法。
 
 代价是 `pnpm --filter` 区分大小写。改 `name` 会让思源装出新目录、集市收录记录也对不上，所以不能改。
 
 ### 2.3 locale 一律 BCP 47
 
-除 `zh-CN` / `zh-TW` / `pt-BR` 外不带地区码。思源落盘前就把语言码归一成 BCP 47（`kernel/model/conf_specs.go`），下划线写法只是回退链里的兼容分支。
+除 `zh-CN` / `zh-TW` / `pt-BR` 外不带地区码。思源落盘前就把语言码归一成 BCP 47（见 siyuan 仓库 `kernel/model/conf_specs.go`），下划线写法只是回退链里的兼容分支。
 
 四处必须同步改，只改一半就会静默失效：
 
-| 位置                                                 | 例子                                        |
-| ---------------------------------------------------- | ------------------------------------------- |
-| 清单 `displayName` / `description` / `readme` 的 key | `"zh-CN"`、`"zh-TW"`、`"ja"`                |
-| 多语言 README 文件名                                 | `README.zh-CN.md`、`README.ja.md`           |
-| `src/i18n/*.json` 的文件名                           | `zh-CN.json`、`ja.json`                     |
-| `src/index.ts` 里对 i18n JSON 的导入路径             | `import type zhCN from "./i18n/zh-CN.json"` |
+| 位置                                      | 例子                                        |
+| ----------------------------------------- | ------------------------------------------- |
+| 清单 `displayName` / `description` 的 key | `"zh-CN"`、`"zh-TW"`、`"ja"`                |
+| 多语言 README 文件名                      | `README.zh-CN.md`、`README.ja.md`           |
+| `src/i18n/*.json` 的文件名                | `zh-CN.json`、`ja.json`                     |
+| `src/index.ts` 里对 i18n JSON 的导入路径  | `import type zhCN from "./i18n/zh-CN.json"` |
 
-`pnpm check` 校验前两项，并比对包根的 README 文件与清单 `readme` 声明是否逐项一致（声明了却没被复制、复制了却没声明都会报错）。
+清单的 `readme` 字段由构建从包根的 `README*.md` 推导，不用手写；文件名不合规则的文件不会进产物，`pnpm check` 会报（`README_zh_CN.md` 这类下划线写法就是它拦下的）。前两项与 `src/i18n/*.json` 的文件名由 `pnpm check` 校验。
 
 ### 2.4 一个插件包的最小结构
 
 ```
 plugins/move-doc/
 ├── package.json
-├── plugin.json           # 清单：name / version / icon / preview / readme
+├── manifest.json         # 清单的独有层：version / minAppVersion / displayName / description
 ├── icon.png
 ├── preview.png
 ├── README.md             # 多语言：README.zh-CN.md、README.ja.md …
@@ -71,7 +73,52 @@ plugins/move-doc/
     └── i18n/*.json       # 会被复制到产物的 i18n/
 ```
 
+包根不允许出现 `plugin.json` / `theme.json` / `widget.json`：那是产物清单的名字，`pnpm check` 会拦（改名漏改时会给 `git mv` 提示）。
+
 主题的约定入口是 `styles/index.scss`，挂件的约定入口是包根的 `index.html`。
+
+### 2.5 清单分三层
+
+包里的清单**不是集市读的那一份**，它只是覆盖层。集市读的是构建写进产物的完整清单。
+
+| 层   | 字段                                                                                                                 | 写在哪                                                                                                       |
+| ---- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 推导 | `name`、`url`、`readme`、`icon`、`preview`                                                                           | 不写。`name` ← 目录名、`url` ← `TCOTC/<name>`、`readme` ← 包根 `README*.md`、`icon`/`preview` ← 包根同名图片 |
+| 共用 | `author`、`funding`（顶层）；`backends`、`frontends`（按类型分节）                                                   | [`manifests/base.json`](../manifests/base.json)                                                              |
+| 独有 | `version`、`minAppVersion`、`displayName`、`description`、`disabledInPublish`、`keywords`、`settingsWindow`、`modes` | 包内清单                                                                                                     |
+
+合成顺序是「共用顶层 → 该类型分节 → 包内 → 推导」，后者覆盖前者；推导最后写入，不会被覆盖。字段按固定顺序输出，所以同一份源码两次构建出的清单逐字节相同。
+
+推导字段的具体规则：
+
+| 字段      | 来源                                                                         | 何时进清单                      |
+| --------- | ---------------------------------------------------------------------------- | ------------------------------- |
+| `name`    | 包目录名                                                                     | 总是                            |
+| `url`     | `https://github.com/TCOTC/<name>`                                            | 总是                            |
+| `readme`  | 包根 `README*.md`，`README.md` → `default`、`README.<locale>.md` → 该 locale | 至少有一个 README 时            |
+| `icon`    | 包根 `icon.{png,webp,jpg,jpeg,avif}`，按此优先级取第一个                     | **文件名不是 `icon.png` 时**    |
+| `preview` | 包根 `preview.{png,webp,jpg,jpeg,avif}`，同上                                | **文件名不是 `preview.png` 时** |
+
+`icon` / `preview` 的默认名不写进清单：siyuan 仓库 `kernel/bazaar/bazaar.go` 的 `packageImageName(configured, legacyName)` 在 `configured` 为 nil 时直接返回 `legacyName`（即 `icon.png` / `preview.png`），所以「叫 icon.png」与「不声明」完全等价。文件名是 `preview.webp` 这类才需要声明。
+
+图片文件**始终会复制进产物**（与是否写入清单无关）：`collectStaticAssets` 按同一个探测结果复制。扩展名必须在思源白名单 `png / jpg / jpeg / webp / avif` 内（`isSupportedPackageImageName`），放 `icon.svg` 既不进产物也拿不到 URL，`pnpm check` 会报。
+
+四个规矩：
+
+- **推导字段写进包内清单一律报错**（`resolvePackage` 直接抛）。写了也不生效，留着只会让下一个人以为它是真相。
+- **`author` / `funding` 一律不得在包内声明**：它们是全仓统一的身份信息，只能写在 `manifests/base.json` 顶层。包内写一份会盖掉共用值，而且改 base 时同步不到——`pnpm check` 会直接报错。（历史遗留的 `code-languages` 旧值已于 2026-11-10 清除）
+- **其余共用字段只在本包确实不同时才写**，且不得与 base 取值相同：相同即为冗余声明（删掉行为不变），`pnpm check` 会报。
+- **`manifests/base.json` 只有两层**：顶层放三种包类型取值相同的字段（`author`、`funding`），`plugin` / `theme` / `widget` 分节放该类型特有的默认值（如 theme 没有 `backends`，widget 没有前后端）。同一个字段不许同时出现在两层——`pnpm check` 会报「与顶层重复」。
+- **`backends` / `frontends` 里 `["all"]` 与省略等价**：内核 `IsTargetSupported` 遇到 `all` 直接返回兼容，所以「全平台」不要写成一长串枚举再加 `all`。
+- **`disabledInPublish` 只对插件与挂件有效**：插件走 `CheckPluginAccessableInPublish`、挂件走 `CheckWidgetAccessableInPublish`（均在 siyuan 仓库 `kernel/model/publish_resource_access.go`），主题没有任何读取点，写了也不生效。插件与挂件必须显式声明（零值等价于 `false`），主题写了会被 `pnpm check` 报错。
+
+想随时看某包合成后的清单：
+
+```bash
+siyuan-kit manifest plugins/move-doc
+```
+
+**Schema**：三份 schema 与共用清单同在 `manifests/`：`override.schema.json`（包内覆盖层）、`dist.schema.json`（产物清单）、`base.schema.json`（共用清单）。`.vscode/settings.json` 已把前两份绑到对应路径，写清单有补全与校验。schema 只服务编辑器体验，结构校验仍由 `pnpm check` 承担（不为它引运行时依赖）。
 
 ---
 
@@ -82,7 +129,7 @@ plugins/move-doc/
 源码目录里永远不出现产物，`.gitignore` 只需一行 `/dist`。
 
 ```
-plugins/move-doc/           源码  {plugin.json, README*.md, icon.png, preview.png, src/}
+plugins/move-doc/           源码  {manifest.json, README*.md, icon.png, preview.png, src/}
         └─▶ dist/move-doc/  产物  {index.js, index.css, plugin.json, README*.md, i18n/}
             dist/move-doc.zip       上传到 release 的那个包
 ```
@@ -94,6 +141,8 @@ plugins/move-doc/           源码  {plugin.json, README*.md, icon.png, preview.
 - zip 内不能多一层包装目录，清单必须在 zip 根
 - 清单 `version` 不带 `v` 前缀；release tag 带 `v`
 - `dist/` 与 `siyuan.config.json` 都 gitignore
+
+产物里的清单是**生成**的（三层合并，见 2.5），不是从包目录复制。包目录里那份只是覆盖层，复制过去会变成缺 `name` / 缺 `url` 的半成品。
 
 ### 3.2 运行期形态
 
@@ -142,7 +191,7 @@ plugins/move-doc/           源码  {plugin.json, README*.md, icon.png, preview.
 
 - 有单测的包再加 `"test": "vitest run"` 与 `vitest` 依赖；需要 DOM 的包在 `vitest.config.ts` 里设 `environment: "jsdom"`。`siyuan` 是纯类型包，测试里 alias 到桩。
 - `@jeffrey-chen/siyuan-kit` 必须写进 `devDependencies`（`workspace:*`），否则 `siyuan-kit` bin 不会链进该包。
-- kit 从清单读 `name` / `version` / `icon` / `preview` / `readme`，按约定找 `src/index.ts` 与 `src/i18n/`，用 name 算出 `/plugins/<name>/` 作为 `base`。
+- kit 从清单读 `version` / `displayName` / `description` 与共用段，再推导 `name` / `url` / `readme` / `icon` / `preview`，按约定找 `src/index.ts` 与 `src/i18n/`，用 name 算出 `/plugins/<name>/` 作为 `base`。
 
 ### 4.1 `build.config.ts` 白名单
 
@@ -190,19 +239,22 @@ plugins/move-doc/           源码  {plugin.json, README*.md, icon.png, preview.
 
 `siyuan-kit check` 遍历 `{plugins,themes,widgets}/*`，把能在构建阶段判定的约定变成一条会变红的检查：
 
-| 检查项      | 具体规则                                                                                                                                                                         |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 身份一致    | 目录名 == 清单 `name` == `package.json` 的 `name`（逐字符，含大小写）                                                                                                            |
-| 脚本入口    | `build` 必须是 `siyuan-kit build`，`dev` 必须是 `siyuan-kit dev`                                                                                                                 |
-| 测试        | 有 `src/**/*.test.ts` 或 `tests/` 就必须有 `test` 脚本且为 `vitest run`                                                                                                          |
-| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.strict.json`，且不得覆盖基线管辖的选项                                                                                   |
-| 配置白名单  | 有 `build.config.ts` 就必须在 `ALLOWED_BUILD_CONFIG` 里                                                                                                                          |
-| locale      | 清单的 `displayName` / `description` / `readme` / `title` key 与 `src/i18n/*.json` 文件名必须是 BCP 47                                                                           |
-| README 一致 | 包根被复制的 README（`README.md` / `README.<locale>.md`）与清单 `readme` 声明逐项相等（清单没写时按 `README.md` 回退）；`README_zh_CN.md` 这类下划线命名不匹配，会报“不会被复制” |
-| 产物位置    | 包目录里不允许出现 `dist/` / `package.zip` / `index.js` / `index.css` / `i18n/`                                                                                                  |
-| 许可副本    | 包根不允许出现 `LICENSE` / `LICENSE.md` / `LICENSE.txt`，许可只在仓库根声明                                                                                                      |
-| 第三方通知  | 包根只能有 `THIRD_PARTY-NOTICES.md`，其它 `THIRD_PARTY*` 文件一律报错（它们不会进产物）                                                                                          |
-| 约定入口    | 没有 `build.config.ts` 时，`src/index.ts`（插件）/ `index.html`（挂件）/ `styles/index.scss`（主题）必须存在                                                                     |
+| 检查项      | 具体规则                                                                                                                                                                                                                                         |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 身份一致    | 目录名 == `package.json` 的 `name`（逐字符，含大小写）；清单 `name` 由目录名推导，不再单独声明                                                                                                                                                   |
+| 脚本入口    | `build` 必须是 `siyuan-kit build`，`dev` 必须是 `siyuan-kit dev`                                                                                                                                                                                 |
+| 测试        | 有 `src/**/*.test.ts` 或 `tests/` 就必须有 `test` 脚本且为 `vitest run`                                                                                                                                                                          |
+| tsconfig    | 必须 extends 仓库根的 `tsconfig.base.json` 或 `tsconfig.strict.json`，且不得覆盖基线管辖的选项                                                                                                                                                   |
+| 配置白名单  | 有 `build.config.ts` 就必须在 `ALLOWED_BUILD_CONFIG` 里                                                                                                                                                                                          |
+| 清单覆盖层  | 包内清单不得声明推导字段（`name` / `url` / `readme` / `icon` / `preview`）与统一字段（`author` / `funding`）；`displayName` / `description` 必须带 `default`；插件与挂件必须显式写 `disabledInPublish`、主题不得写；与 base 取值相同的声明算冗余 |
+| 共用清单    | `manifests/base.json` 顶层不得含包间不同的字段（`version` / `displayName` 等），类型分节不得与顶层重复、也不得写包间不同的字段                                                                                                                   |
+| locale      | 清单的 `displayName` / `description` key 与 `src/i18n/*.json` 文件名必须是 BCP 47                                                                                                                                                                |
+| README 命名 | 包根 `README*.md` 必须匹配 `^README(\.[\w-]+)?\.md$` 且包根必须有 `README.md`（集市在清单没有 default 时回退它）；`README_zh_CN.md` 这类下划线命名会报“不会被复制”                                                                               |
+| 图片扩展名  | 包根 `icon.*` / `preview.*` 的扩展名必须在思源白名单 `png / jpg / jpeg / webp / avif` 内，否则不进产物也拿不到 URL                                                                                                                               |
+| 产物位置    | 包目录里不允许出现 `dist/` / `package.zip` / `index.js` / `index.css` / `i18n/`，也不允许出现产物清单名 `plugin.json` / `theme.json` / `widget.json`                                                                                             |
+| 许可副本    | 包根不允许出现 `LICENSE` / `LICENSE.md` / `LICENSE.txt`，许可只在仓库根声明                                                                                                                                                                      |
+| 第三方通知  | 包根只能有 `THIRD_PARTY-NOTICES.md`，其它 `THIRD_PARTY*` 文件一律报错（它们不会进产物）                                                                                                                                                          |
+| 约定入口    | 没有 `build.config.ts` 时，`src/index.ts`（插件）/ `index.html`（挂件）/ `styles/index.scss`（主题）必须存在                                                                                                                                     |
 
 CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错的输入上。
 
@@ -257,6 +309,7 @@ CI 顺序：`install --frozen-lockfile` → `check` → `format:check` → `lint
 打 tag `move-doc/v1.0.3`
         │
         ├─ 从 github.ref_name 切出 package=move-doc、version=1.0.3
+        ├─ siyuan-kit manifest <目录> 取合成清单（包里那份没有 name / url）
         ├─ 校验：tag 格式 / 包目录存在 / 清单 version == tag / 目录名 == 清单 name
         ├─ 从清单 url 推导目标仓库（回退 TCOTC/<name>）
         ├─ 只构建这一个包（不是全量）→ dist/move-doc.zip

@@ -10,15 +10,15 @@
 
 模板文件里的 `{{...}}` 会在复制时替换掉。取值来自命令参数与默认值，**出现未定义的占位符会直接报错**，不会静默留在产物里。
 
-| 占位符                | 含义                                | 默认值                            |
-| --------------------- | ----------------------------------- | --------------------------------- |
-| `{{name}}`            | 包名，同时是目录名与清单里的 `name` | 命令行的 `<name>`                 |
-| `{{displayName}}`     | 集市显示名（default）               | 由 `<name>` 转成 Title Case       |
-| `{{displayNameZhCN}}` | 集市显示名（zh-CN）                 | 同 `{{displayName}}`              |
-| `{{description}}`     | 集市描述（default）                 | 空字符串                          |
-| `{{descriptionZhCN}}` | 集市描述（zh-CN）                   | 空字符串                          |
-| `{{author}}`          | 清单 author                         | `Jeffrey Chen`                    |
-| `{{url}}`             | 清单 url                            | `https://github.com/TCOTC/<name>` |
+| 占位符                | 含义                  | 默认值                      |
+| --------------------- | --------------------- | --------------------------- |
+| `{{name}}`            | 包名，同时是目录名    | 命令行的 `<name>`           |
+| `{{displayName}}`     | 集市显示名（default） | 由 `<name>` 转成 Title Case |
+| `{{displayNameZhCN}}` | 集市显示名（zh-CN）   | 同 `{{displayName}}`        |
+| `{{description}}`     | 集市描述（default）   | 空字符串                    |
+| `{{descriptionZhCN}}` | 集市描述（zh-CN）     | 空字符串                    |
+
+模板里的清单只是**覆盖层**：`name` / `url` / `readme` / `icon` / `preview` 由构建推导，`author` / `funding` / `backends` / `frontends` 在 `manifests/base.json` 里声明（前两者在顶层、后两者按包类型分节），两边都不需要占位符。
 
 模板里没有 `LICENSE`：全仓共用根目录那一份 MIT，各包不放副本，产物也不带原文。引入第三方运行时依赖时，在包根加 `THIRD_PARTY-NOTICES.md`（文件名固定，许可全文写在同一文件），kit 会自动带进产物。
 

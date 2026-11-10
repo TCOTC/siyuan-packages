@@ -1,0 +1,17 @@
+{
+  "$schema": "./base.schema.json",
+  "author": "Jeffrey Chen",
+  "funding": {
+    "links": [
+      { "label": "个人网站", "url": "https://mytemos.com/" },
+      { "label": "爱发电", "url": "https://afdian.com/a/JeffreyChen" }
+    ]
+  },
+  "plugin": {
+    "backends": ["all"],
+    "frontends": ["all"]
+  },
+  "theme": {
+    "frontends": ["all"]
+  }
+}

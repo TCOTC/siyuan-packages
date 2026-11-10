@@ -1,7 +1,4 @@
 {
-  "name": "flomo-web",
-  "author": "Jeffrey Chen",
-  "url": "https://github.com/TCOTC/flomo-web",
   "version": "1.0.1",
   "minAppVersion": "3.8.2-alpha.1",
   "backends": ["windows", "linux", "darwin"],
@@ -14,10 +11,5 @@
   "description": {
     "default": "Open flomo in a tab or dock.",
     "zh-CN": "在页签或停靠栏中打开 flomo 网页。"
-  },
-  "readme": {
-    "default": "README.md",
-    "zh-CN": "README.zh-CN.md"
-  },
-  "funding": { "custom": ["https://mytemos.com/"] }
+  }
 }

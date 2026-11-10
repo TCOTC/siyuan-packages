@@ -1,11 +1,7 @@
 {
-  "name": "top-bar-text",
-  "author": "Jeffrey Chen",
-  "url": "https://github.com/TCOTC/top-bar-text",
   "version": "1.1.0",
   "minAppVersion": "3.8.4-alpha.6",
-  "backends": ["all"],
-  "frontends": ["all"],
+  "disabledInPublish": false,
   "displayName": {
     "default": "Top Bar Text",
     "zh-CN": "顶栏文本",
@@ -15,11 +11,5 @@
     "default": "Display text and countdown in the top bar",
     "zh-CN": "在顶栏显示文本、倒计时",
     "zh-TW": "在頂欄顯示文本、倒計時"
-  },
-  "readme": {
-    "default": "README.md",
-    "zh-CN": "README.zh-CN.md",
-    "zh-TW": "README.zh-TW.md"
-  },
-  "funding": { "custom": ["https://mytemos.com/"] }
+  }
 }

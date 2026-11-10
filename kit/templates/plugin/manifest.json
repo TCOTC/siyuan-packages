@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "minAppVersion": "3.8.3",
+  "disabledInPublish": false,
+  "displayName": {
+    "default": "{{displayName}}",
+    "zh-CN": "{{displayNameZhCN}}"
+  },
+  "description": {
+    "default": "{{description}}",
+    "zh-CN": "{{descriptionZhCN}}"
+  }
+}

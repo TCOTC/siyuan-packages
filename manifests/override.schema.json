@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "思源集市包清单（包内覆盖层）",
+  "description": "包内清单仅声明本包独有的字段。\n\n字段来源分三层：\n  1. 推导字段（name、url、readme、icon、preview）由构建生成，不得在此声明；\n  2. 共用字段（author、funding、backends、frontends）在 manifests/base.json 中声明（前两者在顶层、后两者按包类型分节）；\n  3. 其余字段在此声明。\n\n本 schema 在思源要求之上额外把 version、minAppVersion、displayName、description 列为必填（仓库约定：前两项用于发布校验与兼容性判断，后两项用于集市展示，不能为空）。\n\n产物清单为三层合并结果，字段定义见 dist.schema.json。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "minAppVersion", "displayName", "description"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema 地址，仅用于编辑器提示，构建时移除。"
+    },
+    "version": {
+      "$ref": "#/definitions/version"
+    },
+    "minAppVersion": {
+      "$ref": "#/definitions/version"
+    },
+    "displayName": {
+      "$ref": "#/definitions/localeStrings"
+    },
+    "description": {
+      "$ref": "#/definitions/localeStrings"
+    },
+    "disabledInPublish": {
+      "type": "boolean",
+      "description": "仅插件与挂件。是否在思源发布服务中禁用，与集市上架状态无关：插件由 siyuan 仓库 kernel/model/publish_resource_access.go 的 CheckPluginAccessableInPublish 判定，挂件由 CheckWidgetAccessableInPublish 判定；主题没有对应读取点，不得声明。插件与挂件必须显式写（零值等价于 false）。"
+    },
+    "settingsWindow": {
+      "const": true,
+      "description": "仅插件。是否声明支持在独立设置窗口中运行：字段带 omitempty，写 false 与省略等价，因此只能写 true；siyuan 仓库 kernel/model/plugin.go 的 LoadSettingsWindowPetals 只收录该值为 true 的插件。无设置界面时不应声明。"
+    },
+    "keywords": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "集市检索关键词。展示前会做一次 HTML 反转义。"
+    },
+    "modes": {
+      "type": "array",
+      "items": { "enum": ["light", "dark"] },
+      "description": "仅主题。提供的配色模式：siyuan 仓库 kernel/model/appearance.go 只识别 light 与 dark（分别归入浅色 / 深色主题列表），其它取值被忽略。"
+    },
+    "author": {
+      "type": "string",
+      "description": "作者名。与 manifests/base.json 中该包类型的取值相同时无需声明。"
+    },
+    "funding": {
+      "$ref": "#/definitions/funding"
+    },
+    "backends": {
+      "$ref": "#/definitions/backends"
+    },
+    "frontends": {
+      "$ref": "#/definitions/frontends"
+    },
+    "kernels": {
+      "$ref": "#/definitions/kernels"
+    },
+    "bootAppearances": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "仅插件。启动页外观 ID 列表，每项需对应包内可加载的外观资源（siyuan 仓库 kernel/model 的 loadBootAppearance）；重复项去重，加载失败的项被跳过。无枚举。"
+    }
+  },
+  "definitions": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?$",
+      "description": "语义化版本号（SemVer），不带 v 前缀；发布 tag 写作 v<version>。内核用 semver 比较 minAppVersion 与当前应用版本（siyuan 仓库 kernel/bazaar/package.go 的 isBelowRequiredAppVersion）。"
+    },
+    "localeStrings": {
+      "type": "object",
+      "description": "以 BCP 47 语言标签为键的文案表。键取值限于思源支持的语言（见 siyuan 仓库 app/appearance/langs/）；除 zh-CN、zh-TW、pt-BR 外不带地区码，default 必填。",
+      "additionalProperties": false,
+      "required": ["default"],
+      "properties": {
+        "default": { "type": "string" },
+        "ar": { "type": "string" },
+        "de": { "type": "string" },
+        "en": { "type": "string" },
+        "es": { "type": "string" },
+        "fr": { "type": "string" },
+        "he": { "type": "string" },
+        "hi": { "type": "string" },
+        "id": { "type": "string" },
+        "it": { "type": "string" },
+        "ja": { "type": "string" },
+        "ko": { "type": "string" },
+        "nl": { "type": "string" },
+        "pl": { "type": "string" },
+        "pt-BR": { "type": "string" },
+        "ru": { "type": "string" },
+        "sk": { "type": "string" },
+        "sr": { "type": "string" },
+        "th": { "type": "string" },
+        "tr": { "type": "string" },
+        "uk": { "type": "string" },
+        "zh-CN": { "type": "string" },
+        "zh-TW": { "type": "string" }
+      }
+    },
+    "funding": {
+      "type": "object",
+      "description": "资助渠道。集市列表卡片的心形只取第一条可用链接（优先级 openCollective → patreon → github → custom → links）；README 页会把全部链接列出。与 manifests/base.json 中该包类型的取值相同时无需声明。",
+      "additionalProperties": false,
+      "properties": {
+        "openCollective": { "type": "string", "description": "OpenCollective 用户名或完整 URL；填用户名时补 https://opencollective.com/。" },
+        "patreon": { "type": "string", "description": "Patreon 用户名或完整 URL；填用户名时补 https://www.patreon.com/。" },
+        "github": { "type": "string", "description": "GitHub Sponsors 用户名或完整 URL；填用户名时补 https://github.com/sponsors/。" },
+        "custom": { "type": "array", "items": { "type": "string" }, "description": "无标签的链接或说明文本，README 页按域名显示。需要显示中文名时改用 links。" },
+        "links": {
+          "type": "array",
+          "description": "带展示名的链接，README 页显示 label。",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "url"],
+            "properties": {
+              "label": { "type": "string", "description": "展示名，如「爱发电」。" },
+              "url": { "type": "string", "description": "链接地址，须为 http(s) 或 mailto:；其它协议会渲染成可复制的纯文本。" }
+            }
+          }
+        }
+      }
+    },
+    "backends": {
+      "type": "array",
+      "description": "支持的后端。取值对应 siyuan 仓库 kernel/bazaar/plugin.go 的 GetCurrentBackend：非容器环境为 runtime.GOOS（windows / linux / darwin），容器环境为 docker / android / ios / harmony。含 all 时 IsTargetSupported 直接判定兼容，因此 [\"all\"] 与省略等价；与 manifests/base.json 相同时无需声明。",
+      "items": { "enum": ["windows", "linux", "darwin", "ios", "android", "harmony", "docker", "all"] }
+    },
+    "frontends": {
+      "type": "array",
+      "description": "支持的前端环境。含 all 时 IsTargetSupported 直接判定兼容；但主题例外：siyuan 仓库 kernel/bazaar/theme.go 的 IsIncompatibleTheme 规定 frontends 为空（或只含 all 以外的空值）的主题在 mobile / browser-mobile 下不兼容。与 manifests/base.json 相同时无需声明。",
+      "items": { "enum": ["desktop", "mobile", "browser-desktop", "browser-mobile", "desktop-window", "all"] }
+    },
+    "kernels": {
+      "type": "array",
+      "description": "仅插件。内核插件支持的后端，与 backends 同一套取值。siyuan 仓库 kernel/bazaar/plugin.go 的 IsIncompatibleKernelPlugin 把缺省或空数组视为不支持内核插件，需要内核能力的插件必须显式声明。",
+      "items": { "enum": ["windows", "linux", "darwin", "ios", "android", "harmony", "docker", "all"] }
+    }
+  }
+}

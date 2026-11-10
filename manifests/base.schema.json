@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "思源集市包共用清单",
+  "description": "manifests/base.json：本仓所有集市包共用的清单默认值。\n\n两层写法：\n  · 顶层字段 = 三种包类型取值相同的字段（如 author、funding），只写一次；\n  · plugin / theme / widget 分节 = 该类型特有的默认值（如 theme 没有 backends）。\n\n构建时按「顶层 → 该类型分节 → 包内清单」的顺序浅合并，后者覆盖前者；包内清单只在与本文件不同时才声明同名字段。\n不得放入每包必然不同的字段（version、minAppVersion、displayName、description），也不得放入由构建推导的字段（name、url、readme、icon、preview）。",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "description": "JSON Schema 地址，仅用于编辑器提示，构建时忽略。" },
+    "author": { "type": "string", "description": "所有包的默认作者名。" },
+    "funding": {
+      "type": "object",
+      "description": "所有包的默认资助渠道。集市列表卡片的心形只取第一条可用链接（优先级 openCollective → patreon → github → custom → links）；README 页会把全部链接列出。",
+      "additionalProperties": false,
+      "properties": {
+        "openCollective": { "type": "string", "description": "OpenCollective 用户名或完整 URL；填用户名时补 https://opencollective.com/。" },
+        "patreon": { "type": "string", "description": "Patreon 用户名或完整 URL；填用户名时补 https://www.patreon.com/。" },
+        "github": { "type": "string", "description": "GitHub Sponsors 用户名或完整 URL；填用户名时补 https://github.com/sponsors/。" },
+        "custom": { "type": "array", "items": { "type": "string" }, "description": "无标签的链接或说明文本，README 页按域名显示。" },
+        "links": {
+          "type": "array",
+          "description": "带展示名的链接，README 页显示 label。",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["label", "url"],
+            "properties": {
+              "label": { "type": "string", "description": "展示名，如「爱发电」。" },
+              "url": { "type": "string", "description": "链接地址，须为 http(s) 或 mailto:。" }
+            }
+          }
+        }
+      }
+    },
+    "plugin": { "$ref": "#/definitions/section" },
+    "theme": { "$ref": "#/definitions/section" },
+    "widget": { "$ref": "#/definitions/section" }
+  },
+  "definitions": {
+    "section": {
+      "type": "object",
+      "description": "该包类型特有的默认值。只放会随类型变化的字段；三种类型取值相同的字段（author、funding）写到顶层。",
+      "additionalProperties": false,
+      "properties": {
+        "backends": {
+          "type": "array",
+          "description": "支持的后端。取值对应 siyuan 仓库 kernel/bazaar/plugin.go 的 GetCurrentBackend：非容器环境为 windows / linux / darwin，容器环境为 docker / android / ios / harmony。含 all 时判定兼容，故 [\"all\"] 与省略等价。",
+          "items": { "enum": ["windows", "linux", "darwin", "ios", "android", "harmony", "docker", "all"] }
+        },
+        "frontends": {
+          "type": "array",
+          "description": "支持的前端环境。含 all 时判定兼容；但 siyuan 仓库 kernel/bazaar/theme.go 的 IsIncompatibleTheme 规定 frontends 为空的主题在 mobile / browser-mobile 下不兼容。",
+          "items": { "enum": ["desktop", "mobile", "browser-desktop", "browser-mobile", "desktop-window", "all"] }
+        },
+        "kernels": {
+          "type": "array",
+          "description": "仅插件。内核插件支持的后端，与 backends 同一套取值。缺省或空数组视为不支持内核插件。",
+          "items": { "enum": ["windows", "linux", "darwin", "ios", "android", "harmony", "docker", "all"] }
+        },
+        "bootAppearances": { "type": "array", "items": { "type": "string" }, "description": "仅插件。启动页外观 ID 列表，每项需对应包内可加载的外观资源；重复项去重，加载失败的项被跳过。" },
+        "disabledInPublish": { "type": "boolean", "description": "仅插件与挂件。是否在思源发布服务中禁用，与集市上架状态无关；零值等价于 false。" },
+        "settingsWindow": { "type": "boolean", "description": "仅插件。是否声明支持在独立设置窗口中运行。字段带 omitempty，写 false 与省略等价。" },
+        "keywords": { "type": "array", "items": { "type": "string" }, "description": "集市检索关键词。" },
+        "modes": { "type": "array", "items": { "enum": ["light", "dark"] }, "description": "仅主题。提供的配色模式。内核只识别 light 与 dark，其它取值被忽略。" }
+      }
+    }
+  }
+}

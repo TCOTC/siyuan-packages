@@ -1,7 +1,4 @@
 {
-  "name": "Whisper",
-  "author": "Jeffrey Chen",
-  "url": "https://github.com/TCOTC/Whisper",
   "version": "3.0.7",
   "minAppVersion": "3.8.10-beta.4",
   "displayName": {
@@ -16,14 +13,6 @@
     "zh-TW": "淺吟時光的絮語，讓心靈於靜謐中邂逅繁花盛綻的綺夢。",
     "ja": "時の囁きを優しく紡ぎ、静けさの中で心が咲き誇る花の夢と出会う。"
   },
-  "readme": {
-    "default": "README.md",
-    "zh-CN": "README.zh-CN.md",
-    "zh-TW": "README.zh-TW.md",
-    "ja": "README.ja.md"
-  },
-  "funding": { "custom": ["https://mytemos.com/"] },
-  "frontends": ["all"],
-  "modes": ["light", "dark"],
-  "keywords": ["浅吟主题", "whisper theme"]
+  "keywords": ["浅吟主题", "whisper theme"],
+  "modes": ["light", "dark"]
 }

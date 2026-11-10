@@ -1,11 +1,6 @@
 {
-  "name": "heatmap",
-  "author": "Jeffrey Chen",
-  "url": "https://github.com/TCOTC/heatmap",
   "version": "1.1.4",
   "minAppVersion": "3.7.0",
-  "backends": ["all"],
-  "frontends": ["all"],
   "disabledInPublish": true,
   "displayName": {
     "default": "Document Activity Stats",
@@ -18,12 +13,5 @@
     "zh-CN": "直观展示全年笔记分布，支持热力图与日历两种形式",
     "zh-TW": "直觀展示全年筆記分佈，支援熱力圖與日曆兩種形式",
     "ja": "年間のノート分布をヒートマップとカレンダーで視覚的に表示します"
-  },
-  "readme": {
-    "default": "README.md",
-    "zh-CN": "README.zh-CN.md",
-    "zh-TW": "README.zh-TW.md",
-    "ja": "README.ja.md"
-  },
-  "funding": { "custom": ["https://mytemos.com/"] }
+  }
 }
