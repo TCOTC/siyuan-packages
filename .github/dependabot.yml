@@ -27,6 +27,13 @@ updates:
     commit-message:
       prefix: chore
       include: scope
+    # 精确跳过单个版本，等下一个补丁出版再提。
+    # ⚠️ 别用 PR 评论里的 `@dependabot ignore this minor version`：那是 7.0.x 整段，
+    # 会把 7.0.3 一起挡掉。这里写死版本号，7.0.3 发布后 Dependabot 会自动重新提 PR。
+    # 条目用完即删，别让它长期堆积。
+    ignore:
+      - dependency-name: typescript
+        versions: ["7.0.2"]
     groups:
       # 次版本与补丁合成一个 PR：catalog 里同批依赖极少互相冲突
       npm-minor:
