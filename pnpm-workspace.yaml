@@ -44,7 +44,7 @@ catalog:
   "@types/archiver": "^8.0.0"
 
   # 代码质量
-  typescript: "^6.0.3"
+  typescript: "^7.0.2"
   # 格式化与 lint 都交给 oxc：一个工具链覆盖 TS / SCSS / Markdown / JSON
   oxfmt: "^0.77.0"
   oxlint: "^1.92.0"
