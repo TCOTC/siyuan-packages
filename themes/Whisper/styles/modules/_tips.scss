@@ -94,6 +94,15 @@
   opacity: 1;
 }
 
+// 智能体面板的消息导航预览沿用原生的即时显示
+// 原生 app/src/assets/scss/business/_ai_agent.scss 的 .tooltip--agent-nav 用 animation: none 关掉动画
+// （导航预览会随指针高频重建，动画会表现为闪烁），但它与上面的 .tooltip 同为单类选择器，
+// 而 theme.css 在 base.css 之后加载，动画会被重新启用；同时那条 animation: none 简写
+// 已把 animation-fill-mode 重置成 none，延迟期间不保持首帧 → 先显示，延迟结束瞬间变透明再淡入。
+.tooltip--agent-nav {
+  animation: none;
+}
+
 // ————————————————————特别的提示————————————————————
 
 // 缩短显示延迟

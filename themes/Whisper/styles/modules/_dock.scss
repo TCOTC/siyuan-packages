@@ -23,6 +23,11 @@
   }
 }
 
+// 智能体面板的 .agent-chat 也带 fn__flex-1 且是 .file-tree 的直接子元素，但它不是列表容器，不预留滚动条槽位
+.file-tree > .agent-chat {
+  scrollbar-gutter: auto;
+}
+
 // 左右浮动停靠栏：四角圆角 + 高度填满编辑区（与底部浮动停靠栏一致）
 .layout--float {
   &.layout__dockl,
