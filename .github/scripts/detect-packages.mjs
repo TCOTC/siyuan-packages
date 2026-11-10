@@ -21,6 +21,9 @@
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
+// 版本比较只有一份实现（libs/version-compare）。Node 26 直接跑 .ts，无需预编译；
+// 该文件没有任何 import，类型注解可完整剥离。
+import { compareSemver } from "../../libs/version-compare/src/index.ts";
 import { isEntryPoint, TAG_PREFIX } from "./tag.mjs";
 
 const ROOT = process.cwd();
@@ -119,39 +122,6 @@ function versionAt(base, path) {
     throw new Error(`${base} 里的 ${path} 没有 version`);
   }
   return version;
-}
-
-/**
- * 比较两个版本号：返回 1 / 0 / -1。
- * 只支持集市在用的 `主.次.修订[-预发布]`；这里不引 semver 依赖，够用即可。
- */
-function compareVersions(a, b) {
-  if (a === b) {
-    return 0;
-  }
-  const [coreA = "", preA = ""] = a.split("-", 2);
-  const [coreB = "", preB = ""] = b.split("-", 2);
-  const partsA = coreA.split(".").map(Number);
-  const partsB = coreB.split(".").map(Number);
-
-  for (let i = 0; i < Math.max(partsA.length, partsB.length); i += 1) {
-    const diff = (partsA[i] ?? 0) - (partsB[i] ?? 0);
-    if (diff !== 0) {
-      return diff > 0 ? 1 : -1;
-    }
-  }
-
-  if (!preA && !preB) {
-    return 0;
-  }
-  // 带预发布后缀的版本小于同号正式版
-  if (!preA) {
-    return 1;
-  }
-  if (!preB) {
-    return -1;
-  }
-  return preA < preB ? -1 : 1;
 }
 
 function findPackageDir(token) {
@@ -298,7 +268,11 @@ function main() {
       continue;
     }
 
-    const order = compareVersions(pkg.version, previous);
+    const order = compareSemver(pkg.version, previous);
+    if (order === null) {
+      // 静默跳过会让「抬了版本却没发」这类事故无声无息，直接报错
+      throw new Error(`${pkg.name} 的版本无法按语义化版本解析，无法判断是否严格变大：${previous} → ${pkg.version}`);
+    }
     if (order === 0) {
       // 只改了 displayName / description 之类，没有新版本可发
       progress(`- ${pkg.name}：清单变了但 version 仍是 ${pkg.version}，跳过`);
