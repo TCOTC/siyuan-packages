@@ -38,6 +38,18 @@ kit/              构建内核 @jeffrey-chen/siyuan-kit
 
 `libs/vconsole` 是唯一例外：上游只发源码、打包需要整套 svelte + webpack，仓内无法复现，所以直接提交官方构建产物（更新方式见该目录 README）。
 
+**写新代码前先看 `libs/*` 是否已有对应能力**，别在包内再抄一份。当前共享能力：
+
+| 目录                   | 提供                                                                                                                          | 备注                                                                                                                 |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `libs/kernel-client`   | 内核 HTTP 传输、响应包络归一、文件读写                                                                                        | 只服务直接走 `fetch` 的包；用宿主导出 `fetchPost` / `fetchSyncPost` 的包保留自己的封装（宿主行为不同，见该目录注释） |
+| `libs/plugin-env`      | `isMobileFrontend()` / `isDesktopClientFrontend()`                                                                            | 判定必须走宿主 `getFrontend()`，不要嗅探 UA                                                                          |
+| `libs/custom-tab`      | 自定义页签的新建 / 复用 / 按类型查找                                                                                          | 复用按页签类型判定，不依赖 `custom.data`                                                                             |
+| `libs/html-safety`     | `escapeHtml`、`safeExternalUrl`                                                                                               | 拼 HTML 字符串、渲染外部链接一律走这里                                                                               |
+| `libs/token-field`     | 令牌输入框遮蔽策略与类名                                                                                                      | 类名要与消费方 `index.scss` 的同名选择器一致                                                                         |
+| `libs/version-compare` | `compareCoreVersions` / `isVersionInRange`（只比核心数字，预发布按核心数字归类）、`compareSemver`（严格 2.0.0，判「谁更新」） | 两种口径语义不同，**不要合并**；发布检测脚本也 import 这一份（Node 26 直接跑 `.ts`）                                 |
+| `libs/i18n-types`      | `SameKeys` / `Equal` / `AssertTrue`                                                                                           | 纯类型，`import type` 引用                                                                                           |
+
 ### 2.2 目录名 == 清单 `name` == `package.json` 的 `name`
 
 三者逐字符相同（含大小写）。清单里的 `name` 现在**由构建从目录名推导**，所以真正要维护的只有两处：目录名与 `package.json` 的 `name`，`resolvePackage` 里是**硬错误**。`name` 决定 `dist/<name>`、`data/<类型>/<name>` 与发布仓库 `TCOTC/<name>`，任何一处漂移都会让同一个包出现多种写法。
@@ -572,11 +584,12 @@ GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只�
 本包的精确改动由上面的提交列表给出）。`force` 重发时会用 `gh release edit` 把正文一起换掉，
 否则重发后还挂着上一次的提交列表。基准 ref 由检测阶段作为第 7 列传给 `publish.sh`。
 
-四条语义：
+六条语义：
 
 - **只改代码、不抬 `version` → 不发布**。版本号是唯一的发布信号。
 - **首次标签只建立基准**：在此之前没有任何 `release/*` 标签时，区间无从算起，直接跳过。所以迁移进本仓的第一批标签不会把全部包重发一遍。
-- **版本必须严格变大**：变小会让集市索引回退，检测阶段直接报错。
+- **版本必须严格变大**：变小会让集市索引回退，检测阶段直接报错。判断走 `libs/version-compare` 的 `compareSemver`（严格语义化版本 2.0.0），**不是**区间用的 `isVersionInRange`——后者会把预发布按核心数字归类，`1.0.2 → 1.0.2-beta.1` 在那里会被判成「相等」而静默跳过。
+- **版本串无法解析即报错**：清单里写 `1.0` 这类非三段版本时，检测阶段直接失败并打印新旧版本，不静默跳过。当前 22 个包都是 `主.次.修订`。
 - **同版本已存在即失败**：目标仓库已有 `v<version>` 时整包报错，不静默覆盖（`--clobber` 会让已安装用户收不到更新）。真需要覆盖时用 `workflow_dispatch` 勾 `force`。
 - **补发漏掉的包要推进基准**：用 `workflow_dispatch` 的 `packages` 手动发过之后，本地标签的基准还停在旧位置，
   下次 `pnpm release` 会重复检测到同一个包（然后撞「同版本已存在」）。此时用 `pnpm release --allow-empty`
