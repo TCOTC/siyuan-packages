@@ -246,6 +246,8 @@ plugins/move-doc/           源码  {manifest.json, README*.md, icon.png, previe
 链接建一次就够，构建写的就是链接指向的那个目录，所以不存在「漏同步」：改完源码刷新思源就能看到新产物。
 Windows 用**目录联接**（junction），不需要开发者模式或管理员权限；其它平台用符号链接。主题（sass）与插件/挂件一样适用。
 
+`dev` 是持续监听：插件/挂件由 vite 的 `build.watch` 负责；主题是唯一不走打包器的形态，由 kit 用 `fs.watch` 盯住入口目录（递归，含 partial 子目录）、入口之外被 `@use` 引用过的目录与 `icons/`（sass 的 `compileAsync` 没有 watch API）。编译错误只打到控制台、不中断监听；`dev` **不清空产物目录**——它已经链进思源，先清后编一旦失败（SCSS 报错、进程 OOM）思源里就只剩一个空主题。
+
 需要仓库根的 `siyuan.config.json`（gitignore，模板见 `siyuan.config.example.json`）：
 
 ```json

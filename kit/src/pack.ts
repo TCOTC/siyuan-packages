@@ -3,7 +3,7 @@ import { createWriteStream, existsSync, mkdirSync, readdirSync, copyFileSync, rm
 import { dirname, join, resolve, sep } from "node:path";
 import { collectStaticAssets, writeManifest, type ResolvedPackage } from "./resolve.ts";
 
-/** 构建前清空输出目录。dev 模式下 outDir 是包根，调用方不应调用本函数。 */
+/** 构建前清空输出目录。**dev 不要调用**：那时产物目录已经链进思源工作空间，是它正在读取的活目录。 */
 export function cleanOutput(outDir: string): void {
   rmSync(outDir, { recursive: true, force: true });
 }

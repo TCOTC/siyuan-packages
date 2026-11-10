@@ -57,15 +57,15 @@ pnpm --filter move-doc build        # 只构建一个包
 pnpm --filter move-doc dev          # 监听构建，并把产物目录链接进思源工作空间
 ```
 
-| 命令                              | 作用                                                           |
-| --------------------------------- | -------------------------------------------------------------- |
-| `pnpm build`                      | 构建全部包 → `dist/<name>/` 与 `dist/<name>.zip`               |
-| `pnpm dev`                        | 同时监听全部包（每个包一个 vite 实例，只适合真要多包联动时用） |
-| `pnpm --filter <name> build\|dev` | 只构建 / 监听一个包                                            |
-| `pnpm check`                      | 校验目录、清单、脚本、locale 等契约                            |
-| `pnpm typecheck` / `pnpm test`    | 全仓 `tsc -p .` / vitest                                       |
-| `pnpm lint` / `pnpm format`       | oxlint / oxfmt                                                 |
-| `pnpm create:plugin <name>`       | 基于模板新建插件                                               |
+| 命令                              | 作用                                                             |
+| --------------------------------- | ---------------------------------------------------------------- |
+| `pnpm build`                      | 构建全部包 → `dist/<name>/` 与 `dist/<name>.zip`                 |
+| `pnpm dev`                        | 同时监听全部包（每包一个进程，很吃内存，只适合真要多包联动时用） |
+| `pnpm --filter <name> build\|dev` | 只构建 / 监听一个包                                              |
+| `pnpm check`                      | 校验目录、清单、脚本、locale 等契约                              |
+| `pnpm typecheck` / `pnpm test`    | 全仓 `tsc -p .` / vitest                                         |
+| `pnpm lint` / `pnpm format`       | oxlint / oxfmt                                                   |
+| `pnpm create:plugin <name>`       | 基于模板新建插件                                                 |
 
 `--filter` **区分大小写**：包目录名与清单里的 `name` 逐字符一致，所以是 `--filter Whisper`、`--filter Whisper-Plus`。
 
@@ -76,6 +76,8 @@ pnpm --filter move-doc dev          # 监听构建，并把产物目录链接进
 ```
 
 没有这个文件时 `dev` 只构建、不链接（提示只打一次）。`build` 完全不读它：本机工作空间路径配错或换机器都不会影响打包。
+
+`dev` 是持续监听：插件/挂件走 vite 的 `build.watch`，主题由 kit 用 `fs.watch` 盯住 `styles/`（含 partial 子目录）与 `icons/`——sass 的 `compileAsync` 没有 watch API，不自己盯就只能编译一次。SCSS 写错只打到控制台，不会中断监听；`dev` 也不会清空产物目录（它已经链进思源，先清后编一旦失败思源里就只剩空主题）。
 
 ---
 

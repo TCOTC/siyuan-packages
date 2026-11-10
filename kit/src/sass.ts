@@ -1,5 +1,6 @@
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, join } from "node:path";
+import { mkdirSync, readdirSync, readFileSync, watch, writeFileSync, type FSWatcher } from "node:fs";
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /** sass 编译步骤，目前只有主题使用（主题产物就是一份 CSS，不需要打包器）。 */
 export interface SassStep {
@@ -17,7 +18,12 @@ export interface SassStep {
   iconDir?: string;
 }
 
-export async function runSassStep(step: SassStep): Promise<void> {
+export interface SassResult {
+  /** 本次编译读过的全部文件：入口 + `@use`/`@import` 进来的 partial。 */
+  loadedFiles: string[];
+}
+
+export async function runSassStep(step: SassStep): Promise<SassResult> {
   const { compileAsync } = await import("sass");
   const result = await compileAsync(step.input, {
     style: step.style,
@@ -36,6 +42,94 @@ export async function runSassStep(step: SassStep): Promise<void> {
     css += `/*# sourceMappingURL=${basename(step.output)}.map */`;
   }
   writeFileSync(step.output, css);
+
+  return { loadedFiles: result.loadedUrls.filter((url) => url.protocol === "file:").map((url) => fileURLToPath(url)) };
+}
+
+/** 合并窗口：编辑器保存一次常连发多个事件（写临时文件再改名）。 */
+const REBUILD_DEBOUNCE_MS = 60;
+
+/**
+ * 开发模式下盯着样式源重编译。
+ *
+ * sass 的 `compileAsync` 没有内建监听（`--watch` 只在 dart-sass 的 CLI 里），
+ * 而主题是三个 preset 里唯一不走打包器的，所以 dev 必须自己盯文件：
+ * 否则只编译一次就退出，改完样式思源那边永远看不到新的 `theme.css`。
+ */
+export function watchSassStep(step: SassStep, loadedFiles: string[], name: string): void {
+  const watchers = new Map<string, FSWatcher>();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let running = false;
+  let queued = false;
+
+  function ensureWatched(dir: string): void {
+    const root = resolve(dir);
+    for (const existing of watchers.keys()) {
+      if (isInside(root, existing)) {
+        return;
+      }
+    }
+    try {
+      // recursive 在三个平台上都可用（Windows 原生支持，Linux 自 Node 20 起支持），
+      // 目录今后新增的 partial 也能立刻生效。
+      const watcher = watch(root, { recursive: true }, schedule);
+      watcher.on("error", (error: Error) => {
+        console.warn(`[${name}] 监听 ${root} 失败：${error.message}`);
+      });
+      watchers.set(root, watcher);
+    } catch (error) {
+      console.warn(`[${name}] 监听 ${root} 失败：${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  function schedule(): void {
+    clearTimeout(timer);
+    timer = setTimeout(() => void rebuild(), REBUILD_DEBOUNCE_MS);
+  }
+
+  async function rebuild(): Promise<void> {
+    if (running) {
+      queued = true;
+      return;
+    }
+    running = true;
+    try {
+      const result = await runSassStep(step);
+      // 新引入的 partial 可能在还没盯的目录里
+      for (const file of result.loadedFiles) {
+        ensureWatched(dirname(file));
+      }
+      console.log(`[${name}] ${step.label} 已更新`);
+    } catch (error) {
+      // 编译错误不能终止监听：改一半的 SCSS 是常态，控制台报错即可
+      console.error(`[${name}] ${step.label} 编译失败：${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      running = false;
+      if (queued) {
+        queued = false;
+        schedule();
+      }
+    }
+  }
+
+  for (const dir of watchRoots(step, loadedFiles)) {
+    ensureWatched(dir);
+  }
+  console.log(`[${name}] ${step.label} 监听中（改完样式自动重编译，Ctrl+C 退出）`);
+}
+
+/** 要盯的目录：入口目录（含 partial 子目录）、入口目录之外被引用过的文件、图标目录。 */
+function watchRoots(step: SassStep, loadedFiles: string[]): string[] {
+  const roots = [dirname(step.input), ...loadedFiles.map((file) => dirname(file))];
+  if (step.iconDir) {
+    roots.push(step.iconDir);
+  }
+  return roots;
+}
+
+function isInside(child: string, parent: string): boolean {
+  const rel = relative(parent, child);
+  return rel === "" || (!rel.startsWith(`..${sep}`) && rel !== ".." && !isAbsolute(rel));
 }
 
 /** 目录下全部 SVG，键为相对该目录的路径。 */

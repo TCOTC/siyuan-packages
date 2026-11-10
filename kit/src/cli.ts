@@ -11,7 +11,7 @@ import type { BuildOptions } from "./define.ts";
 import { cleanOutput, copyAssets, copyExtras, zipDir } from "./pack.ts";
 import { plan, type BuildStep } from "./plan.ts";
 import { findRepoRoot, resolvePackage } from "./resolve.ts";
-import { runSassStep } from "./sass.ts";
+import { runSassStep, watchSassStep } from "./sass.ts";
 import { CONFIG_FILE, linkToWorkspace, loadWorkspaceConfig } from "./workspace.ts";
 
 const USAGE = `siyuan-kit — 思源集市包统一构建
@@ -105,8 +105,12 @@ async function runBuild(root: string, dev: boolean, rest: string[]): Promise<voi
 
   const current = plan(pkg, options, dev);
 
-  // 产物目录在 <仓库>/dist/ 下，源码与产物分离，构建前可以放心清空
-  cleanOutput(current.outDir);
+  // build 前可以放心清空产物目录（源码与产物分离，包里永远是源码）。
+  // dev 不行：产物目录已经链进思源工作空间，是思源正在读取的活目录；
+  // 先清后编的话，一旦编译失败（SCSS 报错、进程 OOM）思源里就只剩一个空主题/空插件。
+  if (!dev) {
+    cleanOutput(current.outDir);
+  }
 
   if (config) {
     // dev 只建一次链接：构建写的就是链接指向的那个目录，不需要逐文件复制。
@@ -119,7 +123,7 @@ async function runBuild(root: string, dev: boolean, rest: string[]): Promise<voi
     console.log(`[${pkg.name}] ${step.label}`);
     // 必须串行：多个 pass 写的是同一个产物目录，并发会互相覆盖
     // oxlint-disable-next-line no-await-in-loop
-    await runStep(step);
+    await runStep(step, dev, pkg.name);
   }
 
   copyAssets(pkg, current.outDir);
@@ -134,13 +138,17 @@ async function runBuild(root: string, dev: boolean, rest: string[]): Promise<voi
   }
 }
 
-async function runStep(step: BuildStep): Promise<void> {
+async function runStep(step: BuildStep, dev: boolean, name: string): Promise<void> {
   if (step.runner === "vite") {
+    // dev 时 config 里带了 build.watch，build() 返回 watcher 并让进程常驻；build 模式跑完就返回
     await build(step.config);
     return;
   }
 
-  await runSassStep(step);
+  const { loadedFiles } = await runSassStep(step);
+  if (dev) {
+    watchSassStep(step, loadedFiles, name);
+  }
 }
 
 /** 同一批启动的提示只打一次。根目录 `pnpm dev` 会并发拉起每个包的 kit 进程，各自都会走到这里。 */
