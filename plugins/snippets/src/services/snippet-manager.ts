@@ -707,6 +707,7 @@ export class SnippetManager {
       await this.removeSnippetElement(snippetId, isCss ? "css" : "js");
     }
     for (const snippet of snippetsList) {
+      // 逐个对齐：写 document.head 的顺序要与列表顺序一致
       await this.updateSnippetElement(snippet);
     }
   }

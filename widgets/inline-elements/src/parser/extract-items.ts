@@ -84,10 +84,11 @@ export async function extractItems(docHTML: string, ctx: WidgetContext): Promise
     if (visitedCount % PERF_CHECK_INTERVAL === 0) {
       const now = performance.now();
       if (now - parseStartTime >= MAX_PARSE_MS) {
-        console.warn(`inline-elements widget: Reached the maximum parsing time (${MAX_PARSE_MS}ms), ` + `stopping after ${processedCount} elements`);
+        console.warn(`inline-elements widget: Reached the maximum parsing time (${MAX_PARSE_MS}ms), stopping after ${processedCount} elements`);
         break;
       }
       if (now - sliceStartTime >= TIME_SLICE_MS) {
+        // 分片让出主线程，避免长文档解析时阻塞界面
         await sleep();
         sliceStartTime = performance.now();
       }

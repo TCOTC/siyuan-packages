@@ -149,7 +149,7 @@ function toPullRow(pull: GitHubPullListItem): BazaarPullRow | null {
  * @returns 请求失败时为 null；成功时为该页的 PR 与「本页是否已满」（满则可能还有下一页）
  */
 export async function listBazaarPulls(state: BazaarPullState, page: number, log: Logger, signal: AbortSignal, perPage = BAZAAR_PULLS_PER_PAGE): Promise<{ rows: BazaarPullRow[]; pageFull: boolean } | null> {
-  const url = `https://api.github.com/repos/${BAZAAR_REPO_OWNER}/${BAZAAR_REPO_NAME}/pulls` + `?state=${state}&per_page=${perPage}&page=${page}`;
+  const url = `https://api.github.com/repos/${BAZAAR_REPO_OWNER}/${BAZAAR_REPO_NAME}/pulls?state=${state}&per_page=${perPage}&page=${page}`;
   const data = await fetchGitHubJson<GitHubPullListItem[]>(url, log, i18n.githubListBazaarPullsFailed, signal);
   if (data === null) {
     return null;

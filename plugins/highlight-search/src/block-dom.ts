@@ -27,7 +27,7 @@ export function isOwnScopeElement(el: Element, scopeEl: Element): boolean {
   return scopeEl.contains(owner) && !isNestedFragmentProtyle(owner);
 }
 
-const DOC_ROOT_SELECTOR = ":is(.protyle-content:not(.fn__none) .protyle-wysiwyg, " + ".protyle-preview:not(.fn__none) .b3-typography)";
+const DOC_ROOT_SELECTOR = ":is(.protyle-content:not(.fn__none) .protyle-wysiwyg, .protyle-preview:not(.fn__none) .b3-typography)";
 
 /** 范围内所有正文根（与 DOM 高亮扫描范围一致：wysiwyg / 预览） */
 export function getDocRoots(scopeEl: Element): HTMLElement[] {

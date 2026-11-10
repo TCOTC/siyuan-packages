@@ -171,11 +171,11 @@ const run = async (request: ICodecRequest): Promise<ICodecSuccess> => {
 };
 
 const scope = self as unknown as {
-  onmessage: ((event: MessageEvent<ICodecRequest>) => void) | null;
+  addEventListener: (type: "message", listener: (event: MessageEvent<ICodecRequest>) => void) => void;
   postMessage: (message: unknown, transfer?: Transferable[]) => void;
 };
 
-scope.onmessage = async (event: MessageEvent<ICodecRequest>) => {
+scope.addEventListener("message", async (event: MessageEvent<ICodecRequest>) => {
   const request = event.data;
   try {
     const response = await run(request);
@@ -185,6 +185,8 @@ scope.onmessage = async (event: MessageEvent<ICodecRequest>) => {
     // 编解码器首次使用会动态加载 wasm 与胶水代码，此阶段的失败需要单独区分
     const stage = /wasm|WebAssembly|import|fetch|module/i.test(message) ? "load" : "encode";
     const failure: TCodecResponse = { id: request.id, ok: false, error: message, stage };
+    // Worker 的 postMessage 没有 targetOrigin（那是 window 之间的协议）
+    // oxlint-disable-next-line unicorn/require-post-message-target-origin
     scope.postMessage(failure);
   }
-};
+});

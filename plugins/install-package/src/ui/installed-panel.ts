@@ -345,6 +345,7 @@ export class InstalledPanel {
         if (index >= targets.length) {
           return;
         }
+        // 每个 worker 内部逐个取任务；并发度由外层的 worker 池控制
         await this.checkOne(targets[index]);
         if (seq !== this.checkAllSeq) {
           return;

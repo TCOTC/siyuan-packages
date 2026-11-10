@@ -116,6 +116,7 @@ function requireSiyuanConfig(log: Logger): NonNullable<typeof window.siyuan.conf
  */
 async function uploadLocalPackage(blob: Blob, fileName: string, log: Logger): Promise<LocalInstallResult> {
   for (let attempt = 0; ; attempt++) {
+    // 重试循环：必须等上一次的响应才能判断是否再试
     const response = await installLocalBazaarPackage(blob, fileName, getFrontend());
     const result = parseLocalInstallResponse(response);
     if (result.ok || response.transportFailed !== true || attempt >= INSTALL_RETRY_DELAYS_MS.length) {
@@ -387,6 +388,7 @@ async function installWithCurrentMinAppVersion(
     return { ok: false, msg: "" };
   } finally {
     for (const path of [tempPath, extractRootDir, repackedPath]) {
+      // 逐个清理；removeFile 失败只记 warn（返回 false），不会中断后续
       await removeFile(path, log);
     }
   }

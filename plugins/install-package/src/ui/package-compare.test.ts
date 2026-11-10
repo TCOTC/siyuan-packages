@@ -8,7 +8,7 @@
 import * as assert from "node:assert/strict";
 import { test } from "vitest";
 import { buildPackageCompareRows, COMPARE_DASH, formatPackageCompareLog } from "./package-compare.ts";
-import type { CompareRow, CompareRowKey, PackageCompareInput } from "./package-compare.ts";
+import type { CompareRow, PackageCompareInput } from "./package-compare.ts";
 import type { ParsedPackageInfo } from "../github/github.ts";
 import type { InstalledPackage } from "../install/installed-packages.ts";
 

@@ -108,7 +108,7 @@ export class CodecPool {
   private createSlot(): IWorkerSlot {
     const worker = new Worker(this.url);
     const slot: IWorkerSlot = { worker, current: null };
-    worker.onmessage = (event: MessageEvent<TCodecResponse>) => {
+    worker.addEventListener("message", (event: MessageEvent<TCodecResponse>) => {
       const task = slot.current;
       slot.current = null;
       if (!task) {
@@ -131,16 +131,16 @@ export class CodecPool {
         task.reject(new Error((failure && failure.error) || "encoding failed"));
       }
       this.dispatch();
-    };
-    // 脚本本身加载失败时不会有 onmessage，只能靠 onerror 判断
-    worker.onerror = () => {
+    });
+    // 脚本本身加载失败时不会有 message，只能靠 error 判断
+    worker.addEventListener("error", () => {
       const task = slot.current;
       slot.current = null;
       if (task) {
         task.reject(new Error(this.loadFailure || "codec worker failed"));
       }
       this.failAll(`cannot load codec worker at ${this.url}; rebuild the plugin and reload`);
-    };
+    });
     this.slots.push(slot);
     return slot;
   }

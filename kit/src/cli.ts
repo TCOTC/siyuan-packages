@@ -94,7 +94,6 @@ async function runBuild(cwd: string, dev: boolean, rest: string[]): Promise<void
   const targets = dev ? devTargets(cwd, rest) : [cwd];
   for (const root of targets) {
     // 多个包时串行：watch 模式下手动起的进程越少，内存越安全
-    // oxlint-disable-next-line no-await-in-loop
     await buildPackage(root, dev, rest);
   }
 }
@@ -177,7 +176,6 @@ async function buildPackage(root: string, dev: boolean, rest: string[]): Promise
   for (const step of current.steps) {
     console.log(`[${pkg.name}] ${step.label}`);
     // 必须串行：多个 pass 写的是同一个产物目录，并发会互相覆盖
-    // oxlint-disable-next-line no-await-in-loop
     await runStep(step, dev, pkg.name);
   }
 

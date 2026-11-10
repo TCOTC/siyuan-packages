@@ -214,6 +214,7 @@ export function localizePastedAssets(options: { plugin: FlomoPlugin; protyle: IP
       }
       index++;
       const filename = `flomo-${Date.now()}-${index}${extOf(url, item.mime)}`;
+      // 逐个上传：串行避免同时向内核打多个 multipart 请求
       const path = await uploadBlob(plugin, item.blob, filename, protyle.block.rootID);
       if (path) {
         fromTo.set(url, path);
@@ -223,6 +224,7 @@ export function localizePastedAssets(options: { plugin: FlomoPlugin; protyle: IP
       return;
     }
     for (const id of blockIds) {
+      // 逐块等渲染完成后才能改写 DOM（waitForBlock 内部轮询）
       const el = await waitForBlock(protyle, id);
       if (!el || !replaceMediaSrc(el, fromTo)) {
         continue;

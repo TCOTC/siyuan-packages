@@ -25,14 +25,32 @@ class FakeWebSocket {
   url: string;
   readyState = FakeWebSocket.CONNECTING;
   sent: string[] = [];
-  onopen: ((event?: unknown) => void) | null = null;
-  onmessage: ((event?: { data: string }) => void) | null = null;
-  onerror: ((event?: unknown) => void) | null = null;
-  onclose: ((event?: { code: number; reason: string }) => void) | null = null;
+  private listeners = new Map<string, Array<(event?: unknown) => void>>();
 
   constructor(url: string) {
     this.url = url;
     FakeWebSocket.instances.push(this);
+  }
+
+  addEventListener(type: string, listener: (event?: unknown) => void): void {
+    const list = this.listeners.get(type) ?? [];
+    list.push(listener);
+    this.listeners.set(type, list);
+  }
+
+  removeEventListener(type: string, listener: (event?: unknown) => void): void {
+    const list = this.listeners.get(type) ?? [];
+    this.listeners.set(
+      type,
+      list.filter((item) => item !== listener),
+    );
+  }
+
+  /** 测试辅助：按事件类型触发已注册的监听器 */
+  fire(type: string, event?: unknown): void {
+    for (const listener of this.listeners.get(type) ?? []) {
+      listener(event);
+    }
   }
 
   send(data: string): void {
@@ -41,18 +59,18 @@ class FakeWebSocket {
 
   close(): void {
     this.readyState = FakeWebSocket.CLOSED;
-    this.onclose?.({ code: 1000, reason: "" });
+    this.fire("close", { code: 1000, reason: "" });
   }
 
   /** 测试辅助：模拟连接建立 */
   open(): void {
     this.readyState = FakeWebSocket.OPEN;
-    this.onopen?.({});
+    this.fire("open", {});
   }
 
   /** 测试辅助：模拟收到服务端消息 */
   receive(data: string): void {
-    this.onmessage?.({ data });
+    this.fire("message", { data });
   }
 }
 
@@ -204,8 +222,8 @@ describe("BroadcastService", () => {
     vi.useFakeTimers();
     service.stop();
     expect(closeSpy).toHaveBeenCalledTimes(1);
-    // stop 后触发 onclose（模拟延迟关闭事件）也不应重连
-    ws.onclose?.({ code: 1006, reason: "abnormal" });
+    // stop 后触发 close（模拟延迟关闭事件）也不应重连
+    ws.fire("close", { code: 1006, reason: "abnormal" });
     await vi.advanceTimersByTimeAsync(3000);
     expect(FakeWebSocket.instances).toHaveLength(1);
     expect(logger.log).not.toHaveBeenCalledWith(expect.stringContaining("Attempting to reconnect"));
@@ -214,7 +232,7 @@ describe("BroadcastService", () => {
   it("连接关闭后自动重连（按固定间隔）", async () => {
     const ws = await startService();
     vi.useFakeTimers();
-    ws.onclose?.({ code: 1006, reason: "abnormal" });
+    ws.fire("close", { code: 1006, reason: "abnormal" });
     await vi.advanceTimersByTimeAsync(2999);
     expect(FakeWebSocket.instances).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(1);
@@ -228,7 +246,7 @@ describe("BroadcastService", () => {
   it("连接出错时记录错误", async () => {
     const startPromise = service.start();
     const ws = FakeWebSocket.instances[0];
-    ws.onerror?.("boom");
+    ws.fire("error", "boom");
     await expect(startPromise).rejects.toBe("boom");
   });
 });

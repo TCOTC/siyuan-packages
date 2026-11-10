@@ -19,9 +19,7 @@ beforeAll(() => {
     },
   };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (globalThis as any).Highlight = class {
-    constructor(..._ranges: Range[]) {}
-  };
+  (globalThis as any).Highlight = function Highlight(..._ranges: Range[]) {};
   // jsdom 的 checkVisibility 常为 false，导致 DomHit Range 建不出来
   HTMLElement.prototype.checkVisibility = () => true;
 });

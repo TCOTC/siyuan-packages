@@ -440,8 +440,6 @@ export class MenuDragSort {
 
     this.isDragging = false;
 
-    const documentSelf = document;
-    documentSelf.ondragstart = () => false;
     let ghostElement: HTMLElement;
     let selectItem: HTMLElement | null = null;
 
@@ -453,7 +451,12 @@ export class MenuDragSort {
 
     const contentRect = dragContainer.getBoundingClientRect();
 
-    documentSelf.onmousemove = (moveEvent: MouseEvent) => {
+    // 拖拽期间接管 document 的指针与拖拽事件。用 addEventListener + 显式移除，
+    // 而不是给 on* 赋值：赋值会覆盖思源自身（或其他插件）已注册的处理器。
+    const onDragStart = (dragEvent: DragEvent) => {
+      dragEvent.preventDefault();
+    };
+    const onMouseMove = (moveEvent: MouseEvent) => {
       if (Math.abs(moveEvent.clientY - event.clientY) < DRAG_START_THRESHOLD_PX && Math.abs(moveEvent.clientX - event.clientX) < DRAG_START_THRESHOLD_PX) {
         // 移动距离小于阈值时，不进行拖拽
         return;
@@ -482,13 +485,17 @@ export class MenuDragSort {
       selectItem = this.updateDragStyles(moveEvent, dragContainer, item, contentRect);
     };
 
-    documentSelf.onmouseup = async () => {
-      documentSelf.onmousemove = null;
-      documentSelf.onmouseup = null;
-      documentSelf.ondragstart = null;
+    const onMouseUp: () => Promise<void> = async () => {
+      document.removeEventListener("dragstart", onDragStart);
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
 
       await this.endDragAndSort(ghostElement, item, dragContainer, selectItem);
     };
+
+    document.addEventListener("dragstart", onDragStart);
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
   }
 
   /**

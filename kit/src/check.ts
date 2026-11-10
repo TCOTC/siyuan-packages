@@ -14,7 +14,7 @@ import { BASE_FORBIDDEN_FIELDS, BASE_MANIFEST_FILE, BASE_SECTION_KEYS, DERIVED_F
 export const ALLOWED_BUILD_CONFIG: Record<string, string> = {
   "code-recognition": "wasm 不在 vite 模块图里，需要 copy",
   "flomo-web": "主进程挂钩脚本由 remote.require 按路径加载，需要 copy",
-  "image-squeeze": "Worker 入口要 iife + inlineDynamicImports，需要 passes",
+  "image-squeeze": "Worker 入口要 iife 格式，需要 passes",
   "inline-elements": "生产构建需要去掉 console.*（dropConsole）",
   "siyuan-plugin-openmoji-emoji": "字体不在 vite 模块图里，需要 copy",
   "siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji": "11 MB 字体不能进模块图，需要 copy",
@@ -209,7 +209,7 @@ function checkVitestConfig(root: string, push: (message: string) => void): void 
  * 包内再放一份不仅重复，还会出现 declarations / env / ambient / global 四种名字。
  * 包内允许保留的只有 `src/types.d.ts`：放真正属于该包的全局类型。
  */
-const FORBIDDEN_AMBIENT_FILES = ["declarations.d.ts", "env.d.ts", "ambient.d.ts", "global.d.ts"];
+const FORBIDDEN_AMBIENT_FILES = new Set(["declarations.d.ts", "env.d.ts", "ambient.d.ts", "global.d.ts"]);
 
 function checkAmbientDeclarations(root: string, push: (message: string) => void): void {
   const src = join(root, "src");
@@ -217,7 +217,7 @@ function checkAmbientDeclarations(root: string, push: (message: string) => void)
     return;
   }
   for (const file of readdirSync(src)) {
-    if (FORBIDDEN_AMBIENT_FILES.includes(file)) {
+    if (FORBIDDEN_AMBIENT_FILES.has(file)) {
       push(`src/${file} 应删除：样式模块等环境声明统一在仓库根 types/ambient 声明，包内只保留 src/types.d.ts（本包独有的全局类型）`);
     }
   }
@@ -283,7 +283,7 @@ const ALLOWED_TSCONFIG_BASES = ["../../tsconfig.base.json", "../../tsconfig.stri
  * 一半是编译事实（改了会改产物），一半是基线严格度（改了等于自创一档）。
  * 包内允许的只剩「把某项检查调得更严」，例如 noUnusedLocals。
  */
-const BASELINE_OWNED_OPTIONS = ["target", "lib", "module", "moduleResolution", "types", "noEmit", "skipLibCheck", "resolveJsonModule", "strict", "noImplicitOverride", "noUncheckedIndexedAccess", "exactOptionalPropertyTypes", "verbatimModuleSyntax", "allowImportingTsExtensions", "erasableSyntaxOnly"];
+const BASELINE_OWNED_OPTIONS = new Set(["target", "lib", "module", "moduleResolution", "types", "noEmit", "skipLibCheck", "resolveJsonModule", "strict", "noImplicitOverride", "noUncheckedIndexedAccess", "exactOptionalPropertyTypes", "verbatimModuleSyntax", "allowImportingTsExtensions", "erasableSyntaxOnly"]);
 
 function checkTsconfig(root: string, push: (message: string) => void): void {
   const file = join(root, "tsconfig.json");
@@ -299,7 +299,7 @@ function checkTsconfig(root: string, push: (message: string) => void): void {
     push(`tsconfig.json 必须 extends ${ALLOWED_TSCONFIG_BASES.map((item) => JSON.stringify(item)).join(" 或 ")}，实际是 ${JSON.stringify(base ?? null)}`);
   }
 
-  const owned = compilerOptionKeys(source).filter((key) => BASELINE_OWNED_OPTIONS.includes(key));
+  const owned = compilerOptionKeys(source).filter((key) => BASELINE_OWNED_OPTIONS.has(key));
   if (owned.length > 0) {
     push(`tsconfig.json 不允许覆盖共享基线的选项：${owned.join("、")}；需要不同的严格度请换成 tsconfig.strict.json`);
   }

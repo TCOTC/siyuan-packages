@@ -127,8 +127,8 @@ const setup = (
     gistTokenService: { token: options.token ?? "ghp_xxx", hasToken: !!(options.token ?? "ghp_xxx") },
     gistSyncService,
     importExportService,
-    addListener: vi.fn((element: HTMLElement, event: string, fn: (event: Event) => void, options?: AddEventListenerOptions) => {
-      element.addEventListener(event, fn as EventListener, options);
+    addListener: vi.fn((element: HTMLElement, event: string, fn: (event: Event) => void, listenerOptions?: AddEventListenerOptions) => {
+      element.addEventListener(event, fn as EventListener, listenerOptions);
     }),
     removeListener: vi.fn(),
   } as unknown as PluginSnippets;

@@ -4,7 +4,7 @@ import { outputNameOf, type ICodecOptions } from "./codec/protocol";
 import type { IAssetRelinkMapping, ICandidate, ICandidateReference, ICompressOptions, ICompressSummary, IUnavailableAttributeView } from "./types";
 
 /** 可参与转换的源格式。GIF、SVG、HEIC 等一律跳过。 */
-const SUPPORTED_EXTS = [".png", ".jpg", ".jpeg"];
+const SUPPORTED_EXTS = new Set([".png", ".jpg", ".jpeg"]);
 
 export const WEBP_MIME = "image/webp";
 
@@ -54,7 +54,7 @@ const isSupported = (path: string): boolean => {
   if ("" === name || name.startsWith(".")) {
     return false;
   }
-  return SUPPORTED_EXTS.includes(extOf(path));
+  return SUPPORTED_EXTS.has(extOf(path));
 };
 
 /** 递归枚举全局资源目录，覆盖未在文档中引用但实际存在的图片。 */
@@ -69,6 +69,7 @@ const walkAssetsDir = async (dir: string): Promise<string[]> => {
   for (const entry of entries) {
     const child = `${dir}/${entry.name}`;
     if (entry.isDir) {
+      // 递归展开子目录，结果顺序与目录遍历顺序一致
       found.push(...(await walkAssetsDir(child)));
       continue;
     }
@@ -356,6 +357,7 @@ export const applyAccepted = async (candidates: ICandidate[], options: ICompress
         continue;
       }
       try {
+        // 逐个删原图，并在每个之后回报进度
         await removeFile(`data/${candidate.path}`);
         candidate.message = "deletedOriginal";
         summary.deleted++;
@@ -472,6 +474,7 @@ export const runBatch = async (candidates: ICandidate[], options: ICompressOptio
       break;
     }
     try {
+      // 逐张处理：进度按张回报，且 in-place 模式要逐张改写文档里的引用
       const buffer = await encodeCandidate(candidate, options, pool);
       const skipReason = checkEncoded(candidate, options);
       if (skipReason) {

@@ -244,7 +244,7 @@ export default class TopBarTextPlugin extends Plugin {
   };
 
   private stopAllUpdateTimers = () => {
-    this.updateTimers.forEach((timerId, type) => {
+    this.updateTimers.forEach((timerId) => {
       window.clearInterval(timerId);
     });
     this.updateTimers.clear();

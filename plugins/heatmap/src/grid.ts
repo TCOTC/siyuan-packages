@@ -252,7 +252,8 @@ function fillGrid(start: Date, end: Date, countMap: DayActivityMap): PeriodGrid 
   const weeks: GridCell[][] = [];
   let week: GridCell[] = [];
 
-  for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+  for (let cursor = new Date(start); ; cursor.setDate(cursor.getDate() + 1)) {
+    if (cursor > end) break;
     const key = formatDateKey(cursor);
     const cell = cellFromMap(countMap, key);
     cells.push(cell);
@@ -278,7 +279,8 @@ function fillCalendarGrid(start: Date, end: Date, year: number, countMap: DayAct
   let week: GridCell[] = [];
   const yearPrefix = String(year);
 
-  for (let cursor = new Date(start); cursor <= end; cursor.setDate(cursor.getDate() + 1)) {
+  for (let cursor = new Date(start); ; cursor.setDate(cursor.getDate() + 1)) {
+    if (cursor > end) break;
     const key = formatDateKey(cursor);
     let cell: GridCell;
     if (!key.startsWith(yearPrefix)) {

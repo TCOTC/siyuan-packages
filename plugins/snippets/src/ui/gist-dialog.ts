@@ -248,8 +248,8 @@ export class GistDialog {
           // 切换发布目标：新建 secret/公开 / 更新上次 / 更新指定
           // 「更新指定 Gist」时显示 gist id 输入行；新建时描述清空（避免残留上个 gist 描述），
           // 更新目标则拉取该 gist 已有描述预填
-          const target = syncTargetRows();
-          if (target === "new-secret" || target === "new-public") {
+          const syncTarget = syncTargetRows();
+          if (syncTarget === "new-secret" || syncTarget === "new-public") {
             descInput.value = "";
           } else {
             void this.fillDescFromExisting(dialog.element);

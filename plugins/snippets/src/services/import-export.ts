@@ -167,7 +167,7 @@ export class ImportExportService {
           try {
             importData = JSON.parse(importText);
           } catch (parseError) {
-            throw new Error(this.plugin.i18n.importFileNotValidJson);
+            throw new Error(this.plugin.i18n.importFileNotValidJson, { cause: parseError });
           }
 
           // 验证导入数据格式
@@ -297,15 +297,15 @@ export class ImportExportService {
   private readFileAsText(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onload = (event) => {
+      reader.addEventListener("load", (event) => {
         const result = event.target?.result as string;
         if (result) {
           resolve(result);
         } else {
           reject(new Error("Failed to read file"));
         }
-      };
-      reader.onerror = () => reject(new Error("Failed to read file"));
+      });
+      reader.addEventListener("error", () => reject(new Error("Failed to read file")));
       reader.readAsText(file);
     });
   }
@@ -514,6 +514,7 @@ export class ImportExportService {
       const filePath = file.path || dir.replace(/\/$/, "") + "/" + file.name;
 
       try {
+        // 逐个读取直到命中第一个 JSON 文件，顺序即候选顺序
         const fileContent = await getFile(filePath);
 
         if (fileContent && !fileContent.code) {
@@ -528,7 +529,7 @@ export class ImportExportService {
             return filePath;
           }
         }
-      } catch (error) {
+      } catch {
         // 不是有效的 JSON，继续查找下一个文件
       }
     }
@@ -538,6 +539,7 @@ export class ImportExportService {
     for (const subDir of subDirs) {
       const subDirPath = subDir.path || dir.replace(/\/$/, "") + "/" + subDir.name;
 
+      // 递归查找子目录，命中即返回，不能并发
       const result = await this.findJsonFileRecursive(subDirPath);
       if (result) {
         return result;

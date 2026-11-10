@@ -893,6 +893,7 @@ export default class HeatMap extends Plugin {
         const hasChart = Boolean(chartHost.querySelector(".jchm"));
 
         try {
+          // 刷新靠 chartAbort 单槽位与 refreshQueued 串行化：并发查询会互相 abort
           const { days, totalDocs } = await this.awaitWithLoadingDelay(
             queryActivity(this.config.statMode, this.config, signal),
             () => {

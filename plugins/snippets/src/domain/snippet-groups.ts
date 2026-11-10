@@ -131,10 +131,13 @@ export function assignSnippetToGroup(groups: SnippetGroup[], groupId: string, sn
 }
 
 export function unassignSnippetFromGroup(groups: SnippetGroup[], snippetId: string): SnippetGroup[] {
-  return cloneGroups(groups).map((group) => {
-    if (!group.snippetIds.includes(snippetId)) return group;
-    return { ...group, snippetIds: group.snippetIds.filter((id) => id !== snippetId) };
-  });
+  // cloneGroups 已拷贝 snippetIds，直接就地改克隆体，避免 map 里再造对象
+  const next = cloneGroups(groups);
+  for (const group of next) {
+    if (!group.snippetIds.includes(snippetId)) continue;
+    group.snippetIds = group.snippetIds.filter((id) => id !== snippetId);
+  }
+  return next;
 }
 
 /** 片段须已在目标组内；目标为组头时追加到组尾。 */
@@ -163,7 +166,10 @@ export function addGroup(groups: SnippetGroup[], group: SnippetGroup): SnippetGr
 }
 
 export function renameGroup(groups: SnippetGroup[], groupId: string, newName: string): SnippetGroup[] {
-  return cloneGroups(groups).map((group) => (group.id === groupId ? { ...group, name: newName } : group));
+  const next = cloneGroups(groups);
+  const target = next.find((group) => group.id === groupId);
+  if (target) target.name = newName;
+  return next;
 }
 
 /** 删除分组，组内片段回到未分组；不删除片段本身。 */

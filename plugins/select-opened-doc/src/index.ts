@@ -19,7 +19,7 @@ export default class SelectOpenedDocPlugin extends Plugin {
     this.data[STORAGE_NAME].desktopFoldKey ??= "right"; // 默认是鼠标右键折叠文档树
     this.data[STORAGE_NAME].mobileFoldKey ??= "longPress"; // 默认是长按折叠文档树
     this.data[STORAGE_NAME].changeButtonText ??= // 如果是插件 i18n 支持的语种，则默认修改按钮文案，否则不修改
-      ["zh-CN", "zh-TW", "en"].includes(window.siyuan.config!.appearance.lang) ? true : false;
+      ["zh-CN", "zh-TW", "en"].includes(window.siyuan.config!.appearance.lang);
 
     // 插件设置
     this.setting = new Setting({

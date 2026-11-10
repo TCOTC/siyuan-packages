@@ -41,8 +41,7 @@ function toSearchTarget(editor: Protyle): SearchTarget {
  * 多个反链条目时用首个条目提供文档信息。
  */
 function pickPopoverTarget(popover: Element, editors: Protyle[]): SearchTarget | undefined {
-  const scoped = editors.filter((item) => popover.contains(item.protyle.element));
-  const editor = scoped[0];
+  const editor = editors.find((item) => popover.contains(item.protyle.element));
   if (!editor) return undefined;
   return isBacklinkPopoverScope(popover) ? { editor, scopeEl: popover } : toSearchTarget(editor);
 }
@@ -323,7 +322,8 @@ export default class PluginHighlight extends Plugin {
         scopeEl.appendChild(container);
       }
 
-      new SearchBox({
+      // 构造即挂载：SearchBox 在构造函数里把实例登记到容器元素上（拿回引用处见 getSearchBox）
+      void new SearchBox({
         protyleEl: scopeEl,
         element: container,
         plugin: this.host,

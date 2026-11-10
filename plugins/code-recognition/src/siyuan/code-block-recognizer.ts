@@ -160,6 +160,7 @@ export class CodeBlockRecognizer {
     const uniqueBlocks = Array.from(new Map(blocks.filter((block) => block.matches(CODE_BLOCK_SELECTOR)).map((block) => [block.dataset.nodeId, block])).values());
     const updates: PreparedUpdate[] = [];
     for (let index = 0; index < uniqueBlocks.length; index++) {
+      // 逐块识别；每 8 块主动让出一次主线程，避免长文档卡顿
       const update = await this.prepareUpdate(uniqueBlocks[index]);
       if (update) {
         updates.push(update);

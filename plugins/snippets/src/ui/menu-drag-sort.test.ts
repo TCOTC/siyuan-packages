@@ -42,6 +42,8 @@ const setup = (options: { sortType?: string; refreshResult?: boolean; moveResult
   item.getBoundingClientRect = () => ({ top: 0, bottom: 40, left: 0, right: 200, width: 200, height: 40, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect;
 
   plugin.menuView.menuItems = menuItemsEl;
+  // 必须挂进文档：拖拽监听注册在 document 上，事件要靠冒泡才能到达
+  document.body.appendChild(menuItemsEl);
 
   const dragSort = new MenuDragSort(plugin);
   return { dragSort, plugin, container, item, selectItem, broadcast };
@@ -55,19 +57,20 @@ const dragTo = async (dragSort: MenuDragSort, selectItem: HTMLElement, from = { 
   const item = selectItem.parentElement!.children[1] as HTMLElement;
   Object.defineProperty(downEvent, "target", { value: item });
   dragSort.handleMenuMousedown(downEvent);
-  // mousemove 必须为真 MouseEvent（实现内以 instanceof 区分鼠标/触摸）；指向 selectItem 下半区 → dragover__bottom
-  const moveEvent = new MouseEvent("mousemove", { clientX: to.x, clientY: to.y, bubbles: true });
-  Object.defineProperty(moveEvent, "target", { value: selectItem });
-  (document as unknown as { onmousemove: ((e: MouseEvent) => void) | null }).onmousemove?.(moveEvent);
-  await (document as unknown as { onmouseup: (() => Promise<void>) | null }).onmouseup?.();
+  // 事件派发到真实元素上，冒泡到 document 由拖拽期间注册的监听取用；
+  // target 必须是真元素，实现里以 clientY 与 target 判定落点（dragover__bottom）。
+  selectItem.dispatchEvent(new MouseEvent("mousemove", { clientX: to.x, clientY: to.y, bubbles: true }));
+  selectItem.dispatchEvent(new MouseEvent("mouseup", { bubbles: true }));
+  // mouseup 的监听器是 async，广播/落库都在它的微任务里完成
+  await wait(20);
 };
+
+/** 是否已注册 document 上的某个事件监听器 */
+const hasDocListener = (spy: ReturnType<typeof vi.spyOn>, type: string): boolean => spy.mock.calls.some((call: unknown[]) => call[0] === type);
 
 describe("MenuDragSort", () => {
   beforeEach(() => {
     document.body.innerHTML = "";
-    document.ondragstart = null;
-    (document as unknown as { onmousemove: unknown }).onmousemove = null;
-    (document as unknown as { onmouseup: unknown }).onmouseup = null;
   });
 
   afterEach(() => {
@@ -76,27 +79,30 @@ describe("MenuDragSort", () => {
 
   describe("拖拽前置条件", () => {
     it("非 customSort 排序模式不启动拖拽（不注册 mousemove）", () => {
+      const mousemoveSpy = vi.spyOn(document, "addEventListener");
       const { dragSort } = setup({ sortType: "fileNameASC" });
       dragSort.handleMenuMousedown({ target: document.createElement("div") } as unknown as MouseEvent);
-      expect((document as unknown as { onmousemove: unknown }).onmousemove).toBeNull();
+      expect(hasDocListener(mousemoveSpy, "mousemove")).toBe(false);
       expect(dragSort.isDragging).toBe(false);
     });
 
     it("按下目标不是片段项时不启动拖拽", () => {
+      const mousemoveSpy = vi.spyOn(document, "addEventListener");
       const { dragSort, container } = setup();
       const blank = document.createElement("div");
       container.appendChild(blank);
       dragSort.handleMenuMousedown({ target: blank, clientX: 0, clientY: 0 } as unknown as MouseEvent);
-      expect((document as unknown as { onmousemove: unknown }).onmousemove).toBeNull();
+      expect(hasDocListener(mousemoveSpy, "mousemove")).toBe(false);
     });
 
     it("菜单容器缺失时不启动拖拽", () => {
+      const mousemoveSpy = vi.spyOn(document, "addEventListener");
       const { dragSort, plugin } = setup();
       (plugin.menuView as unknown as { menuItems: HTMLElement }).menuItems = document.createElement("div"); // 无 .jcsm-snippets-container
       const item = document.createElement("div");
       item.className = "jcsm-snippet-item";
       dragSort.handleMenuMousedown({ target: item } as unknown as MouseEvent);
-      expect((document as unknown as { onmousemove: unknown }).onmousemove).toBeNull();
+      expect(hasDocListener(mousemoveSpy, "mousemove")).toBe(false);
     });
   });
 
@@ -115,6 +121,7 @@ describe("MenuDragSort", () => {
     });
 
     it("Store 判定位置未变化时不广播，并延迟清理拖拽状态", async () => {
+      const removeSpy = vi.spyOn(document, "removeEventListener");
       const { dragSort, plugin, selectItem, broadcast } = setup({ moveResult: false });
       await dragTo(dragSort, selectItem);
       expect(plugin.snippetStore.move).toHaveBeenCalled();
@@ -123,7 +130,8 @@ describe("MenuDragSort", () => {
       expect(dragSort.isDragging).toBe(true);
       await wait(60);
       expect(dragSort.isDragging).toBe(false);
-      expect((document as unknown as { onmousemove: unknown }).onmousemove).toBeNull();
+      // 拖拽结束即解除 document 上的监听，不会残留到下一次拖拽
+      expect(removeSpy.mock.calls.some((call: unknown[]) => call[0] === "mousemove")).toBe(true);
     });
 
     it("自拉列表失败时中止排序不广播", async () => {

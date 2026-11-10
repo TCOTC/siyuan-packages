@@ -419,6 +419,7 @@ export class LocalPackagesMenu {
     try {
       let allOk = true;
       for (const pkg of targets) {
+        // 逐个关闭：累积 allOk，任一失败则统一回滚
         if (!(await setPackageEnabled(pkg.type, pkg.name, false, this.log))) {
           allOk = false;
         }

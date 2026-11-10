@@ -107,6 +107,7 @@ export default class WhisperPlusPlugin extends Plugin {
     await this.config.init();
 
     for (const instance of this.modules) {
+      // 按注册顺序初始化（拆除时反向）
       await this.runModule(instance, "init");
     }
 
@@ -129,11 +130,13 @@ export default class WhisperPlusPlugin extends Plugin {
 
     if (active) {
       for (const instance of this.themeModules) {
+        // 按注册顺序初始化
         await this.runModule(instance, "init");
       }
       return;
     }
     for (let i = this.themeModules.length - 1; i >= 0; i--) {
+      // 拆除按注册的反向顺序
       await this.runModule(this.themeModules[i], "destroy");
     }
   }
@@ -159,6 +162,7 @@ export default class WhisperPlusPlugin extends Plugin {
       while (this.pendingThemeActive !== null) {
         const active = this.pendingThemeActive;
         this.pendingThemeActive = null;
+        // 串行状态机：一轮启停结束才看下一个状态
         await this.applyThemeModulesActive(active);
       }
     } catch (error) {
@@ -193,6 +197,7 @@ export default class WhisperPlusPlugin extends Plugin {
     if (this.themeModulesActive) {
       this.themeModulesActive = false;
       for (let i = this.themeModules.length - 1; i >= 0; i--) {
+        // 拆除按注册的反向顺序
         await this.runModule(this.themeModules[i], "destroy");
       }
     }

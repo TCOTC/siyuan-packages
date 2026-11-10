@@ -140,6 +140,7 @@ export class FileWatchService {
 
       // 加载每个文件
       for (const file of files) {
+        // 逐个加载：注入顺序要与文件列表一致
         await this.loadSingleFile(file);
       }
 
@@ -291,6 +292,7 @@ export class FileWatchService {
 
       // 检查每个文件的变化
       for (const file of files) {
+        // 逐个检查：变更处理会改注入元素与簿记，不能并发
         await this.checkSingleFileChange(file);
       }
     } catch (error) {

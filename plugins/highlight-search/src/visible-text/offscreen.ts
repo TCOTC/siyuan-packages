@@ -24,7 +24,7 @@ export function createOffscreenHost(): HTMLElement {
   const host = document.createElement("div");
   host.className = "protyle-wysiwyg";
   // 需非 0 布局宽供官方 clientWidth 检查；勿 max-height/overflow 裁切，否则抽文本会被当成 layout 隐藏
-  host.style.cssText = `position:fixed;left:-${OFFSCREEN_LAYOUT_WIDTH_PX * 2}px;top:0;` + `width:${OFFSCREEN_LAYOUT_WIDTH_PX}px;pointer-events:none;opacity:0;z-index:-1`;
+  host.style.cssText = `position:fixed;left:-${OFFSCREEN_LAYOUT_WIDTH_PX * 2}px;top:0;width:${OFFSCREEN_LAYOUT_WIDTH_PX}px;pointer-events:none;opacity:0;z-index:-1`;
   document.body.appendChild(host);
   return host;
 }

@@ -215,7 +215,7 @@ export class BroadcastService {
       windowId: this.windowId,
     } as SnippetBroadcastMessage;
 
-    this.postMessage(JSON.stringify(envelope));
+    this.sendBroadcastMessage(JSON.stringify(envelope));
     this.logger.log("Send cross-window message:", envelope);
   }
 
@@ -233,33 +233,33 @@ export class BroadcastService {
         this.websocket = new WebSocket(wsUrl);
 
         // 监听连接打开
-        this.websocket.onopen = () => {
+        this.websocket.addEventListener("open", () => {
           this.logger.log("Broadcast channel connected");
           this.clearReconnectTimer();
           resolve(); // 连接建立后 resolve Promise
-        };
+        });
 
         // 监听消息
-        this.websocket.onmessage = (event) => {
+        this.websocket.addEventListener("message", (event) => {
           try {
             const message = JSON.parse(event.data) as SnippetBroadcastMessage;
             this.handleIncomingMessage(message);
           } catch (error) {
             this.logger.error("Failed to parse broadcast message:", error);
           }
-        };
+        });
 
-        // 监听连接错误（WS 错误后必然触发 onclose，重连统一由 onclose 调度）
-        this.websocket.onerror = (error) => {
+        // 监听连接错误（WS 错误后必然触发 close，重连统一由 close 调度）
+        this.websocket.addEventListener("error", (error) => {
           this.logger.error("Broadcast channel connection error:", error);
           reject(error); // 连接错误时 reject Promise
-        };
+        });
 
         // 监听连接关闭
-        this.websocket.onclose = (event) => {
+        this.websocket.addEventListener("close", (event) => {
           this.logger.log("Broadcast channel connection closed:", event.code, event.reason);
           this.scheduleReconnect();
-        };
+        });
       } catch (error) {
         this.logger.error("Failed to subscribe to broadcast channel:", error);
         this.scheduleReconnect();
@@ -317,7 +317,7 @@ export class BroadcastService {
    * 通过 WebSocket 连接发送广播消息
    * @param message 消息内容
    */
-  private postMessage(message: string) {
+  private sendBroadcastMessage(message: string) {
     if (this.websocket && this.websocket.readyState === WebSocket.OPEN) {
       this.websocket.send(message);
     } else {

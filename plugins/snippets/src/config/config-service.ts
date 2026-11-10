@@ -200,6 +200,7 @@ export class ConfigService {
           break;
       }
 
+      // 逐项应用：apply 会重建对应界面元素，顺序与界面顺序一致
       await this.setValue(item, newValue);
     }
 

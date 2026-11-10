@@ -23,7 +23,7 @@ export async function fetchCandidateIdsBySql(rootId: string, query: string, case
   const haystack = caseSensitive ? "content" : "lower(content)";
   const needleLit = caseSensitive ? needle : needle.toLowerCase();
   const includeTypes = LEAF_CONTENT_BLOCK_TYPES.map((t) => `'${t}'`).join(", ");
-  const stmt = `SELECT id FROM blocks WHERE root_id = '${escSql(rootId)}' ` + `AND type IN (${includeTypes}) ` + `AND instr(${haystack}, '${escSql(needleLit)}') > 0 ` + `LIMIT ${SQL_CANDIDATE_LIMIT}`;
+  const stmt = `SELECT id FROM blocks WHERE root_id = '${escSql(rootId)}' AND type IN (${includeTypes}) AND instr(${haystack}, '${escSql(needleLit)}') > 0 LIMIT ${SQL_CANDIDATE_LIMIT}`;
 
   try {
     const response = await fetchSyncPost("/api/query/sql", { stmt, mode: "readonly" });

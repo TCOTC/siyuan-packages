@@ -24,12 +24,14 @@ import { parseInstallUri } from "./install/siyuan-uri";
 import { fetchSyncPost } from "./infra/kernel-client";
 import { normalizeRepoKey } from "./infra/repo-key";
 
+// 三个页签 type 只在本入口内部使用，不导出：入口同时有 default 与具名导出时
+// rolldown 会报 MIXED_EXPORTS，而思源按 `exports.default` 取插件类，多出的具名导出只会增加歧义。
 /** 与 addTab 的 type 一致，openTab 的 custom.id 为 plugin.name + INSTALL_TAB_TYPE */
-export const INSTALL_TAB_TYPE = "install_package_panel";
+const INSTALL_TAB_TYPE = "install_package_panel";
 /** 「集市 PR」页的 addTab type，openTab 的 custom.id 为 plugin.name + BAZAAR_PR_TAB_TYPE */
-export const BAZAAR_PR_TAB_TYPE = "bazaar_pr_panel";
+const BAZAAR_PR_TAB_TYPE = "bazaar_pr_panel";
 /** 「本地集市包」页的 addTab type，openTab 的 custom.id 为 plugin.name + LOCAL_TAB_TYPE */
-export const LOCAL_TAB_TYPE = "installed_package_panel";
+const LOCAL_TAB_TYPE = "installed_package_panel";
 
 /** 自定义页签 `Custom` 与其面板实例；关闭页签时调用各自的 `destroy` */
 const tabPanels = new Map<Custom, InstallPanel | BazaarPrPanel | InstalledPanel>();

@@ -11,7 +11,20 @@
     "browser": true
   },
   "rules": {
-    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }]
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
+    "no-underscore-dangle": ["warn", { "allow": ["__heatmapSiyuanStub", "__flomoWebInjected", "__flomoWebCoverAbort", "_config", "_kernel", "l_", "m_", "s_"] }],
+
+    // 只保留三条必须关掉的规则，其余全部开启，靠改代码或就地豁免满足：
+    //   no-array-sort —— 规则要求 `toSorted()`，那是 ES2023；本仓产物要跑在 iOS 15.6 的
+    //     WKWebView 上（siyuan-ios 的 IPHONEOS_DEPLOYMENT_TARGET = 15.6），那里没有它。
+    //   no-await-in-loop —— 本仓的串行等待是「顺序语义」而非「漏写并发」：轮询等渲染、
+    //     重试写入、按序改 document.head、按序调内核 install/uninstall、按批限流。
+    //     规则分不出这两者，逐处 disable 会写三十多条重复的注释。
+    //   consistent-function-scoping —— 纯风格（建议把不捕获外部变量的函数提到外层），
+    //     对正确性零收益；本仓这类函数多是工厂内部的小工具，提出来反而破坏封装。
+    "no-array-sort": "off",
+    "no-await-in-loop": "off",
+    "consistent-function-scoping": "off"
   },
-  "ignorePatterns": ["**/dist/**", "**/package.zip", "**/i18n/**", "**/index.js", "**/index.css", "libs/vconsole/build/**", "plugins/code-recognition/docs/**", "plugins/code-recognition/wasm/**"]
+  "ignorePatterns": ["**/dist/**", "**/package.zip", "**/i18n/**", "**/index.js", "**/index.css", "libs/vconsole/build/**", "plugins/code-recognition/docs/**", "plugins/code-recognition/wasm/**", "plugins/install-package/tools/**", "themes/Whisper/tools/**"]
 }

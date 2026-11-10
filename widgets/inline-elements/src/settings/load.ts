@@ -31,6 +31,7 @@ const ATTR_WRITE_MAX_RETRIES = 40; // 最长约 2 秒
 async function persistPendingDefaults(ctx: WidgetContext): Promise<void> {
   for (let attempt = 0; attempt < ATTR_WRITE_MAX_RETRIES; attempt++) {
     try {
+      // 重试写入：每次都要等上一次的结果才知道要不要重试
       await persistSettings(ctx);
       return;
     } catch (error) {

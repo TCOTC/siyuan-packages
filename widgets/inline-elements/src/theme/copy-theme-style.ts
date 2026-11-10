@@ -86,8 +86,8 @@ function resolveStylesheetHref(href: string, mode: RuntimeMode): string {
 function loadStylesheet(link: HTMLLinkElement, href: string): Promise<void> {
   // 等待新样式表加载完成再移除旧样式表
   return new Promise<void>((resolve) => {
-    link.onload = () => resolve();
-    link.onerror = () => resolve(); // 即使加载失败也要继续，避免阻塞
+    link.addEventListener("load", () => resolve(), { once: true });
+    link.addEventListener("error", () => resolve(), { once: true }); // 即使加载失败也要继续，避免阻塞
     link.href = href;
   });
 }

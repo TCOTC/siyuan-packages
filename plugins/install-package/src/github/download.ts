@@ -215,6 +215,7 @@ async function readZipBody(response: Response, signal: AbortSignal, progress?: D
       if (signal.aborted) {
         return { ok: false, reason: "aborted", loaded };
       }
+      // 读流必须按顺序逐块取，不能并发
       const { done, value } = await reader.read();
       // 用户中断时 onAbort 会 cancel()，而 cancel 会把挂起中的 read() 以 done 结算，
       // 因此读到后需再确认一次是否已中止
@@ -253,6 +254,7 @@ async function readZipBody(response: Response, signal: AbortSignal, progress?: D
       if (signal.aborted) {
         return { ok: false, reason: "aborted", loaded };
       }
+      // 同阶段 1：读流必须按顺序逐块取
       const { done, value } = await reader.read();
       // 同阶段 1：中止会让 read() 以 done 结算，若当作流正常结束，就会用残缺数据继续后续流程
       if (signal.aborted) {

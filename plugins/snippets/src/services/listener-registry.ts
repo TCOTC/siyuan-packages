@@ -99,14 +99,14 @@ export class ListenerRegistry {
     } else if (event) {
       // 只移除该事件类型的所有监听器
       const toRemove = elementListeners.listeners.filter((item) => item.event === event);
-      toRemove.forEach(({ event, fn, options }) => {
-        element.removeEventListener(event, fn, options);
+      toRemove.forEach((listener) => {
+        element.removeEventListener(listener.event, listener.fn, listener.options);
       });
       elementListeners.listeners = elementListeners.listeners.filter((item) => item.event !== event);
     } else {
       // 移除该元素的所有监听器
-      elementListeners.listeners.forEach(({ event, fn, options }) => {
-        element.removeEventListener(event, fn, options);
+      elementListeners.listeners.forEach((listener) => {
+        element.removeEventListener(listener.event, listener.fn, listener.options);
       });
       elementListeners.listeners = [];
     }

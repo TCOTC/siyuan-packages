@@ -70,6 +70,7 @@ export async function uninstallInstalledPackages(targets: InstalledPackage[], lo
   }
   let allOk = true;
   for (const pkg of targets) {
+    // 逐个卸载：并发调内核 install/uninstall 会让工作空间目录处于半删状态
     if (!(await uninstallInstalledPackage(pkg, log))) {
       allOk = false;
     }

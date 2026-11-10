@@ -62,6 +62,7 @@ export async function fetchVisibleTextsByDom(ids: string[], notebookId: string):
 
   for (let i = 0; i < batches.length; i += DOM_BATCH_CONCURRENCY) {
     const chunk = batches.slice(i, i + DOM_BATCH_CONCURRENCY);
+    // 按批次限流：批内并发、批间串行，避免同时挂起过多离屏 Protyle
     await Promise.all(chunk.map((batch) => processBatch(batch)));
   }
   return result;

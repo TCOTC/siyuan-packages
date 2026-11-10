@@ -47,6 +47,7 @@ export async function waitForDiagramOutputs(root: Element, timeoutMs = 6000): Pr
       }
     }
     if (!pending) return;
+    // 轮询等图表渲染完成，只能一次一次等
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 }
