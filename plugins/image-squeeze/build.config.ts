@@ -2,18 +2,13 @@ import type { BuildOptions } from "@jeffrey-chen/siyuan-kit";
 
 /**
  * 主线程入口用 cjs，Worker 用 iife 并挂到全局名 `isqCodecWorker`。
- * Worker 里没有 document，无法按需加载 chunk，因此内联动态 import。
+ * Worker 里没有 document，无法按需加载 chunk；vite 的 lib 模式本身就关掉了代码分割
+ * （`codeSplitting: false`），动态 import 会自动内联，不需要额外选项。
  */
 const options: BuildOptions = {
   passes: [
     { format: "cjs", entry: "src/index.ts" },
-    {
-      format: "iife",
-      entry: "src/codec/worker.ts",
-      outName: "codecWorker",
-      name: "isqCodecWorker",
-      inlineDynamicImports: true,
-    },
+    { format: "iife", entry: "src/codec/worker.ts", outName: "codecWorker", name: "isqCodecWorker" },
   ],
   // Vite 的 lib 模式会无条件把 `new URL(..., import.meta.url)` 引用的资源内联成 data URL，
   // 而 iife 输出没有 `import.meta`：rolldown 会把它替换成 `{}`，产物变成

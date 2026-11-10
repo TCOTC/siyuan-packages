@@ -70,6 +70,15 @@ function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, dev: boolean, out
       rollupOptions: {
         // siyuan 由内核注入，不参与打包
         external: ["siyuan", "process"],
+        // 第三方预编译产物自身带 eval（libs/vconsole 的 dist 是上游官方构建），本仓改不了，
+        // 每次构建都刷两条 EVAL 警告会盖住真正的构建问题。只按来源过滤，不按 code 全局关 ——
+        // 本仓代码里出现 eval 仍然要报。
+        onLog(level, log, handler) {
+          if (isVendorLog(log)) {
+            return;
+          }
+          handler(level, log);
+        },
         output: {
           // 必须用 outName：lib 模式下的 `[name]` 来自入口文件名，
           // 而插件运行时按固定名加载。
@@ -78,11 +87,19 @@ function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, dev: boolean, out
           // 思源按固定名找样式（index.css），而 lib 模式默认给它带哈希、还可能塞进
           // assets/ 子目录。插件只会有一份样式入口。
           assetFileNames: (asset) => (asset.names.some((name) => name.endsWith(".css")) ? "index.css" : "assets/[name]-[hash][extname]"),
-          ...(pass.inlineDynamicImports ? { inlineDynamicImports: true } : {}),
         },
       },
     },
   };
+}
+
+/** 由上游发布、直接放进仓库的预编译产物（不参与本仓的 lint 与改写）。 */
+const VENDOR_DIRS = ["libs/vconsole/"];
+
+/** 判断一条构建日志是否来自上面那些第三方产物；`loc.file` 缺失时退回 `id`。 */
+function isVendorLog(log: { loc?: { file?: string }; id?: string }): boolean {
+  const file = log.loc?.file ?? log.id ?? "";
+  return VENDOR_DIRS.some((dir) => file.includes(dir));
 }
 
 /** dev 专用：入口引用了样式、但编译结果为空时，补一个空 index.css。 */

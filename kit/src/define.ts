@@ -19,11 +19,6 @@ export interface PassOptions {
   outName?: string;
   /** iife 格式必填：产物挂到哪个全局名上。 */
   name?: string;
-  /**
-   * 把动态 import 内联进同一个文件。Worker 里没有 `document`，
-   * 无法用脚本注入方式按需加载 chunk。
-   */
-  inlineDynamicImports?: boolean;
 }
 
 export interface BuildOptions {
