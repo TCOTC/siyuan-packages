@@ -18,7 +18,8 @@
     "test": "pnpm -r --if-present test",
     "check": "siyuan-kit check",
     "build": "pnpm -r --if-present build",
-    "dev": "pnpm -r --parallel --if-present dev"
+    "dev": "siyuan-kit dev",
+    "dev:all": "pnpm -r --parallel --if-present dev"
   },
   "devDependencies": {
     "@jeffrey-chen/siyuan-kit": "workspace:*",

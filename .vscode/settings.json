@@ -12,5 +12,16 @@
       "fileMatch": ["/dist/*/plugin.json", "/dist/*/theme.json", "/dist/*/widget.json"],
       "url": "./manifests/dist.schema.json"
     }
-  ]
+  ],
+  "files.watcherExclude": {
+    "**/dist/**": true,
+    "**/node_modules/**": true,
+    "**/.git/objects/**": true
+  },
+  "search.exclude": {
+    "**/dist": true
+  },
+  "js/ts.tsserver.watchOptions": {
+    "excludeDirectories": ["**/node_modules", "**/dist"]
+  }
 }

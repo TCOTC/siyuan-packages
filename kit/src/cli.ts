@@ -10,7 +10,7 @@ import { createPlugin, parseCreateArgs } from "./create.ts";
 import type { BuildOptions } from "./define.ts";
 import { cleanOutput, copyAssets, copyExtras, zipDir } from "./pack.ts";
 import { plan, type BuildStep } from "./plan.ts";
-import { findRepoRoot, resolvePackage } from "./resolve.ts";
+import { findRepoRoot, listPackages, resolvePackage } from "./resolve.ts";
 import { runSassStep, watchSassStep } from "./sass.ts";
 import { CONFIG_FILE, linkToWorkspace, loadWorkspaceConfig } from "./workspace.ts";
 
@@ -18,7 +18,8 @@ const USAGE = `siyuan-kit — 思源集市包统一构建
 
 用法：
   siyuan-kit build [--no-zip]     构建当前包 → <仓库>/dist/<name>/ 与 <仓库>/dist/<name>.zip
-  siyuan-kit dev                  监听构建，并把产物目录链接进思源工作空间
+  siyuan-kit dev <包名…>          监听构建，并把产物目录链接进思源工作空间
+                                  在包目录里跑默认是自己；在仓库根必须点名（全部用 pnpm dev:all）
   siyuan-kit check                校验仓库里所有包是否遵守统一契约（CI 用）
   siyuan-kit manifest [目录]      输出合成后的完整清单 JSON（默认当前包）；供 CI 与调试使用
   siyuan-kit create <name> [--display-name <显示名>] [--zh-name <中文显示名>]
@@ -34,6 +35,9 @@ dev 同步到工作空间需要在仓库根建 ${CONFIG_FILE}（已 gitignore）
 
   dev 会把 <仓库>/dist/<name>/ 链成 <工作空间>/data/<类型>/<name>（Windows 用目录联接，
   不需要开发者模式），改完源码刷新思源即可看到。
+
+  dev 是持续监听：插件/挂件用 vite 的 build.watch，主题由 kit 盯住 styles/ 与 icons/。
+  只监听在改的那个包：pnpm dev <包名>；根目录裸跑 dev 会报错并列出包名。
 
 约定（无需配置）：
   plugins/<name>/   manifest.json  src/index.ts  src/i18n/
@@ -86,7 +90,58 @@ async function main(): Promise<void> {
   throw new Error(`未知命令：${command}\n\n${USAGE}`);
 }
 
-async function runBuild(root: string, dev: boolean, rest: string[]): Promise<void> {
+async function runBuild(cwd: string, dev: boolean, rest: string[]): Promise<void> {
+  const targets = dev ? devTargets(cwd, rest) : [cwd];
+  for (const root of targets) {
+    // 多个包时串行：watch 模式下手动起的进程越少，内存越安全
+    // oxlint-disable-next-line no-await-in-loop
+    await buildPackage(root, dev, rest);
+  }
+}
+
+/**
+ * dev 要监听哪些包。
+ *
+ * 在包目录里跑 → 就是它自己；在仓库根跑 → 必须点名，不再「不写参数就监听全部」。
+ * 根目录无参数直接监听全部，等于一次拉起二十多个 watch 进程：每个 vite / sass 进程
+ * 都常驻几十到上百 MB，叠加编辑器的文件监听与 TS 服务，最先撑不住的是编辑器。
+ * （确实要全部时走根目录的 `pnpm dev:all`：每个包一个进程，各自一个堆。）
+ */
+function devTargets(cwd: string, rest: string[]): string[] {
+  const repoRoot = findRepoRoot(cwd);
+  const names = rest.filter((arg) => !arg.startsWith("-"));
+  const entries = listPackages(repoRoot);
+
+  if (names.length === 0) {
+    if (resolve(cwd) !== resolve(repoRoot)) {
+      return [cwd];
+    }
+
+    // 命令列对齐到最长那一条，读起来像一张表；描述里有中文，不按显示宽度对齐
+    const examples: [string, string][] = [
+      ["pnpm dev Whisper", "只监听一个包（推荐）"],
+      ["pnpm dev Whisper move-doc", "同时监听两个（也可以写目录：themes/Whisper）"],
+      ["pnpm dev:all", `全部 ${entries.length} 个包：每包一个进程，很吃内存，慎用`],
+    ];
+    const width = Math.max(...examples.map(([command]) => command.length));
+    throw new Error(["dev 需要指定包名（全部包用 pnpm dev:all）。", "", ...examples.map(([command, note]) => `  ${command.padEnd(width)}  ${note}`), "", `可用包名：${entries.map((entry) => entry.name).join("、")}`].join("\n"));
+  }
+
+  return names.map((name) => {
+    // 允许写成目录（themes/Whisper），省得先查包名
+    const byPath = resolve(cwd, name);
+    if (existsSync(byPath)) {
+      return byPath;
+    }
+    const found = entries.find((entry) => entry.name === name);
+    if (!found) {
+      throw new Error(`没有名为 ${name} 的包。可用包名：${entries.map((entry) => entry.name).join("、")}`);
+    }
+    return found.root;
+  });
+}
+
+async function buildPackage(root: string, dev: boolean, rest: string[]): Promise<void> {
   const options = await loadOptions(root);
   if (rest.includes("--no-zip")) {
     options.zip = false;

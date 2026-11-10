@@ -1,14 +1,11 @@
 import { existsSync, globSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join, relative, sep } from "node:path";
-import { BASE_FORBIDDEN_FIELDS, BASE_MANIFEST_FILE, BASE_SECTION_KEYS, DERIVED_FIELDS, IMAGE_EXTENSIONS, loadBaseManifest, README_FILE_PATTERN, resolvePackage, SOURCE_MANIFEST_FILE, THIRD_PARTY_NOTICES, type ResolvedPackage } from "./resolve.ts";
+import { BASE_FORBIDDEN_FIELDS, BASE_MANIFEST_FILE, BASE_SECTION_KEYS, DERIVED_FIELDS, IMAGE_EXTENSIONS, listPackages, loadBaseManifest, README_FILE_PATTERN, resolvePackage, SOURCE_MANIFEST_FILE, THIRD_PARTY_NOTICES, type ResolvedPackage } from "./resolve.ts";
 
 /**
  * 仓库级契约门禁：把 README 里的约定变成 CI 会变红的检查。
  * 只检查构建阶段能判定的结构问题，不重复集市校验，也不看产物内容。
  */
-
-/** {plugins,themes,widgets} 的检查顺序。 */
-const PACKAGE_KINDS = ["plugins", "themes", "widgets"] as const;
 
 /**
  * 允许携带 `build.config.ts` 的包，值是必须偏离默认 preset 的理由。
@@ -50,27 +47,17 @@ export interface CheckResult {
 
 /** 检查整个仓库的所有发布包。 */
 export function checkWorkspace(repoRoot: string): CheckResult {
-  const packages: string[] = [];
   const issues: CheckIssue[] = [];
 
   checkBaseManifest(repoRoot, issues);
 
-  for (const kind of PACKAGE_KINDS) {
-    const dir = join(repoRoot, kind);
-    if (!existsSync(dir)) {
-      continue;
-    }
-    for (const entry of readdirSync(dir, { withFileTypes: true })) {
-      if (!entry.isDirectory()) {
-        continue;
-      }
-      const root = join(dir, entry.name);
-      packages.push(entry.name);
-      checkPackage(root, issues);
-    }
+  // 包枚举只有一份：仓库根扫目录的逻辑不能在这里再写一遍，否则两边迟早不一致
+  const entries = listPackages(repoRoot);
+  for (const entry of entries) {
+    checkPackage(entry.root, issues);
   }
 
-  return { packages, issues };
+  return { packages: entries.map((entry) => entry.name), issues };
 }
 
 /**

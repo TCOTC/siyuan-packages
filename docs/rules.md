@@ -264,7 +264,11 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 链接是持久的：停掉 dev 之后它仍指向 `dist/<name>/`。要让思源恢复集市安装的版本，删掉这条链接（或整个 `dist/` 后重装）即可。
 
-根目录的 `pnpm dev` 是 `pnpm -r --parallel --if-present dev`，会同时给全部包各起一个监听实例并各建一条链接；日常仍建议 `pnpm --filter <name> dev`，只开当前在改的那个包。
+根目录的 `pnpm dev` 是 `siyuan-kit dev`，**必须指定包名**（`pnpm dev Whisper`，也接受 `themes/Whisper` 这种目录）。裸跑会报错并列出全部包名：一次拉起二十多个 watch 进程会把内存吃光，最先崩的是编辑器。要全部包时用根目录的 `pnpm dev:all`（`pnpm -r --parallel`，每包一个进程、各占一个堆）。点名多个包时在同一个进程里串行启动。
+
+包枚举只有一份：`kit/src/resolve.ts` 的 `listPackages()`，`check` 与 `dev` 共用，报错提示也从它取包名列表。
+
+编辑器侧：仓库的 `.vscode/settings.json` 把 `dist/` 从 `files.watcherExclude`、`search.exclude` 与 `js/ts.tsserver.watchOptions.excludeDirectories` 里排除。构建产物每次重写都是成千上万个文件事件，不排除的话编辑器光靠监听就能被拖死（`files.watcherExclude` 默认只排 `node_modules` 与 `.git/objects`，**不排 `dist`**）。
 
 ---
 

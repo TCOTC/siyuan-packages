@@ -67,6 +67,30 @@ const KIND_BY_DIR: Record<string, PackageKind> = {
   widgets: "widget",
 };
 
+export interface PackageEntry {
+  /** 目录名（也是集市发布目标的默认名）。 */
+  name: string;
+  root: string;
+  kind: PackageKind;
+}
+
+/** 仓库里全部发布包。`check` 与 `dev` 共用；不要再在调用方扫一遍目录。 */
+export function listPackages(repoRoot: string): PackageEntry[] {
+  const packages: PackageEntry[] = [];
+  for (const [dir, kind] of Object.entries(KIND_BY_DIR)) {
+    const base = join(repoRoot, dir);
+    if (!existsSync(base)) {
+      continue;
+    }
+    for (const entry of readdirSync(base, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        packages.push({ name: entry.name, root: join(base, entry.name), kind });
+      }
+    }
+  }
+  return packages;
+}
+
 /** 包类型 → 思源工作空间里的目录名。 */
 export const PLURAL_DIR: Record<PackageKind, string> = {
   plugin: "plugins",

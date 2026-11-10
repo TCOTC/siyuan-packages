@@ -54,20 +54,21 @@
 ```bash
 pnpm install
 pnpm --filter move-doc build        # 只构建一个包
-pnpm --filter move-doc dev          # 监听构建，并把产物目录链接进思源工作空间
+pnpm dev move-doc                   # 只监听一个包，并把产物目录链接进思源工作空间
 ```
 
-| 命令                              | 作用                                                             |
-| --------------------------------- | ---------------------------------------------------------------- |
-| `pnpm build`                      | 构建全部包 → `dist/<name>/` 与 `dist/<name>.zip`                 |
-| `pnpm dev`                        | 同时监听全部包（每包一个进程，很吃内存，只适合真要多包联动时用） |
-| `pnpm --filter <name> build\|dev` | 只构建 / 监听一个包                                              |
-| `pnpm check`                      | 校验目录、清单、脚本、locale 等契约                              |
-| `pnpm typecheck` / `pnpm test`    | 全仓 `tsc -p .` / vitest                                         |
-| `pnpm lint` / `pnpm format`       | oxlint / oxfmt                                                   |
-| `pnpm create:plugin <name>`       | 基于模板新建插件                                                 |
+| 命令                              | 作用                                             |
+| --------------------------------- | ------------------------------------------------ |
+| `pnpm build`                      | 构建全部包 → `dist/<name>/` 与 `dist/<name>.zip` |
+| `pnpm dev <name>…`                | 监听指定的包（不写包名会报错并列出可用包名）     |
+| `pnpm dev:all`                    | 监听全部包：每包一个 watch 进程，很吃内存，慎用  |
+| `pnpm --filter <name> build\|dev` | 只构建 / 监听一个包（在包目录里跑）              |
+| `pnpm check`                      | 校验目录、清单、脚本、locale 等契约              |
+| `pnpm typecheck` / `pnpm test`    | 全仓 `tsc -p .` / vitest                         |
+| `pnpm lint` / `pnpm format`       | oxlint / oxfmt                                   |
+| `pnpm create:plugin <name>`       | 基于模板新建插件                                 |
 
-`--filter` **区分大小写**：包目录名与清单里的 `name` 逐字符一致，所以是 `--filter Whisper`、`--filter Whisper-Plus`。
+`--filter` 与 `pnpm dev` 的包名都**区分大小写**：包目录名与清单里的 `name` 逐字符一致，所以是 `Whisper`、`Whisper-Plus`。`pnpm dev` 也接受目录，例如 `pnpm dev themes/Whisper`。
 
 `dev` 需要仓库根的 `siyuan.config.json`（已 gitignore），指向思源工作空间的根目录（含 `data/` 的那层）：
 
@@ -78,6 +79,8 @@ pnpm --filter move-doc dev          # 监听构建，并把产物目录链接进
 没有这个文件时 `dev` 只构建、不链接（提示只打一次）。`build` 完全不读它：本机工作空间路径配错或换机器都不会影响打包。
 
 `dev` 是持续监听：插件/挂件走 vite 的 `build.watch`，主题由 kit 用 `fs.watch` 盯住 `styles/`（含 partial 子目录）与 `icons/`——sass 的 `compileAsync` 没有 watch API，不自己盯就只能编译一次。SCSS 写错只打到控制台，不会中断监听；`dev` 也不会清空产物目录（它已经链进思源，先清后编一旦失败思源里就只剩空主题）。
+
+**不要把全部包的 dev 一起开着**：`pnpm dev:all` 会同时拉起二十多个 watch 进程（每个几十到上百 MB），编辑器容易被拖到无响应。仓库里的 `.vscode/settings.json` 已经把 `dist/` 从文件监听、搜索和 TS 服务里排除——构建写入的产物不再触发编辑器的索引。
 
 ---
 
