@@ -1,0 +1,72 @@
+# 依赖更新由 Dependabot 提 PR，人只管 review 与合并。
+#
+# 仓库里三处依赖源各有各的落点，所以有三个条目：
+#   npm            → pnpm-workspace.yaml 的 catalog（包内一律写 `catalog:`）
+#   github-actions → 两个 workflow 的 uses: + .github/workflows/actions.lock
+#   cargo          → plugins/code-recognition/wasm-detector（Cargo.lock 随仓提交）
+#
+# 为什么版本只能落在 catalog：包内 `"siyuan": "catalog:"` 这类写法被 Dependabot 当成
+# 工作区引用跳过，它改的是 catalog 里那一条。所以升级永远只动 pnpm-workspace.yaml
+# 一个文件，不会出现 22 个包版本不一致。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    # 明确用 increase：写入更严的下界。默认的 auto 对「库」类会 widen，
+    # 而本仓刻意把直接进产物的依赖钉成精确版本，不能被放宽成范围。
+    versioning-strategy: increase
+    open-pull-requests-limit: 5
+    # 新版本先晾 7 天再提 PR：给被撤回/被篡改的发布留出下线时间
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      # 次版本与补丁合成一个 PR：catalog 里同批依赖极少互相冲突
+      npm-minor:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+      # 主版本单独出 PR：产物体积与行为都可能变，必须逐个对拍
+      npm-major:
+        patterns: ["*"]
+        update-types: ["major"]
+
+  # 抬版本后 Dependabot 会调用 gh-actions-lock 重建锁文件；漏掉的情况由 CI 的
+  # `gh actions-lock --verify` 拦下（见 ci.yml 与 docs/rules.md §9.1）。
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # wasm/ 是这个 crate 的生成物（pnpm --filter code-recognition build:wasm），
+  # CI 不跑 cargo，所以合并后要在本地重建并提交 wasm/ 与 Cargo.lock。
+  # wasm-bindgen 的 crate 版本必须与本地 wasm-bindgen CLI 一致，否则构建直接报错。
+  - package-ecosystem: cargo
+    directory: "/plugins/code-recognition/wasm-detector"
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      wasm-detector:
+        patterns: ["*"]

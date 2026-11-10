@@ -19,11 +19,20 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v7.0.1
 
-      - uses: pnpm/action-setup@v6
+      # workflow 里的 uses: 写完整 semver tag，它对应的提交 SHA 记在 actions.lock。
+      # 改了 uses: 却没重新生成锁文件时在这里失败：本地跑 `gh actions-lock` 即可修复。
+      - name: 校验 workflow 锁文件
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh extension install github/gh-actions-lock --pin v0.4.1
+          gh actions-lock --verify
 
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@v6.1.1
+
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version: "26"
           cache: pnpm

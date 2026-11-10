@@ -384,7 +384,7 @@ CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错�
   - 为什么是 26：`jsdom` 的 `engines` 是 `^22.22.2 || ^24.15.0 || >=26.0.0`，**跳过了 25**。Node 25 是奇数版、已于 2026-03-31 EOL，两头都不支持，所以只能在 24 与 26 之间选。26 于 2026-05 发布、2026-10 转 LTS，是当前该依赖支持的最高档，也是 `.nvmrc` 选它而不是 24 的理由。
   - `@types/node` 跟着 `engines.node` 走（catalog 里写 `^26.6.6`），它定义的就是 Node 的 API 面；两者脱节会让代码用到类型库没有的 API，或者反过来被过期的类型骗过。
 - **一份 lockfile**：`pnpm-lock.yaml` 只有根目录一份。
-- **catalog 是唯一真相源**：升级思源 API 或构建工具只改 `pnpm-workspace.yaml`，全仓一起动。
+- **catalog 是唯一真相源**：升级思源 API 或构建工具只改 `pnpm-workspace.yaml`，全仓一起动。Dependabot 提的升级 PR 也只动这一处（见 9.2）。
 - **`siyuan` 类型包用 semver**（catalog 写 `siyuan: "1.3.0"`，包本身由 petal 仓库发布到 npm）：升级只改 catalog 一处，lockfile 仍可复现。petal 发版之前曾钉在具体提交（`github:siyuan-note/petal#<sha>`），现在已经不需要。
 - **仓内共享库用 `workspace:*`**：解析结果永远是 `link:../../libs/<name>`，不会出现两个消费方锁在不同提交。
 - **仓内构建不了的预编译产物也放 `libs/*`**：如 `libs/vconsole`。
@@ -421,6 +421,35 @@ CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错�
 根目录脚本见 [README](../README.md#快速开始)。
 
 CI 顺序：`install --frozen-lockfile` → `check` → `format:check` → `lint` → `typecheck` → `test` → `build`。
+
+### 9.1 workflow 依赖锁
+
+workflow 里 `uses:` 的版本与它对应的**提交 SHA** 记在 `.github/workflows/actions.lock`。这个文件由 GitHub 官方扩展 [`github/gh-actions-lock`](https://github.com/github/gh-actions-lock) 生成并校验，**不要手改**。
+
+- 写法：`uses:` 保留完整 semver tag（`actions/checkout@v7.0.1`），SHA 只进锁文件；运行时由 runner 按锁文件核对，对不上的 pin 直接拒绝执行。首次解析时 `v7` 会被**收窄**成 `v7.0.1`（完整 semver tag 基本不会移动，pin 的有效期更长），分支名与非版本 tag 不收窄。
+- 生成 / 修复：仓库根跑 `gh actions-lock`（首次先 `gh extension install github/gh-actions-lock`）。它按 `ref` / `commit` / `owner_id` / `repo_id` 写每个 action，并把 workflow 路径归到 `workflows` 段。
+- 升级到新版本：改完 `uses:` 后跑 `gh actions-lock --relock` 推进已锁条目，或直接跑 `gh actions-lock` 让新 ref 被 onboard。
+- CI 的「校验 workflow 锁文件」步骤跑 `gh actions-lock --verify`：`uses:` 与锁文件不一致、或锁定的提交已不是上游该 ref 指向的提交时失败。它在 checkout 之后、装 Node 之前跑，所以是「先拦，再跑长流程」。
+- `dependencies` 里每条都必须有 `ref` / `commit` / `owner_id` / `repo_id`，缺一个就会让引擎**静默**把整份锁文件当成空文件（Dependabot 侧会报 `actions.lock` 不可解析）。
+- 锁文件没有扩展名，oxfmt 按扩展名识别文件，因此不会改写它（YAML 本来也在 `ignorePatterns` 里）。
+
+### 9.2 依赖更新（Dependabot）
+
+`.github/dependabot.yml` 覆盖三处依赖源，对应仓库的三个「版本落点」：
+
+| ecosystem        | directory                                 | 落点                                                        |
+| ---------------- | ----------------------------------------- | ----------------------------------------------------------- |
+| `npm`            | `/`                                       | `pnpm-workspace.yaml` 的 `catalog`（包内一律写 `catalog:`） |
+| `github-actions` | `/`                                       | 两个 workflow 的 `uses:` + `.github/workflows/actions.lock` |
+| `cargo`          | `/plugins/code-recognition/wasm-detector` | `Cargo.toml` / `Cargo.lock`（`wasm/` 是它的生成物）         |
+
+要点：
+
+- **npm 只动 catalog**：Dependabot 的 npm 解析器把包内的 `workspace:` / `catalog:` 当工作区引用**跳过**，另外把 `pnpm-workspace.yaml` 的 `catalog`（以及 `catalogs`）里的条目当作依赖读入。所以升级永远只改 `pnpm-workspace.yaml` 一个文件，22 个包不会出现版本不一致。
+- **`versioning-strategy: increase` 是刻意的**：默认的 `auto` 对「库」类会 widen，而本仓把直接进产物的依赖钉成精确版本（见第 7 节），被放宽成范围就等于放开产物漂移。
+- **主版本单独出 PR**（`npm-major` 组）：产物体积与行为都可能变，必须逐个对拍；次版本与补丁合组以免刷屏。
+- **`cooldown: default-days: 7`**：新版本先晾 7 天再提 PR，给被撤回或被篡改的发布留出下线时间。与 actions 的锁文件是同一套思路。
+- **cargo 的 PR 合并后要在本地重建**：CI 不跑 `cargo`，`wasm/` 需要 `pnpm --filter code-recognition build:wasm` 重新生成并提交；`wasm-bindgen` 的 crate 版本必须与本地安装的 `wasm-bindgen` CLI 一致，否则构建直接报错。
 
 ---
 
