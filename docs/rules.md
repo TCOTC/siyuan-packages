@@ -461,13 +461,17 @@ pnpm release
 它读 `PACKAGES` / `EVENT` / `INPUT_DRY_RUN` / `INPUT_FORCE` 四个环境变量，本地也能直接跑 dry-run：
 
 ```bash
-PACKAGES=$'plugins/move-doc\tmove-doc\t1.0.2\tTCOTC/move-doc' \
+# PACKAGES 每行六列（制表符分隔）：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本（新包留空）
+PACKAGES=$'plugins/move-doc\tmove-doc\t1.0.2\tTCOTC/move-doc\tplugin\t1.0.1' \
 EVENT=workflow_dispatch INPUT_DRY_RUN=true bash .github/scripts/publish.sh
 ```
 
 之所以是 bash 而不是 Node：这段逻辑已经在本仓 CI 上实跑验证过，重写会把三个已修好的坑
 （`grep` 提前退出导致的 SIGPIPE、`set -u` 下 `$GITHUB_STEP_SUMMARY` unbound、`mapfile` 读清单）重新引入一遍。
 单独成文件是为了能 `bash -n` 检查语法、能本地执行；塞在 YAML 里两者都做不到。
+
+**运行汇总表**由 `publish.sh` 输出（`| 类型 | 包名 | 前一个版本 | 当前发布版本 | Release |`）：
+Release 链接只有发布后才知道，所以表格不能放在检测步骤——放两处必然不一致。
 
 四条语义：
 

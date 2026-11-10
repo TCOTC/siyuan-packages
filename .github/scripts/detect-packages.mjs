@@ -28,6 +28,8 @@ const ROOT = process.cwd();
 const MANIFEST_GLOBS = ["plugins/*/manifest.json", "themes/*/manifest.json", "widgets/*/manifest.json"];
 /** 包类型目录，用来把「只给了包名」的手动输入解析成包目录。 */
 const KIND_DIRS = ["plugins", "themes", "widgets"];
+/** 目录 → 清单里的包类型，用于发布汇总表。 */
+const KIND_BY_DIR = { plugins: "plugin", themes: "theme", widgets: "widget" };
 const jsonMode = process.argv.includes("--json");
 
 const event = process.env.EVENT ?? "";
@@ -179,7 +181,12 @@ function resolvePackage(dir) {
     throw new Error(`${dir} 的清单 url 不是仓库地址：${url}`);
   }
 
-  return { dir, name, version, target };
+  const kind = KIND_BY_DIR[dir.split("/")[0] ?? ""];
+  if (kind === undefined) {
+    throw new Error(`${dir} 不在 ${KIND_DIRS.join(" / ")} 之下，无法判断包类型`);
+  }
+
+  return { dir, kind, name, version, target };
 }
 
 function setOutput(key, value) {
@@ -209,13 +216,12 @@ function finish(rows, notes, extra = {}) {
   }
 
   setOutput("count", String(rows.length));
-  setOutput("list", rows.map((row) => [row.dir, row.name, row.version, row.target].join("\t")).join("\n"));
+  // 六列：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本。
+  // 上一个版本为空字符串表示新包（基准里没有它）。
+  setOutput("list", rows.map((row) => [row.dir, row.name, row.version, row.target, row.kind, row.previous ?? ""].join("\t")).join("\n"));
 
-  const lines = ["| 包 | 版本 | 目标仓库 |", "| --- | --- | --- |"];
-  for (const row of rows) {
-    lines.push(`| ${row.name} | ${row.version} | ${row.target} |`);
-  }
-  setSummary(rows.length === 0 ? `${notes.join("\n")}\n\n**本次没有需要发布的包。**` : `${notes.join("\n")}\n\n${lines.join("\n")}`);
+  // 表格由 publish.sh 输出：Release 链接只有发布后才知道，放两处必然不一致
+  setSummary(rows.length === 0 ? `${notes.join("\n")}\n\n**本次没有需要发布的包。**` : notes.join("\n"));
 
   for (const note of notes) {
     console.log(note);
@@ -238,7 +244,10 @@ function main() {
       .map((token) => token.trim())
       .filter(Boolean)
       .map(findPackageDir);
-    finish(dirs.map(resolvePackage), [`手动指定 ${dirs.length} 个包，未做变更检测。`]);
+    finish(
+      dirs.map((dir) => ({ ...resolvePackage(dir), previous: null })),
+      [`手动指定 ${dirs.length} 个包，未做变更检测。`],
+    );
     return;
   }
 
@@ -262,7 +271,7 @@ function main() {
 
     if (previous === null) {
       notes.push(`- ${pkg.name}：新包，直接发布`);
-      rows.push(pkg);
+      rows.push({ ...pkg, previous: null });
       continue;
     }
 
@@ -276,7 +285,7 @@ function main() {
       throw new Error(`${pkg.name} 的 version 从 ${previous} 降到了 ${pkg.version}`);
     }
     notes.push(`- ${pkg.name}：${previous} → ${pkg.version}`);
-    rows.push(pkg);
+    rows.push({ ...pkg, previous });
   }
 
   finish(rows, notes);
