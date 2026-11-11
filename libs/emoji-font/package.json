@@ -1,0 +1,16 @@
+{
+  "name": "siyuan-emoji-font",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "思源字体插件共用的 Twemoji 接管：@font-face、字体栈变量与图标槽位的度量校准",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

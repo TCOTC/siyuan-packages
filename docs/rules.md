@@ -49,6 +49,7 @@ kit/              构建内核 @jeffrey-chen/siyuan-kit
 | `libs/token-field`     | 令牌输入框遮蔽策略与类名                                                                                                      | 类名要与消费方 `index.scss` 的同名选择器一致                                                                         |
 | `libs/version-compare` | `compareCoreVersions` / `isVersionInRange`（只比核心数字，预发布按核心数字归类）、`compareSemver`（严格 2.0.0，判「谁更新」） | 两种口径语义不同，**不要合并**；发布检测脚本也 import 这一份（Node 26 直接跑 `.ts`）                                 |
 | `libs/i18n-types`      | `SameKeys` / `Equal` / `AssertTrue`                                                                                           | 纯类型，`import type` 引用                                                                                           |
+| `libs/emoji-font`      | `getEmojiFontStyle(pluginName)`（两个 Twemoji `@font-face` + 字体栈变量与图标槽位规则）、`preloadEmojiFont()`                 | 声明与规则必须同进同出，只放一半会静默退回内置 Noto；见该目录注释                                                    |
 
 ### 2.2 目录名 == 清单 `name` == `package.json` 的 `name`
 
@@ -318,19 +319,23 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 偏离约定用同一套 API 声明。只有「有东西不在 vite 模块图里」或「需要多入口」才需要这份配置：
 
-| 包                                         | 需要什么                                                | 怎么表达                                                                                                                               |
-| ------------------------------------------ | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `image-squeeze`                            | 主入口 CJS + Worker 入口 IIFE；wasm 由 `new URL` 引用   | `passes: [{format:"cjs"}, {format:"iife", name}]`，另加 `define: {"import.meta.url": "self.location.href"}`（iife 没有 `import.meta`） |
-| `code-recognition`                         | wasm 不在模块图里（运行期按绝对路径动态 import）        | `copy: ["wasm/**/*"]`，原样复制到产物根                                                                                                |
-| `flomo-web`                                | 主进程挂钩脚本由 `remote.require()` 按路径加载          | `copy: ["devtools-hook.cjs"]`                                                                                                          |
-| `siyuan-ttf-LXGWWenKaiGB-and-Twemoji`      | 14 MB 字体不能进模块图（会被当成 url() 依赖再打包一份） | `copy: ["LXGWWenKai/**/*", "Twemoji/**/*", "!**/*.bak"]`；样式里写 `/plugins/<name>/...` 绝对 URL                                      |
-| `siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` | 11 MB 字体不能进模块图                                  | `copy: ["HarmonyOS_Sans/**/*", "Twemoji/**/*"]`，同上                                                                                  |
-| `siyuan-plugin-openmoji-emoji`             | 953 KiB 字体不能进模块图                                | `copy: ["OpenMoji/**/*"]`（字体自带的 `OpenMoji/LICENSE.txt` 一并复制）                                                                |
-| `inline-elements`                          | 生产构建要去掉 `console.*`                              | `dropConsole: true`：挂件 preset 把它传给 rolldown 的 `output.minify.compress.dropConsole`，dev 不生效                                 |
+| 包                                         | 需要什么                                                | 怎么表达                                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `image-squeeze`                            | 主入口 CJS + Worker 入口 IIFE；wasm 由 `new URL` 引用   | `passes: [{format:"cjs"}, {format:"iife", name}]`，另加 `define: {"import.meta.url": "self.location.href"}`（iife 没有 `import.meta`）      |
+| `code-recognition`                         | wasm 不在模块图里（运行期按绝对路径动态 import）        | `copy: ["wasm/**/*"]`，原样复制到产物根                                                                                                     |
+| `flomo-web`                                | 主进程挂钩脚本由 `remote.require()` 按路径加载          | `copy: ["devtools-hook.cjs"]`                                                                                                               |
+| `siyuan-ttf-LXGWWenKaiGB-and-Twemoji`      | 14 MB 字体不能进模块图（会被当成 url() 依赖再打包一份） | `copy: ["LXGWWenKai/**/*", "!**/*.bak", { from: "@repo/libs/emoji-font/fonts/*", to: "Twemoji" }]`；样式里写 `/plugins/<name>/...` 绝对 URL |
+| `siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji` | 11 MB 字体不能进模块图                                  | `copy: ["HarmonyOS_Sans/**/*", { from: "@repo/libs/emoji-font/fonts/*", to: "Twemoji" }]`， 同上                                            |
+| `siyuan-plugin-openmoji-emoji`             | 953 KiB 字体不能进模块图                                | `copy: ["OpenMoji/**/*"]`（字体自带的 `OpenMoji/LICENSE.txt` 一并复制）                                                                     |
+| `inline-elements`                          | 生产构建要去掉 `console.*`                              | `dropConsole: true`：挂件 preset 把它传给 rolldown 的 `output.minify.compress.dropConsole`，dev 不生效                                      |
 
 这份表是**白名单**：新增条目必须先登记到 `kit/src/check.ts` 的 `ALLOWED_BUILD_CONFIG`（附理由），否则 `pnpm check` 会红。
 
 `copy` 的规则：相对包根 glob，`!` 前缀排除，命中目录递归复制，目标保持包内相对路径。字体与 wasm 在产物里的位置与源码一致，运行期用 `/plugins/<name>/...` 绝对 URL 访问，vite 不改写也不会再打包一份。
+
+需要把**同一份大文件**分发给多个包时，copy 条目可以写成对象：`from` 以 `@repo/` 开头则相对仓库根，`to` 是产物里的目标目录（省略则沿用命中文件的相对路径）。这样二进制只存一份（`libs/emoji-font/fonts/`，连带 CC-BY 图形许可），构建时各自复制进产物。
+
+注意：这只能消除**源码与仓库**里的重复。产物与 release zip 必须各带一份——集市把每个插件独立装进 `data/plugins/<name>/`，插件之间不能互相依赖。
 
 ---
 
@@ -638,13 +643,13 @@ checkout 必须 `fetch-depth: 0` 且取全部标签：浅克隆既拿不到上�
 
 现有第三方内容的归属：
 
-| 包                             | 内容                                                                            | 许可                               | 位置                                        |
-| ------------------------------ | ------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------- |
-| `devtools`                     | vConsole 3.16.0-alpha                                                           | MIT（腾讯声明）                    | `THIRD_PARTY-NOTICES.md`                    |
-| `snippets`                     | CodeMirror 6 / @lezer / prettier / meriyah / acorn / @uiw 主题 / @babel/runtime | MIT + ISC                          | `THIRD_PARTY-NOTICES.md`                    |
-| `image-squeeze`                | `@jsquash/*` 与三份编解码器 wasm                                                | Apache-2.0 + BSD-3 + IJG + MIT     | `THIRD_PARTY-NOTICES.md`（含四份许可全文）  |
-| `code-recognition`             | betlang wasm、Magika 蒸馏模型                                                   | MIT / Apache-2.0                   | `THIRD_PARTY-NOTICES.md`（含两份许可全文）  |
-| `siyuan-plugin-openmoji-emoji` | OpenMoji 字体                                                                   | CC BY-SA 4.0                       | `OpenMoji/LICENSE.txt`（随字体一起 `copy`） |
-| 两个字体包                     | Twemoji / 霞鹜文楷 / HarmonyOS Sans                                             | CC BY 4.0 / OFL 1.1 / 华为字体许可 | 各字体子目录内的许可文件                    |
+| 包                             | 内容                                                                            | 许可                               | 位置                                                                                                     |
+| ------------------------------ | ------------------------------------------------------------------------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `devtools`                     | vConsole 3.16.0-alpha                                                           | MIT（腾讯声明）                    | `THIRD_PARTY-NOTICES.md`                                                                                 |
+| `snippets`                     | CodeMirror 6 / @lezer / prettier / meriyah / acorn / @uiw 主题 / @babel/runtime | MIT + ISC                          | `THIRD_PARTY-NOTICES.md`                                                                                 |
+| `image-squeeze`                | `@jsquash/*` 与三份编解码器 wasm                                                | Apache-2.0 + BSD-3 + IJG + MIT     | `THIRD_PARTY-NOTICES.md`（含四份许可全文）                                                               |
+| `code-recognition`             | betlang wasm、Magika 蒸馏模型                                                   | MIT / Apache-2.0                   | `THIRD_PARTY-NOTICES.md`（含两份许可全文）                                                               |
+| `siyuan-plugin-openmoji-emoji` | OpenMoji 字体                                                                   | CC BY-SA 4.0                       | `OpenMoji/LICENSE.txt`（随字体一起 `copy`）                                                              |
+| 两个字体包                     | Twemoji / 霞鹜文楷 / HarmonyOS Sans                                             | CC BY 4.0 / OFL 1.1 / 华为字体许可 | 各字体子目录内的许可文件（Twemoji 的 `LICENSE-GRAPHICS` 在 `libs/emoji-font/fonts/`，与字体一起 `copy`） |
 
 新增第三方内容时，先确认条款对「随插件分发」的要求，再在「随附组件」表加一行（组件 / 版本 / 许可 / 版权行），并把许可全文追加到「许可全文」段落。不要拆成多个 `THIRD_PARTY-*` 文件，也不要改名成包根 `LICENSE` 或塞进 `copy`。

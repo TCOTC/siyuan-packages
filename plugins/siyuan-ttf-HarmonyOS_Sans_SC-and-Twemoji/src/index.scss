@@ -3,8 +3,12 @@
  * 字体 url 一律写成 /plugins/... 绝对路径：文件由 build.config.ts 的 copy 原样复制，
  * vite 对这个形式既不做模块解析也不改写。
  *
- * Twemoji/ 里的文件经过改写（字形整体上移 167/1024 em），不能直接换成上游原件：
- *   python scripts/shift-twemoji-glyphs.py --input <上游 twemoji-colr0-17.0.3.woff2>
+ * 这里只声明文字字体。Twemoji 的 @font-face 与字体栈规则由 `siyuan-emoji-font`
+ * （libs/emoji-font）在运行时生成，两套字体插件共用一份；字体本体也存在那里
+ * （libs/emoji-font/fonts），由 build.config.ts 复制进产物。它经过改写（字形整体上移
+ * 167/1024 em），不能直接换成上游原件：
+ *   python libs/emoji-font/scripts/shift-twemoji-glyphs.py \
+ *     --input <上游 twemoji-colr0-17.0.3.woff2>
  */
 
 /* 基础字体 */
@@ -73,58 +77,4 @@
   font-weight: 700;
   font-style: normal;
   font-display: swap;
-}
-
-/* Twemoji */
-@font-face {
-  font-family: "Twemoji";
-  src: url("/plugins/siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji/Twemoji/twemoji-colr0-17.0.3.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  /* 该字体为 U+0023、U+002A、U+0030-0039 定义了零宽占位字形（供 keycap 序列使用），
-     未加限制时这些字符在字体栈首位会不可见 */
-  unicode-range: U+00A9-10FFFF;
-  /* Twemoji 的字形墨迹约占 1.19em，而思源内置 emoji 经 emojiFont.ts 缩放后只有约 0.9em
-     （Windows 11：Noto 1.07em × 85%，其余平台：Noto 1.07em × 92%），不缩放时明显大一圈。
-     76% 后约 0.90em，与 Windows 11 的内置 emoji 视觉大小一致；如需跟随其他平台可改 82%
-     注意：76% 必须与字体文件里的字形上移量配套。Twemoji 的墨迹为 -0.254em…+0.938em，
-     重心在基线上方 0.342em，缩到 76% 后只剩 0.260em，而中文「中」的重心在 0.384em，
-     字形会明显偏下；因此本插件的 Twemoji 文件已把全部字形上移 167/1024 em（见
-     scripts/shift-twemoji-glyphs.py），换算到 76% 即 +0.124em，重心变为 0.384em，
-     与中文一致。改动这里的 size-adjust 会同时改变对齐结果。 */
-  size-adjust: 76%;
-}
-
-/* 图标位专用：文档树、菜单、开关图标共用同一套 22px 定高盒（display:inline-flex;
-   align-items:center; line-height:22px）。盒内基线位置为 11px + (A - D) / 2，A/D 是
-   字体使用的上伸/下伸（override 百分比按字号计），而墨迹中心相对基线固定，因此
-   offset = 字号 × ((A - D) / 2 - 墨迹重心)，与字号成线性、与平台无关。
-   实测（Electron 逐像素量，16px 字号、22px 盒，负值 = 比盒中心高）：
-     思源默认 "Emojis File Tree"（Noto 92%，86/31）  −1.5px（只对齐中文，图标看着偏上）
-     asc 120 / desc 8                           0px（严格居中，又显得偏低）
-     asc 100 / desc 8                           −0.75px（现在采用：落在两者中间）
-   同组参数下 14px 为 −0.5px、19px 为 −0.88px，因偏移与字号成正比，小字号会更接近居中。
-   字体文件里的字形上移已计入这组实测值，改动 scripts/shift-twemoji-glyphs.py 的 --dy 后
-   必须重新标定；想微调时只改 ascent，每 +2% 约下移 0.12px（@16px）。
-
-   注意 unicode-range 必须带上 U+0020。范围用于避开 Twemoji 为 U+0023/U+002A/U+0030-0039
-   准备的零宽占位字形（否则图标槽里的数字会变成空白），但按 CSS 字体规范，
-   “first available font”（即 strut 度量的来源）要求字体能匹配 U+0020；范围里没有空格时
-   这个 face 当不了 strut 的来源，行盒基线改由后备字体决定，ascent/descent override 也就
-   白写了。实测（16px / 22px 盒）：
-     U+00A9-10FFFF             图标仍偏高 1.25px（= 基本没变化）
-     U+0020, U+00A9-10FFFF     同无 range，−0.75px，且数字仍由后备字体渲染
-   图标槽位里没有真正会渲染的空格，Twemoji 的空格字形只在撑 strut 时被用到。 */
-@font-face {
-  font-family: "Twemoji Icon";
-  src: url("/plugins/siyuan-ttf-HarmonyOS_Sans_SC-and-Twemoji/Twemoji/twemoji-colr0-17.0.3.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  unicode-range: U+0020, U+00A9-10FFFF;
-  size-adjust: 76%;
-  ascent-override: 100%;
-  descent-override: 8%;
-  line-gap-override: 0%;
 }

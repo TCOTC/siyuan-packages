@@ -30,8 +30,8 @@ export interface BuildOptions {
   passes?: PassOptions[];
   /** 额外注入的常量，会与默认的 process.env.* 合并。 */
   define?: Record<string, string>;
-  /** 额外复制的静态文件（相对包根，支持简单 glob）。 */
-  copy?: string[];
+  /** 额外复制的静态文件，见 {@link CopyPattern}。 */
+  copy?: CopyPattern[];
   /**
    * 生产构建里丢掉所有 `console.*`。dev 不生效——本地调试正需要这些日志。
    */
@@ -39,6 +39,23 @@ export interface BuildOptions {
   /** 是否产出 zip，默认 true。 */
   zip?: boolean;
 }
+
+/**
+ * 一条 `copy` 规则。
+ *
+ * - 字符串：相对**包根**的 glob，`!` 前缀为排除，目标保持包内相对路径。
+ * - 对象：可跨包复制。`from` 以 `@repo/` 开头时相对**仓库根**，其余相对包根；
+ *   `to` 是产物里的目标目录（相对产物根），省略时保持命中文件的相对路径。
+ *
+ * 对象形式的存在理由是「同一份大文件被多个包分发」：字体这类二进制只能复制进产物，
+ * 放在某个包目录里就会让另一个包也存一份，两边迟早会漂成不同版本。
+ */
+export interface CopyEntry {
+  from: string;
+  to?: string;
+}
+/** 一条 `copy` 规则：字符串或 {@link CopyEntry}。 */
+export type CopyPattern = string | CopyEntry;
 
 /** 仅用于给 `build.config.ts` 提供类型与补全，运行时是恒等函数。 */
 export function defineBuild(options: BuildOptions): BuildOptions {

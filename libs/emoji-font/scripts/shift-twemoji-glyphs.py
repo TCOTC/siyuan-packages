@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""把 Twemoji 的全部字形整体上移，生成插件内使用的 Twemoji 字体。
+"""把 Twemoji 的全部字形整体上移，生成字体插件内使用的 Twemoji 字体。
 
-仓库里的 `Twemoji/twemoji-colr0-17.0.3.woff2` 是**改写过**的产物：所有字形都上移了
-167/1024 em。上游版本请从 https://github.com/TCOTC/twemoji-colr 下载，然后运行：
+两个字体插件里的 `Twemoji/twemoji-colr0-17.0.3.woff2` 都是**改写过**的产物：所有字形都
+上移了 167/1024 em。上游版本请从 https://github.com/TCOTC/twemoji-colr 下载，然后对其运行：
 
-    python3 scripts/shift-twemoji-glyphs.py --input /path/to/twemoji-colr0-17.0.3.woff2
+    python3 libs/emoji-font/scripts/shift-twemoji-glyphs.py \\
+        --input /path/to/twemoji-colr0-17.0.3.woff2 \\
+        --output libs/emoji-font/fonts/twemoji-colr0-17.0.3.woff2
+
+字体本体只存这一份（`libs/emoji-font/fonts`），两个包构建时由 `build.config.ts` 的
+`{ from: "@repo/libs/emoji-font/fonts/…", to: "Twemoji" }` 各自复制进产物。
 
 依赖：`pip install fonttools brotli`（woff2 编解码需要 brotli）。
 
@@ -17,6 +22,9 @@
 167 个字体单位在 76% 缩放下等效 +0.124em，重心变为 0.384em，与中文一致；同时
 -0.254+0.163 = -0.091em、0.938+0.163 = 1.101em 乘上 76% 后为 -0.069em…+0.837em，
 与中文的 -0.074em…+0.841em 几乎重合。
+
+改完必须重新标定 `libs/emoji-font/src/index.ts` 里的 `ascent-override`：图标位置与
+`--dy` 成正比，那组 100% / 8% 是配着 167 实测出来的。
 """
 
 import argparse
@@ -64,7 +72,7 @@ def shift(font: TTFont, dy: int) -> tuple[int, int]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, help="上游 twemoji-colr 的 woff2 文件")
-    parser.add_argument("--output", default="Twemoji/twemoji-colr0-17.0.3.woff2", help="输出路径，相对包根")
+    parser.add_argument("--output", required=True, help="输出路径，通常就是 libs/emoji-font/fonts/twemoji-colr0-17.0.3.woff2")
     parser.add_argument("--dy", type=int, default=167, help="上移的字体单位，默认 167（配 size-adjust: 76%）")
     args = parser.parse_args()
 

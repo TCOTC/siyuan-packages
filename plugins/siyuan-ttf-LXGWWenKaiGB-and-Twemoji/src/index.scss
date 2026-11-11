@@ -6,6 +6,13 @@
  *   pnpm strip-wenkai-glyphs          就地覆盖，原文件保存为 .bak
  * 码位列表见 scripts/wenkai-excluded-unicodes.txt
  *
+ * Twemoji/ 下的字体本体放在 libs/emoji-font/fonts（两个字体插件共用一份），同样经过改写
+ * （字形整体上移 167/1024 em），不能直接换成上游原件：
+ *   python libs/emoji-font/scripts/shift-twemoji-glyphs.py \
+ *     --input <上游 twemoji-colr0-17.0.3.woff2>
+ * @font-face 本身由 `siyuan-emoji-font`（libs/emoji-font）在运行时生成，所以这个文件
+ * 只声明文字字体。
+ *
  * 字体 url 一律写成 /plugins/... 的绝对路径：文件由 build.config.ts 的 copy 原样
  * 复制，vite 对这个形式既不做模块解析也不改写，产物与旧 webpack 的 url:false 一致。
  */
@@ -28,20 +35,4 @@
   font-weight: 300;
   font-style: normal;
   font-display: swap;
-}
-
-/* Twemoji */
-@font-face {
-  font-family: "Twemoji";
-  src: url("/plugins/siyuan-ttf-LXGWWenKaiGB-and-Twemoji/Twemoji/twemoji-colr0-17.0.3.woff2") format("woff2");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  /* 该字体为 U+0023、U+002A、U+0030-0039 定义了零宽占位字形（供 keycap 序列使用），
-     未加限制时这些字符在字体栈首位会不可见 */
-  unicode-range: U+00A9-10FFFF;
-  /* Twemoji 的字形墨迹约占 1.19em，而思源内置 emoji 经 emojiFont.ts 缩放后只有约 0.9em
-     （Windows 11：Noto 1.07em × 85%，其余平台：Noto 1.07em × 92%），不缩放时明显大一圈。
-     76% 后约 0.90em，与 Windows 11 的内置 emoji 视觉大小一致；如需跟随其他平台可改 82% */
-  size-adjust: 76%;
 }

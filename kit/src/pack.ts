@@ -1,6 +1,7 @@
 import { ZipArchive } from "archiver";
 import { createWriteStream, existsSync, mkdirSync, readdirSync, copyFileSync, rmSync, globSync, statSync } from "node:fs";
-import { dirname, join, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
+import type { CopyPattern } from "./define.ts";
 import { collectStaticAssets, writeManifest, type ResolvedPackage } from "./resolve.ts";
 
 /** 构建前清空输出目录。**dev 不要调用**：那时产物目录已经链进思源工作空间，是它正在读取的活目录。 */
@@ -34,29 +35,87 @@ export function copyAssets(pkg: ResolvedPackage, outDir: string): void {
 
 /**
  * 复制 `build.config.ts` 里 `copy` 声明的额外资源（字体、wasm 等大文件）。
- * 相对包根 glob，`!` 前缀排除；命中的目录递归复制并保持包内相对路径。
+ *
+ * 字符串规则相对包根 glob，`!` 前缀排除，命中的目录递归复制并保持包内相对路径。
+ * 对象规则可以跨包：`from` 以 `@repo/` 开头时相对仓库根（多个包分发同一份二进制时用，
+ * 避免在各自目录里各存一份、日后再漂成不同版本），`to` 是产物里的目标目录。
  */
-export function copyExtras(pkg: ResolvedPackage, patterns: string[], outDir: string): void {
+export function copyExtras(pkg: ResolvedPackage, entries: CopyPattern[], outDir: string): void {
   const root = resolve(pkg.root);
   const excluded = new Set<string>();
-  for (const pattern of patterns) {
-    if (!pattern.startsWith("!")) {
+  for (const entry of entries) {
+    if (typeof entry !== "string" || !entry.startsWith("!")) {
       continue;
     }
-    for (const match of globSync(pattern.slice(1), { cwd: root })) {
+    for (const match of globSync(entry.slice(1), { cwd: root })) {
       excluded.add(resolve(root, match));
     }
   }
 
   const copied = new Set<string>();
-  for (const pattern of patterns) {
-    if (pattern.startsWith("!")) {
+  for (const entry of entries) {
+    if (typeof entry === "string") {
+      if (entry.startsWith("!")) {
+        continue;
+      }
+      for (const match of globSync(entry, { cwd: root })) {
+        copyExtra(root, match, outDir, excluded, copied);
+      }
       continue;
     }
-    for (const match of globSync(pattern, { cwd: root })) {
-      copyExtra(root, match, outDir, excluded, copied);
+
+    // 对象规则：基准目录由 @repo/ 前缀决定，目标目录由 to 决定
+    const base = entry.from.startsWith(REPO_PREFIX) ? pkg.repoRoot : root;
+    const pattern = entry.from.startsWith(REPO_PREFIX) ? entry.from.slice(REPO_PREFIX.length) : entry.from;
+    // 命中文件相对这个目录计算目标路径：glob 里第一个通配符之前的那段目录；
+    // 没有通配符时就是该文件所在的目录，使 dest 只取文件名
+    const wildcard = firstWildcardIndex(pattern);
+    const anchor = join(base, dirname(wildcard === -1 ? pattern : pattern.slice(0, wildcard + 1)));
+    const to = entry.to ?? "";
+    for (const match of globSync(pattern, { cwd: base })) {
+      const from = resolve(base, match);
+      if (excluded.has(from)) {
+        continue;
+      }
+      if (!isWithin(base, from)) {
+        throw new Error(`copy 里的路径越出了仓库/包目录：${entry.from}`);
+      }
+      const relativeDest = join(to, relative(anchor, from));
+      if (statSync(from).isDirectory()) {
+        for (const file of globSync("**/*", { cwd: from })) {
+          copyFile(resolve(from, file), relativeDest, file, outDir, copied);
+        }
+        continue;
+      }
+      copyFile(from, relativeDest, "", outDir, copied);
     }
   }
+}
+
+/** 仓库根相对的 `copy` 规则前缀。 */
+const REPO_PREFIX = "@repo/";
+
+const isWithin = (base: string, target: string): boolean => target === base || target.startsWith(base + sep);
+
+/** 第一个通配符的位置（找不到返回 -1）。 */
+const firstWildcardIndex = (pattern: string): number => {
+  for (let index = 0; index < pattern.length; index++) {
+    if ("*?[{".includes(pattern[index]!)) {
+      return index;
+    }
+  }
+  return -1;
+};
+
+/** 把 `source` 复制到 `outDir/<destDir>/<relativeName>`，`copied` 用于跳过重复命中。 */
+function copyFile(source: string, destDir: string, relativeName: string, outDir: string, copied: Set<string>): void {
+  if (copied.has(source)) {
+    return;
+  }
+  copied.add(source);
+  const dest = join(outDir, destDir, relativeName);
+  mkdirSync(dirname(dest), { recursive: true });
+  copyFileSync(source, dest);
 }
 
 function copyExtra(root: string, relativePath: string, outDir: string, excluded: Set<string>, copied: Set<string>): void {

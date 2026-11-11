@@ -1,5 +1,6 @@
 type PluginI18n = typeof import("./i18n/zh-CN.json");
 import "./index.scss";
+import { getEmojiFontStyle, preloadEmojiFont } from "siyuan-emoji-font";
 import { Plugin, Setting, showMessage } from "siyuan";
 
 const STORAGE_KEY = "settings.json";
@@ -149,8 +150,6 @@ export default class LXGWWenKaiFontPlugin extends Plugin {
     const fallbackHead = "BlinkMacSystemFont, Helvetica, ";
     const fallbackMid = '"Luxi Sans", "DejaVu Sans", ';
     const fallbackEnd = '"Hiragino Sans", arial, sans-serif, emojis';
-    const emojiReset = '"Emojis Additional", "Emojis Reset"';
-    const emojiStack = emojiFont ? `"Twemoji", ${emojiReset}` : emojiReset;
 
     const lang = window.siyuan.config!.appearance.lang; // 不能用 document.documentElement.lang，因为插件启动时这个属性可能还不存在
     let fallback: string;
@@ -208,10 +207,9 @@ export default class LXGWWenKaiFontPlugin extends Plugin {
     }
 
     if (emojiFont) {
-      // emoji 前缀由该变量承载，覆盖它 Twemoji 才能排在 "Emojis Additional" 之前
-      rules.push(`:root { --b3-font-family-emoji-reset: ${emojiStack} !important; }`);
-      // "Emojis Icon" 由主题在 Windows 11 上声明，图标位依赖其字形墨迹对齐，需要保留
-      rules.push(':root { --b3-font-family-emoji: "Twemoji", "Emojis Additional", "Emojis Icon", emojis !important; }');
+      // @font-face 与三条变量/槽位规则由 libs/emoji-font 一并产出：变量指向的字族与声明
+      // 必须成对出现，拆开容易只改一半而静默退回内置 Noto
+      rules.push(getEmojiFontStyle(this.name));
     }
 
     // id 以 snippetCSS 开头的 style 元素会被添加到导出 PDF 中
@@ -267,7 +265,7 @@ export default class LXGWWenKaiFontPlugin extends Plugin {
           document.fonts.load('300 16px "LXGW WenKai"', "2");
         }
         if (this.config.emojiFont) {
-          document.fonts.load('400 16px "Twemoji"', "😀");
+          preloadEmojiFont();
         }
       } catch (_) {
         // 预加载失败不影响字体使用，实际渲染时仍会按需拉取

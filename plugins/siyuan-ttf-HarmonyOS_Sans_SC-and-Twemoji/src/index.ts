@@ -1,5 +1,6 @@
 type PluginI18n = typeof import("./i18n/zh-CN.json");
 import "./index.scss";
+import { getEmojiFontStyle, preloadEmojiFont } from "siyuan-emoji-font";
 import { Plugin, Setting, showMessage } from "siyuan";
 
 const STORAGE_KEY = "settings.json";
@@ -29,13 +30,6 @@ const UI_FONT_SELECTORS = "body, button, input, select, textarea, .b3-tooltips::
 // 表格单元格内的富文本预览与嵌套编辑器位于 th/td 之内，字重必须沿用宿主单元格的声明，
 // 例如表头 th 的 600、表体 td 的 normal，不能改用插件下发的字重
 const TABLE_CELL_WEIGHT_SELECTORS = ".table__cell-rich, .table__cell-editor .protyle-wysiwyg";
-
-// 这些槽位在 SiYuan 的 base.css 里把 "Emojis File Tree" 硬写在字体栈首位：
-// font-family: "Emojis File Tree", var(--b3-font-family-emoji)。
-// 该 face 只在 emojiPlatform 判为 "windows"（非 Windows 11）时由 emojiFont.ts 声明，
-// 一旦命中就压过变量里排在前面的 Twemoji，文档树、菜单、开关图标都拿不到插件字体；
-// isWin11() 依赖 navigator.userAgentData，取不到时会退成 "windows"，故不能假定不会命中。
-const ICON_SLOT_SELECTORS = ".b3-list-item__icon, .b3-menu__avemoji, .b3-list-item__switch";
 
 // 鸿蒙黑体只提供 400 与 700 两个字重，沿用「设置 - 外观」中选择的字体字重会触发合成加粗
 const DEFAULT_FONT_WEIGHT = 400;
@@ -157,8 +151,6 @@ export default class HarmonyOSFontPlugin extends Plugin {
     const fallbackHead = "BlinkMacSystemFont, Helvetica, ";
     const fallbackMid = '"Luxi Sans", "DejaVu Sans", arial, ';
     const fallbackEnd = "sans-serif, emojis";
-    const emojiReset = '"Emojis Additional", "Emojis Reset"';
-    const emojiStack = emojiFont ? `"Twemoji", ${emojiReset}` : emojiReset;
 
     const lang = window.siyuan.config!.appearance.lang; // 不能用 document.documentElement.lang，因为插件启动时这个属性可能还不存在
     let harmonyOS: string;
@@ -226,15 +218,9 @@ export default class HarmonyOSFontPlugin extends Plugin {
     }
 
     if (emojiFont) {
-      // emoji 前缀由该变量承载，覆盖它 Twemoji 才能排在 "Emojis Additional" 之前
-      rules.push(`:root { --b3-font-family-emoji-reset: ${emojiStack} !important; }`);
-      // 图标位用 "Twemoji Icon"：它只改 ascent/descent（字号与墨迹不变），把定高盒里的字形
-      // 摆到比盒中心高 0.75px —— 思源默认偏高 1.5px、严格居中又偏低，取中间
-      // 正文档仍用 "Twemoji"，那里要的是与中文墨迹重心对齐，两个目标在同一个字形上无法同时满足
-      rules.push(':root { --b3-font-family-emoji: "Twemoji Icon", "Emojis Additional", "Emojis Icon", emojis !important; }');
-      // base.css 把这些槽位的字体栈写成 "Emojis File Tree", var(--b3-font-family-emoji)，
-      // 首位在非 Windows 11 平台会被光栅到内置 Noto，必须整条替换
-      rules.push(`${ICON_SLOT_SELECTORS} { font-family: var(--b3-font-family-emoji) !important; }`);
+      // @font-face 与三条变量/槽位规则由 libs/emoji-font 一并产出：变量指向的字族与声明
+      // 必须成对出现，拆开容易只改一半而静默退回内置 Noto
+      rules.push(getEmojiFontStyle(this.name));
     }
 
     // id 以 snippetCSS 开头的 style 元素会被添加到导出 PDF 中
@@ -292,7 +278,7 @@ export default class HarmonyOSFontPlugin extends Plugin {
           document.fonts.load('italic 700 16px "HarmonyOS Sans"', "4");
         }
         if (this.config.emojiFont) {
-          document.fonts.load('400 16px "Twemoji"', "😀");
+          preloadEmojiFont();
         }
       } catch (_) {
         // 预加载失败不影响字体使用，实际渲染时仍会按需拉取
