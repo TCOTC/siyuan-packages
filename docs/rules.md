@@ -585,7 +585,7 @@ pnpm release
 它读 `PACKAGES` / `EVENT` / `INPUT_DRY_RUN` / `INPUT_FORCE` 四个环境变量，本地也能直接跑 dry-run：
 
 ```bash
-# PACKAGES 每行七列（制表符分隔）：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本（新包留空）/ 基准 ref
+# PACKAGES 每行七列（制表符分隔）：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本（新包留空）/ 本包上一个发布点
 PACKAGES=$'plugins/move-doc\tmove-doc\t1.0.2\tTCOTC/move-doc\tplugin\t1.0.1\trelease/20261001-120000' \
 EVENT=workflow_dispatch INPUT_DRY_RUN=true bash .github/scripts/publish.sh
 ```
@@ -598,16 +598,16 @@ EVENT=workflow_dispatch INPUT_DRY_RUN=true bash .github/scripts/publish.sh
 Release 链接只有发布后才知道，所以表格不能放在检测步骤——放两处必然不一致。
 
 **release 正文是脚本自己写的，不用 `gh --generate-notes`。** GitHub 的自动正文按**目标仓库**的提交生成，
-而每个包的收录仓库迁移后已归档、只剩 README，自动生成的 `Full Changelog` 指过去永远是空区间。
+而每个包的收录仓库迁移后已归档、只剩 README，自动生成的笔记指过去永远是空区间。
 GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只能在同一仓库里换起点，所以只能自写：
 
 ```text
 ## 更新内容
 
 - <提交标题>（[<短 sha>](https://github.com/<本仓>/commit/<完整 sha>)）
-- …（基准 ref → HEAD 区间里本包目录的提交；本包目录没有直接提交时退一步列 kit / libs 的提交）
+- …（本包上次发布 → HEAD 区间里本包目录的提交；本包目录没有直接提交时退一步列 kit / libs 的提交）
 
-**Full Changelog**: https://github.com/<本仓>/compare/<基准 sha>...<HEAD sha>
+提交历史：https://github.com/<本仓>/commits/<HEAD sha>/<包目录>?since=<本包上次发布提交的日期>
 
 源码：https://github.com/<本仓>/tree/<HEAD sha>/<包目录>
 ```
@@ -615,9 +615,31 @@ GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只�
 提交列表里的哈希必须带完整链接（显示短 sha，链接用完整 sha）：只写裸哈希时读者没法一键跳到那次改动，
 而收录仓库里又没有这些提交。
 
-`Full Changelog` 指向本仓的同区间对比（含其他包的改动——这是本仓唯一的「区间」概念，
-本包的精确改动由上面的提交列表给出）。`force` 重发时会用 `gh release edit` 把正文一起换掉，
-否则重发后还挂着上一次的提交列表。基准 ref 由检测阶段作为第 7 列传给 `publish.sh`。
+**正文里不写整仓的 `Full Changelog` 对比链接。** 本仓唯一的「区间」是整个仓库的区间，
+指向 `compare/<基准 sha>...<HEAD sha>` 会把同时发布的其他包的改动一起摊开
+（实测一次发布：区间 159 个文件，属于该包的只有 7 个），而 GitHub 的 compare 不支持按路径过滤。
+本包的改动已经由上面的提交列表给出，再挂一条整仓 diff 对读者是噪音。
+
+**「提交历史」链接用 `/commits/<HEAD sha>/<包目录>?since=<本包上次发布提交的日期>`。** `/commits/<ref>/<path>` 是 GitHub
+唯一能按路径过滤的入口（`compare` 不支持 path），加上 `since` 就近似「上一次发布 → 这次发布」。
+两个实测偏差，都接受：
+
+- `since` 只收到**天**（按提交自身的时区日期截断，时分秒被忽略：`?since=2026-11-10T23:59:59Z`
+  与 `?since=2026-11-10T13:00:00Z` 返回同一批），所以同一个包在同一天连发两次时，上一次发布的提交会重复出现。
+- 页面总会带上 `ref` 那个提交本身，即使它没改这个目录（用 `1dc2704` 只改 Whisper 的提交去查
+  `plugins/image-squeeze` 验证过）。最多多一行。
+
+要钉在发布时刻的 sha（而不是 `main`），否则读者点开看到的不一定是那一版的内容。
+
+**区间下界必须是「本包自己上次发布」，不是仓库级的上一个标签。** 标签是按批次打的，一批只发其中几个包；
+拿最新标签当基准，会把「本包上次发布 → 最新标签」之间本包的提交整段漏掉。
+实测：`image-squeeze` 在 `release/20261110-194836` 发了 1.0.2，之后几个批次只发了别的包，
+而 `c2f276e`、`7fb4489`、`4a56563` 三个提交都改了它——用最新标签会全部丢掉。
+所以由检测阶段逐个包往回找：从最新标签往回走，跳过本包清单还不存在的标签，再跳过版本相同的标签，
+那段连续区的**段首**就是该版本的发布点（版本是在它之前的区间里抬上去的，标签本身是发布时刻）。
+
+`force` 重发时会用 `gh release edit` 把正文一起换掉，否则重发后还挂着上一次的提交列表。
+区间下界（第 7 列）由检测阶段逐包算出后传给 `publish.sh`。
 
 六条语义：
 

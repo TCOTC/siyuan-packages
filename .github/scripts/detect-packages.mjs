@@ -75,9 +75,24 @@ function revParse(ref) {
 }
 
 /**
+ * 可达 currentRef 的全部 release 标签；sort 直接给 git 的排序参数。
+ *
+ * `--merged` 把候选限定在「可达 currentRef 的提交」上，避免拿到别的分支上的标签。
+ */
+function releaseTags(currentRef, sort) {
+  const commit = revParse(currentRef);
+  if (commit === null) {
+    throw new Error(`解析不到 ${currentRef} 对应的提交`);
+  }
+  return git("for-each-ref", "--merged", commit, `--sort=${sort}`, "--format=%(refname:strip=2)", `refs/tags/${TAG_PREFIX}*`)
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+/**
  * 找 currentRef 之前最近的一个 release 标签。
  *
- * `--merged` 把候选限定在「可达 currentRef 的提交」上，避免拿到别的分支上的标签；
  * 按提交日期倒序取第一个，只跳过自己。
  *
  * 不跳过「与自己在同一提交上的其它标签」：本地在 HEAD 上刚打过基准标签、紧接着再执行一次时，
@@ -85,21 +100,45 @@ function revParse(ref) {
  * 返回 null 表示这是首次打标签。
  */
 function previousTag(currentRef) {
-  const commit = revParse(currentRef);
-  if (commit === null) {
-    throw new Error(`解析不到 ${currentRef} 对应的提交`);
-  }
-  const names = git("for-each-ref", "--merged", commit, "--sort=-creatordate", "--format=%(refname:strip=2)", `refs/tags/${TAG_PREFIX}*`)
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  for (const name of names) {
+  for (const name of releaseTags(currentRef, "-creatordate")) {
     if (name !== currentRef) {
       return name;
     }
   }
   return null;
+}
+
+/**
+ * 本包上一次**自己**发布时对应的标签。
+ *
+ * 不能直接拿「上一个 release 标签」当正文的区间下界：标签是仓库级的，一批只发其中几个包。
+ * 例如 image-squeeze 在 release/20261110-194836 发了 1.0.2，之后几个批次只发了别的包，
+ * 用最新标签当基准就会把「本包上次发布 → 最新标签」之间本包的提交整段漏掉。
+ *
+ * 做法：从最新标签往回走，先跳过本包清单还不存在的标签（迁移前叫 plugin.json / theme.json /
+ * widget.json），再一路跳过版本与最新标签相同的标签。这段连续区的段首就是该版本的发布点 ——
+ * 版本是在它之前的区间里抬上去的，标签本身是发布时刻。
+ * 返回空字符串表示本包在这个仓里还没有发布点，正文就不写区间与链接。
+ */
+function previousReleaseTag(manifestPath, currentRef) {
+  const tags = releaseTags(currentRef, "-creatordate").filter((name) => name !== currentRef);
+  let index = 0;
+  let version = null;
+  while (index < tags.length) {
+    version = versionAt(tags[index], manifestPath);
+    if (version !== null) {
+      break;
+    }
+    index++;
+  }
+  if (version === null) {
+    return "";
+  }
+  // 同一版本的连续区可能跨多个批次，段首才是发布那一刻
+  while (index + 1 < tags.length && versionAt(tags[index + 1], manifestPath) === version) {
+    index++;
+  }
+  return tags[index];
 }
 
 /** 区间内被新增或修改的包清单（删除的包不参与：它已经没有可构建的内容）。 */
@@ -203,8 +242,9 @@ function finish(rows, notes, extra = {}) {
   }
 
   setOutput("count", String(rows.length));
-  // 七列：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本 / 基准 ref。
-  // 上一个版本为空字符串表示新包（基准里没有它）；基准 ref 用来在 publish.sh 里生成 release 正文。
+  // 七列：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本 / 本包上一个发布点。
+  // 上一个版本为空字符串表示新包（基准里没有它）；最后一个只用来在 publish.sh 里生成
+  // release 正文 —— 它是「本包自己上次发布」，不是仓库级的上一个标签。
   setOutput("list", rows.map((row) => [row.dir, row.name, row.version, row.target, row.kind, row.previous ?? "", row.base ?? ""].join("\t")).join("\n"));
 
   // 表格由 publish.sh 输出：Release 链接只有发布后才知道，放两处必然不一致。
@@ -232,10 +272,13 @@ function main() {
       .map((token) => token.trim())
       .filter(Boolean)
       .map(findPackageDir);
-    // 上一版未知，但正文仍需要一个区间下界，取离 HEAD 最近的 release 标签
-    const base = previousTag("HEAD") ?? "";
+    // 上一版未知，但正文仍需要一个区间下界，取本包自己的上一个发布点（没有则退回仓库基准）
     finish(
-      dirs.map((dir) => ({ ...resolvePackage(dir), previous: MANUAL_PREVIOUS, base })),
+      dirs.map((dir) => ({
+        ...resolvePackage(dir),
+        previous: MANUAL_PREVIOUS,
+        base: previousReleaseTag(`${dir}/manifest.json`, "HEAD") || (previousTag("HEAD") ?? ""),
+      })),
       [`手动指定 ${dirs.length} 个包，未做变更检测。`],
     );
     return;
@@ -253,7 +296,7 @@ function main() {
 
   // notes 只放表格里没有的信息：基准、以及被跳过的包及其原因。
   // 已发布包逐个列「旧 → 新」与汇总表重复，不再写进 summary（日志里另有）。
-  const notes = [`基准：\`${base}\` → \`${currentRef}\``];
+  const notes = [`基准：\`${base}\` → \`${currentRef}\`（正文的提交区间按各包自己的上一个发布点算）`];
   const skipped = [];
   const rows = [];
 
@@ -264,7 +307,8 @@ function main() {
 
     if (previous === null) {
       progress(`- ${pkg.name}：新包，直接发布`);
-      rows.push({ ...pkg, previous: null, base });
+      // 新包没有自己的发布点，退回到仓库基准 —— 否则正文里连初始化那几个提交都列不出来
+      rows.push({ ...pkg, previous: null, base: previousReleaseTag(path, currentRef) || base });
       continue;
     }
 
@@ -283,7 +327,7 @@ function main() {
       throw new Error(`${pkg.name} 的 version 从 ${previous} 降到了 ${pkg.version}`);
     }
     progress(`- ${pkg.name}：${previous} → ${pkg.version}`);
-    rows.push({ ...pkg, previous, base });
+    rows.push({ ...pkg, previous, base: previousReleaseTag(path, currentRef) });
   }
 
   // 跳过的包不在表格里，不写一句没人知道它们为什么没发

@@ -8,8 +8,9 @@
 #
 # 环境变量（都由 workflow 注入，脚本本身不读任何仓库配置）：
 #   PACKAGES            待发包清单，每行七列，制表符分隔：
-#                       包目录 \t 包名 \t 版本 \t 目标仓库 \t 类型 \t 上一个版本（新包为空）\t 基准 ref
-#                       基准 ref 只用来生成 release 正文（本仓的提交区间）
+#                       包目录 \t 包名 \t 版本 \t 目标仓库 \t 类型 \t 上一个版本（新包为空）\t 本包上一个发布点
+#                       最后一列是「本包自己上次发布」的标签，只用来生成 release 正文
+#                       （仓库级的上一个标签会把它之后本包的提交漏掉）
 #   EVENT               push | workflow_dispatch；只有 dispatch 才认下面的两个布尔值
 #   INPUT_DRY_RUN       dispatch 下为 true 时只构建与校验，不调 gh
 #   INPUT_FORCE         dispatch 下为 true 时允许覆盖目标仓库已存在的同版本 release
@@ -137,8 +138,11 @@ for line in "${LINES[@]}"; do
   cp "$zip" "$asset_dir/package.zip"
 
   # 正文自己写，不用 gh 的 --generate-notes：那是按**目标收录仓库**的提交生成的，
-  # 而收录仓库早已归档、只剩 README，生成的 Full Changelog 永远指向一片空白。
+  # 而收录仓库早已归档、只剩 README，生成的笔记永远指向一片空白。
   # GitHub 没有「跨仓库生成 notes」的能力，--notes-start-tag 也只能在同一仓库里换起点。
+  # 也不写本仓的 `compare/<基准>...<HEAD>`：本仓唯一的「区间」是整仓区间，会把其他包的改动
+  # 一起摊开（实测一次发布 159 个文件的 diff，属于该包的只有 7 个），而 GitHub 的 compare
+  # 不支持按路径过滤 —— 对单个包的读者来说那是噪音，本包的改动由下面的提交列表给出。
   notes_file="${asset_dir}/notes.md"
   base_sha=""
   head_sha=$(git rev-parse HEAD)
@@ -151,6 +155,7 @@ for line in "${LINES[@]}"; do
   fi
   commits=""
   if [ -n "$base" ] && base_sha=$(git rev-parse --verify "${base}^{commit}" 2>/dev/null); then
+    # 区间下界是本包上一次发布（不是上一个 release 标签）：标签是仓库级的，一批只发其中几个包
     # `-n 30` 而不是 `| head -30`：head 提前退出会让 git 吃 SIGPIPE，在 pipefail 下整条命令判失败
     commits=$(git log -n 30 --no-merges --pretty="$commit_format" "${base_sha}..${head_sha}" -- "$dir")
     if [ -z "$commits" ]; then
@@ -162,10 +167,16 @@ for line in "${LINES[@]}"; do
   if [ -n "${commits:-}" ]; then
     note_body+=$(printf '## 更新内容\n\n%s' "$commits")
   fi
-  # 链接指向源码仓：收录仓库里没有这些提交，指过去只会得到一片空白
-  if [ -n "$base_sha" ] && [ -n "$source_repo" ]; then
-    note_body+="${note_body:+$'\n\n'}**Full Changelog**: https://github.com/${source_repo}/compare/${base_sha}...${head_sha}"
+  # 本包自己的提交历史：`/commits/<ref>/<path>` 是 GitHub 唯一能按路径过滤的入口
+  # （compare 不能过滤，整仓区间会把同时发布的其他包一起摊开，见上面的注释）。
+  # 两个实测偏差：① `?since=` 只收到「天」，同一组参数下同一天连发同一个包时，上一次发布的
+  # 提交会重复出现；② 页面总会带上 ref 那个提交本身，即使它没改这个目录。
+  # 都比整仓 diff 好，且不会误导到别的包。
+  if [ -n "$source_repo" ] && [ -n "$base_sha" ]; then
+    since=$(git log -1 --format=%cs "$base_sha")
+    note_body+="${note_body:+$'\n\n'}提交历史：https://github.com/${source_repo}/commits/${head_sha}/${dir}?since=${since}"
   fi
+  # 链接指向源码仓：收录仓库里没有这些提交，指过去只会得到一片空白
   if [ -n "$source_repo" ]; then
     note_body+="${note_body:+$'\n\n'}源码：https://github.com/${source_repo}/tree/${head_sha}/${dir}"
   fi
