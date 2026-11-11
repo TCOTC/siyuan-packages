@@ -341,6 +341,8 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 这份表是**白名单**：新增条目必须先登记到 `kit/src/check.ts` 的 `ALLOWED_BUILD_CONFIG`（附理由），否则 `pnpm check` 会红。
 
+构建期常量：两个 JS 预设都会 `define` 一个 `__SIYUAN_BUILD_TIME__`（epoch 毫秒的字符串），另外还有 `process.env.NODE_ENV` / `process.env.DEV_MODE`。`__SIYUAN_BUILD_TIME__` 用于给「文件会被替换、URL 却不变」的静态资源拼缓存标签——渲染进程按 URL 缓存已解码的字体，集市换掉字体文件后页面会继续用旧字形，只有彻底重启才恢复（`libs/emoji-font` 踩过一次，表现为行内表情低 2px）。用法是在 URL 后拼 `?v=`，内核的静态文件处理器只取 `c.Param("filepath")`，查询串不参与定位。
+
 `copy` 的规则：相对包根 glob，`!` 前缀排除，命中目录递归复制，目标保持包内相对路径。字体与 wasm 在产物里的位置与源码一致，运行期用 `/plugins/<name>/...` 绝对 URL 访问，vite 不改写也不会再打包一份。
 
 需要把**同一份大文件**分发给多个包时，copy 条目可以写成对象：`from` 以 `@repo/` 开头则相对仓库根，`to` 是产物里的目标目录（省略则沿用命中文件的相对路径）。这样二进制只存一份（`libs/emoji-font/fonts/`，连带 CC-BY 图形许可），构建时各自复制进产物。

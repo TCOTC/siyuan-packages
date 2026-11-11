@@ -12,7 +12,7 @@
   },
   "rules": {
     "no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
-    "no-underscore-dangle": ["warn", { "allow": ["__heatmapSiyuanStub", "__flomoWebInjected", "__flomoWebCoverAbort", "_config", "_kernel", "l_", "m_", "s_"] }],
+    "no-underscore-dangle": ["warn", { "allow": ["__heatmapSiyuanStub", "__flomoWebInjected", "__flomoWebCoverAbort", "__SIYUAN_BUILD_TIME__", "_config", "_kernel", "l_", "m_", "s_"] }],
 
     // 只保留三条必须关掉的规则，其余全部开启，靠改代码或就地豁免满足：
     //   no-array-sort —— 规则要求 `toSorted()`，那是 ES2023；本仓产物要跑在 iOS 15.6 的

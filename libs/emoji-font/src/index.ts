@@ -20,6 +20,26 @@
 export const TWEMOJI_FILE = "twemoji-colr0-17.0.3.woff2";
 
 /**
+ * kit 在构建时注入的常量（插件与挂件预设都写，值是 epoch 毫秒的字符串）。
+ * 未经过 kit 构建时这个标识符不存在，所以下方用 `typeof` 探测而不是直接取值。
+ */
+declare const __SIYUAN_BUILD_TIME__: string | undefined;
+
+/**
+ * 字体 URL 的缓存标签。
+ *
+ * 渲染进程按 **URL** 缓存已解码的字体，换掉 `Twemoji/*.woff2` 但 URL 不变时，页面会继续
+ * 使用旧字形——实测：集市更新后行内表情比正确位置低 2px（`167/1024 em × 76%`），
+ * 只有彻底退出思源才恢复。拼上构建时间戳后每次构建（含集市发布）都是新 URL。
+ *
+ * 同一次 `dev` 进程内固定不变（可能得重启才能拾到新字体），每次 `build` / `sync` 重新取值。
+ */
+const cacheTag = (): string => {
+  const tag = typeof __SIYUAN_BUILD_TIME__ === "string" ? __SIYUAN_BUILD_TIME__ : "";
+  return tag ? `?v=${tag}` : "";
+};
+
+/**
  * 图标槽位。siyuan 仓库 `app/src/assets/scss/component/_list.scss`
  * 把 `"Emojis File Tree"` 硬写在字体栈首位，必须整条替换。
  */
@@ -79,7 +99,7 @@ const SIYUAN_EMOJI_FALLBACK = '"Emojis Additional", "Emojis Reset"';
  * 0.12px（@16px）。字体文件里的字形上移已计入这组实测值，改 `--dy` 后必须重新标定。
  */
 export const getEmojiFontFaceCSS = (pluginName: string): string => {
-  const src = `url("/plugins/${pluginName}/Twemoji/${TWEMOJI_FILE}") format("woff2")`;
+  const src = `url("/plugins/${pluginName}/Twemoji/${TWEMOJI_FILE}${cacheTag()}") format("woff2")`;
   return `@font-face {
   font-family: "Twemoji";
   src: ${src};

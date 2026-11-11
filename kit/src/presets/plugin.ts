@@ -46,6 +46,11 @@ function pluginConfig(pkg: ResolvedPackage, pass: PassOptions, mode: BuildMode, 
       "process.env.DEV_MODE": JSON.stringify(String(dev)),
       // 思源插件不是 Node 进程；这里整体替换掉，避免 bundle 里残留 process 引用
       "process.env": "{}",
+      // 构建时间戳（epoch 毫秒的字符串）。给「文件会被替换、URL 却不变」的静态资源拼缓存标签：
+      // 渲染进程按 URL 缓存已解码的字体，集市更新换掉了字体文件但 URL 没变时，页面会继续
+      // 用旧字形，只有彻底重启才恢复（libs/emoji-font 的 Twemoji 就踩过一次）。
+      // 只在生成构建计划时取一次：同一次 dev 进程内各次重建保持一致，每次 build / sync 重新取值。
+      __SIYUAN_BUILD_TIME__: JSON.stringify(String(Date.now())),
       ...extraDefine,
     },
 

@@ -31,6 +31,8 @@ function widgetConfig(pkg: ResolvedPackage, mode: BuildMode, outDir: string, opt
     define: {
       "process.env.NODE_ENV": JSON.stringify(dev ? "development" : "production"),
       "process.env": "{}",
+      // 构建时间戳，与插件预设同义：给固定 URL 的静态资源拼缓存标签。见 presets/plugin.ts 的注释。
+      __SIYUAN_BUILD_TIME__: JSON.stringify(String(Date.now())),
       ...options.define,
     },
 
