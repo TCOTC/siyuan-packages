@@ -42,8 +42,11 @@ html[data-whisper-hide-doc-breadcrumb="true"] {
       }
 
       // 原生只在路径栏存在时把间距压到 8px，路径栏隐藏后需要恢复弹性空间，把右侧按钮推到末尾
+      // 原生给 __space 带 transition: all .2s（--b3-transition），主题加载/属性写入的瞬间
+      // flex 从 0 0 8px 突变到 1 会被播成动画，右侧按钮看起来从左边滑到右边 → 这里关掉过渡
       .protyle-breadcrumb__space {
         flex: 1;
+        transition: none;
       }
 
       .protyle-breadcrumb__icon,
