@@ -36,7 +36,7 @@ kit/              构建内核 @jeffrey-chen/siyuan-kit
 
 `libs/*` 不是集市包：无清单、无 `build` 脚本、不进 `dist/`，`exports` 指向 `src/index.ts`，由消费方 vite 一并编译进 bundle。
 
-`libs/vconsole` 是唯一例外：上游只发源码、打包需要整套 svelte + webpack，仓内无法复现，所以直接提交官方构建产物（更新方式见该目录 README）。
+`libs/vconsole` 是唯一例外：上游只发源码、打包需要整套 svelte + webpack，仓内无法复现，所以直接提交官方构建产物（更新方式见该目录 README）。它登记在 `kit/src/check.ts` 的 `PREBUILT_LIBS` 白名单里，其余 `libs/*` 出现 `dist/` 会被 `pnpm check` 判错。
 
 **写新代码前先看 `libs/*` 是否已有对应能力**，别在包内再抄一份。当前共享能力：
 
@@ -170,7 +170,17 @@ export interface Global {
 include: ["src/**/*.test.ts", "e2e/**/*.test.ts"];
 ```
 
-除 `include` 外只允许两类差异：`resolve.alias`（把 `siyuan` 指向 `src/__mocks__/siyuan.ts`，且必须是绝对路径）与 `test.environment`（整包需要 DOM 时设 `jsdom`，如 `highlight-search`）。
+除 `include` 外，配置里只允许出现下表中的差异。`pnpm check` 只校验两个 glob 是否在 `include` 里，其余由人工按此表把关：
+
+| 差异                                        | 谁在用                | 为什么需要                                                     |
+| ------------------------------------------- | --------------------- | -------------------------------------------------------------- |
+| `resolve.alias` → `src/__mocks__/siyuan.ts` | `heatmap`、`snippets` | `siyuan` 只有类型声明，没有运行期入口；alias 必须是绝对路径    |
+| `test.environment: "jsdom"`                 | `highlight-search`    | 整包用例直接操作 DOM                                           |
+| `test.environment: "node"`（显式写）        | `libs/*`              | 与 vitest 默认值相同，写明意图，避免以后被误改成 jsdom         |
+| `test.restoreMocks: true`                   | `libs/*`、`snippets`  | 替身状态不能在用例之间泄漏                                     |
+| `test.environmentOptions.jsdom.runScripts`  | `snippets`            | 默认的 `dangerously` 会真的执行夹具里的 JS，把日志打进 CI 输出 |
+
+需要 DOM 的单个文件用文件头注释 `// @vitest-environment jsdom`（`snippets` 的写法），不要为此把整包切成 jsdom。
 
 ### 2.10 清单分三层
 
@@ -196,7 +206,7 @@ include: ["src/**/*.test.ts", "e2e/**/*.test.ts"];
 
 `icon` / `preview` 的默认名不写进清单：siyuan 仓库 `kernel/bazaar/bazaar.go` 的 `packageImageName(configured, legacyName)` 在 `configured` 为 nil 时直接返回 `legacyName`（即 `icon.png` / `preview.png`），所以「叫 icon.png」与「不声明」完全等价。文件名是 `preview.webp` 这类才需要声明。
 
-图片文件**始终会复制进产物**（与是否写入清单无关）：`collectStaticAssets` 按同一个探测结果复制。扩展名必须在思源白名单 `png / jpg / jpeg / webp / avif` 内（`isSupportedPackageImageName`），放 `icon.svg` 既不进产物也拿不到 URL，`pnpm check` 会报。
+图片文件**始终会复制进产物**（与是否写入清单无关）：`collectStaticAssets` 按同一个探测结果复制。扩展名必须在思源白名单 `png / jpg / jpeg / webp / avif` 内（`isSupportedPackageImageName`），放 `icon.svg` 既不进产物也拿不到 URL，`pnpm check` 会报。文件名整体**大小写敏感**：构建只找全小写的 `icon.png` / `preview.png`，`Icon.PNG` 在 Windows 上看着能用、到 Linux 就探测不到，`pnpm check` 会拦。
 
 四个规矩：
 
@@ -392,6 +402,10 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 | 第三方通知  | 包根只能有 `THIRD_PARTY-NOTICES.md`，其它 `THIRD_PARTY*` 文件一律报错（它们不会进产物）                                                                                                                                                                                                        |
 | 约定入口    | 没有 `build.config.ts` 时，`src/index.ts`（插件）/ `index.html`（挂件）/ `styles/index.scss`（主题）必须存在                                                                                                                                                                                   |
 | Node API    | `src/**` 下的发行代码（`.test.ts` / `.d.ts` / `src/__mocks__/` 除外）不允许出现 Node 内置模块（`node:*`、`fs`、`path`、`fs/promises` 等，按首段判断）与只在 Node 里存在的全局量（`process.env`、`Buffer.from`、`__dirname` …）                                                                 |
+| libs 契约   | `libs/*` 必须 extends `tsconfig.strict.json`，且不得出现 `dist/` / `package.zip` / `index.js` / `index.css`；只有登记在 kit `PREBUILT_LIBS` 里的库（当前只有 `vconsole`）整体豁免                                                                                                              |
+| 生成物      | `code-recognition` 必须带 `wasm/betlang_wasm_bg.wasm`：它由 `build:wasm` 生成、CI 不跑 cargo，漏提交没有别的地方能发现                                                                                                                                                                         |
+
+`siyuan-kit check` 之前还有一层：**门禁自身有单测**（`kit/src/check.test.ts`、`kit/src/resolve.test.ts`）。每个用例在系统临时目录里造一个最小仓库、只破坏一处，断言报出对应问题，另有「合规的包零问题」与「真实仓库零问题」两条兜住误报——误报会让作者关掉检查，比漏报更严重。
 
 CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错的输入上。
 
@@ -428,8 +442,9 @@ CI 在 `format:check` 之前跑它：结构错了，后面的检查都跑在错�
 - `experimentalOperatorPosition: "start"`：被迫折行时运算符放行首。
 - `tabWidth: 2`、LF、双引号、分号、`trailingComma: "all"`、`objectWrap: "preserve"`。
 - YAML 不参与（`ignorePatterns` 排掉 `**/*.{yml,yaml}`）。
-- `src/i18n/` 参与格式化，包根的 `i18n/`（构建产物）排除。
+- `src/i18n/` 参与格式化；产物目录整体被 `dist/` 规则排掉，所以包根的 `i18n/`（构建产物）不需要单独列。
 - 压缩产物与生成物排除：`dist/`、`package.zip`、`libs/vconsole/{dist,build}`、`plugins/code-recognition/wasm` 与 `plugins/code-recognition/docs`。格式化 wasm-bindgen 产物会让每次构建都漂移，格式化基准语料会毁掉基准。仓库根的 `docs/`（本文件所在处）**参与**格式化。
+- **两份 `ignorePatterns` 故意不同，不要「统一」**：oxlint 额外排掉 `**/i18n/**`、`**/index.js`、`**/index.css` 与 `install-package`/`Whisper` 的 `tools/`（本地辅助脚本不进产物，也不在 tsconfig 的 `include` 里）；oxfmt 额外排掉 YAML（oxlint 不处理 YAML，无需声明）。两边都排 `dist` 与 `vconsole` 的产物、`code-recognition` 的生成物与基准语料。
 
 **已知取舍**：oxfmt 是 Prettier 系，会把能塞进 320 的手动折行合并回一行，也会改写 Markdown 列表标记（`*` → `-`）。需要保留自己的断行时在上一行写 `// oxfmt-ignore`（`// prettier-ignore` 同样有效）。
 
@@ -501,7 +516,7 @@ workflow 里 `uses:` 的版本与它对应的**提交 SHA** 记在 `.github/work
 - **`versioning-strategy: increase` 是刻意的**：默认的 `auto` 对「库」类会 widen，而本仓把直接进产物的依赖钉成精确版本（见第 7 节），被放宽成范围就等于放开产物漂移。
 - **主版本单独出 PR**（`npm-major` 组）：产物体积与行为都可能变，必须逐个对拍；次版本与补丁合组以免刷屏。
 - **`cooldown: default-days: 7`**：新版本先晾 7 天再提 PR，给被撤回或被篡改的发布留出下线时间。与 actions 的锁文件是同一套思路。
-- **cargo 的 PR 合并后要在本地重建**：CI 不跑 `cargo`，`wasm/` 需要 `pnpm --filter code-recognition build:wasm` 重新生成并提交；`wasm-bindgen` 的 crate 版本必须与本地安装的 `wasm-bindgen` CLI 一致，否则构建直接报错。
+- **cargo 的 PR 合并后要在本地重建**：CI 不跑 `cargo`，`wasm/` 需要 `pnpm --filter code-recognition build:wasm` 重新生成并提交；`wasm-bindgen` 的 crate 版本必须与本地安装的 `wasm-bindgen` CLI 一致，否则构建直接报错。`pnpm check` 只能拦「生成物整个不见了」（`REQUIRED_GENERATED`），内容是否与 `Cargo.lock` 同步只能靠这次重建。
 
 ---
 

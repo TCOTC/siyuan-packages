@@ -50,6 +50,7 @@ export function checkWorkspace(repoRoot: string): CheckResult {
   const issues: CheckIssue[] = [];
 
   checkBaseManifest(repoRoot, issues);
+  checkLibs(repoRoot, issues);
 
   // 包枚举只有一份：仓库根扫目录的逻辑不能在这里再写一遍，否则两边迟早不一致
   const entries = listPackages(repoRoot);
@@ -59,6 +60,63 @@ export function checkWorkspace(repoRoot: string): CheckResult {
 
   return { packages: entries.map((entry) => entry.name), issues };
 }
+
+/**
+ * 允许直接提交预编译产物的共享库，值是「仓内无法重建」的理由。
+ * 这是白名单：`libs/*` 本应只有源码，多出 `dist/` 却没人登记就是打包链路被绕过了。
+ */
+export const PREBUILT_LIBS: Record<string, string> = {
+  vconsole: "上游只发源码、打包需要整套 svelte + webpack，仓内无法复现，故直接提交官方构建产物",
+};
+
+/**
+ * `libs/*` 不走集市发布，所以不在 `listPackages()` 里，但它们的契约同样是硬性的：
+ * 一律 extends `tsconfig.strict.json`（一个错误会扩散到全部消费方），且不得出现预编译产物
+ * ——否则「不预编译、由消费方 vite 一并编译」这条就不成立了。
+ */
+function checkLibs(repoRoot: string, issues: CheckIssue[]): void {
+  const base = join(repoRoot, "libs");
+  if (!existsSync(base)) {
+    return;
+  }
+  for (const entry of readdirSync(base, { withFileTypes: true })) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const name = entry.name;
+    // 白名单里的库整体豁免：它不是 TS 库，也没有 tsconfig
+    if (name in PREBUILT_LIBS) {
+      continue;
+    }
+    const push = (message: string) => issues.push({ package: `libs/${name}`, message });
+    const root = join(base, name);
+
+    const tsconfig = join(root, "tsconfig.json");
+    if (!existsSync(tsconfig)) {
+      push("缺少 tsconfig.json：libs/* 也必须纳入 typecheck，否则消费方的 tsc 程序会直接编译到无检查的源码");
+    } else {
+      const match = /"extends"\s*:\s*"([^"]*)"/.exec(readFileSync(tsconfig, "utf8"));
+      const extended = match?.[1];
+      if (extended !== "../../tsconfig.strict.json") {
+        push(`tsconfig.json 必须 extends "../../tsconfig.strict.json"，实际是 ${JSON.stringify(extended ?? null)}；libs/* 会被多个消费方一并编译，严格档只增不减`);
+      }
+    }
+
+    for (const product of ["dist", "package.zip", "index.js", "index.css"]) {
+      if (existsSync(join(root, product))) {
+        push(`不允许出现 ${product}：libs/* 不预编译，exports 直接指向 src/index.ts；确需提交产物请登记到 kit 的 PREBUILT_LIBS`);
+      }
+    }
+  }
+}
+
+/**
+ * 随仓提交、但 CI 无法重建的生成物。值里写清重建命令，缺失时提示才算可执行。
+ * 只有「工具链不在 CI 里」的包才需要登记；能由 build 重新产出的东西不该进仓库。
+ */
+const REQUIRED_GENERATED: Record<string, { file: string; rebuild: string }> = {
+  "code-recognition": { file: "wasm/betlang_wasm_bg.wasm", rebuild: "pnpm --filter code-recognition build:wasm" },
+};
 
 /**
  * 共用清单只能在两层放字段：顶层（跨类型相同）与类型分节（该类型特有）。
@@ -140,9 +198,18 @@ function checkPackage(root: string, issues: CheckIssue[]): void {
   checkLicenseCopy(root, push);
   checkImages(pkg, push);
   checkEntry(pkg, push);
+  checkGeneratedArtifacts(pkg, push);
   checkAmbientDeclarations(root, push);
   checkFileNaming(root, push);
   checkNoNodeApiInSource(root, push);
+}
+
+/** 生成物只判断「在不在」：内容是否与源码同步只有重建才能确定，那属于发布前的人工步骤。 */
+function checkGeneratedArtifacts(pkg: ResolvedPackage, push: (message: string) => void): void {
+  const required = REQUIRED_GENERATED[pkg.name];
+  if (required && !existsSync(join(pkg.root, required.file))) {
+    push(`缺少生成物 ${required.file}：它由 ${required.rebuild} 生成，CI 不跑这条工具链，请在本地重建后提交`);
+  }
 }
 
 /** 所有包必须使用同一套脚本入口。 */
@@ -240,8 +307,11 @@ function checkI18nLayout(root: string, push: (message: string) => void): void {
   }
 }
 
-/** 源码文件名一律 kebab-case（README / LICENSE 等约定名、i18n 的 locale 文件名与第三方资源除外）。 */
-const KEBAB_EXEMPT = /^(README|LICENSE|THIRD_PARTY)/;
+/**
+ * 源码文件名一律 kebab-case（README / LICENSE 等约定名、i18n 的 locale 文件名与第三方资源除外）。
+ * 前缀后必须紧跟分隔符或文件名结束：写成 `READMEHelper.ts` 这类源码时不该被误豁免。
+ */
+const KEBAB_EXEMPT = /^(?:README|LICENSE|THIRD_PARTY)(?:[.-]|$)/;
 
 function checkFileNaming(root: string, push: (message: string) => void): void {
   const src = join(root, "src");
@@ -514,6 +584,9 @@ function checkLicenseCopy(root: string, push: (message: string) => void): void {
  * 图标与预览图：思源只认 png / jpg / jpeg / webp / avif（siyuan 仓库 kernel/bazaar/bazaar.go 的 isSupportedPackageImageName）。
  * 包根放了 icon.svg 这类文件时，构建不会把它写进清单，集市也就永远拿不到图标——属于静默失效，必须提前报。
  * 完全缺图不在这里报：那是包自身的内容缺口（如 temp-edit 本来就没图），不是契约违规。
+ *
+ * 文件名整体大小写敏感：`findImage()` 逐个试的是字面量 `icon.png` / `preview.png`，
+ * 所以 `Icon.PNG` 能被这里匹配到、却探测不到——必须在报错里点出大小写，否则它就是新的静默失效。
  */
 function checkImages(pkg: ResolvedPackage, push: (message: string) => void): void {
   for (const file of readdirSync(pkg.root)) {
@@ -521,9 +594,15 @@ function checkImages(pkg: ResolvedPackage, push: (message: string) => void): voi
     if (!match) {
       continue;
     }
-    const extension = match[2]?.toLowerCase() ?? "";
+    const field = (match[1] ?? "").toLowerCase();
+    const extension = (match[2] ?? "").toLowerCase();
     if (!(IMAGE_EXTENSIONS as readonly string[]).includes(extension)) {
       push(`${file} 的扩展名思源不支持（只认 ${IMAGE_EXTENSIONS.join(" / ")}），这个文件不会进产物、集市也拿不到图；请转成 png 或 webp`);
+      continue;
+    }
+    const expected = `${field}.${extension}`;
+    if (file !== expected) {
+      push(`${file} 与构建探测的文件名不一致：构建只找全小写的 ${expected}，请改名（大小写在 Linux 上同样生效）`);
     }
   }
 }
@@ -533,12 +612,14 @@ function checkEntry(pkg: ResolvedPackage, push: (message: string) => void): void
   if (!entry) {
     return;
   }
-  // 声明了 passes / entry 的包用自己指定的入口，约定入口可以不存
-  if (existsSync(join(pkg.root, "build.config.ts"))) {
+  // 只有**显式声明入口**的包才能不写约定入口。判断「有没有 build.config.ts」太宽：
+  // 那份配置多数只写了 copy / dropConsole，入口仍是约定的 src/index.ts。
+  const configFile = join(pkg.root, "build.config.ts");
+  if (existsSync(configFile) && /\b(?:passes|entry)\s*:/.test(readFileSync(configFile, "utf8"))) {
     return;
   }
   if (!existsSync(join(pkg.root, entry))) {
-    push(`缺少约定入口 ${entry}`);
+    push(`缺少约定入口 ${entry}：没有在 build.config.ts 里用 passes / entry 显式指定入口时，构建会按约定找它`);
   }
 }
 
