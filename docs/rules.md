@@ -341,7 +341,14 @@ Windows 用**目录联接**（junction），不需要开发者模式或管理员
 
 这份表是**白名单**：新增条目必须先登记到 `kit/src/check.ts` 的 `ALLOWED_BUILD_CONFIG`（附理由），否则 `pnpm check` 会红。
 
-构建期常量：两个 JS 预设都会 `define` 一个 `__SIYUAN_BUILD_TIME__`（epoch 毫秒的字符串），另外还有 `process.env.NODE_ENV` / `process.env.DEV_MODE`。`__SIYUAN_BUILD_TIME__` 用于给「文件会被替换、URL 却不变」的静态资源拼缓存标签——渲染进程按 URL 缓存已解码的字体，集市换掉字体文件后页面会继续用旧字形，只有彻底重启才恢复（`libs/emoji-font` 踩过一次，表现为行内表情低 2px）。用法是在 URL 后拼 `?v=`，内核的静态文件处理器只取 `c.Param("filepath")`，查询串不参与定位。
+构建期常量：两个 JS 预设都会 `define` 一个 `__SIYUAN_BUILD_TIME__`（epoch 毫秒的字符串），另外还有 `process.env.NODE_ENV` / `process.env.DEV_MODE`。它在 `plan()` 里只取一次，所以同一个 dev 进程的各次重建稳定，每次 build / sync 重新取值。
+
+`__SIYUAN_BUILD_TIME__` 用于给「文件会被替换、URL 却不变」的静态资源打缓存标签：渲染进程按 URL 缓存已解码的字体，集市换掉字体文件后页面会继续用旧字形，只有彻底重启才恢复（`libs/emoji-font` 踩过一次，表现为行内表情低 2px）。两条路径都已覆盖：
+
+- **JS 拼的 URL**：直接用这个常量，`libs/emoji-font` 就是这么做的。
+- **产物 CSS 里的 `url()`**：由 `stampAssetUrls` 在构建后自动处理，只给以 `/plugins/<本包名>/` 开头的目标追加 `?v=`，思源内置资源（`/appearance/...`）与相对路径不动。所以样式里照常写 `/plugins/<name>/...` 绝对路径即可，不需要手动拼查询串。
+
+内核的静态文件处理器只取 `c.Param("filepath")`，查询串不参与定位，所以加上去不影响取文件。
 
 `copy` 的规则：相对包根 glob，`!` 前缀排除，命中目录递归复制，目标保持包内相对路径。字体与 wasm 在产物里的位置与源码一致，运行期用 `/plugins/<name>/...` 绝对 URL 访问，vite 不改写也不会再打包一份。
 

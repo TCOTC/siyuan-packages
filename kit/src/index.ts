@@ -10,6 +10,6 @@ export type { BuildMode, BuildStep, Plan } from "./plan.ts";
 export { ALLOWED_BUILD_CONFIG, checkWorkspace } from "./check.ts";
 export type { CheckIssue, CheckResult } from "./check.ts";
 
-export { copyAssets, copyExtras, zipDir } from "./pack.ts";
+export { copyAssets, copyExtras, stampAssetUrls, zipDir } from "./pack.ts";
 export { CONFIG_FILE, linkToWorkspace, loadWorkspaceConfig, workspaceTarget } from "./workspace.ts";
 export type { LinkResult, WorkspaceConfig } from "./workspace.ts";

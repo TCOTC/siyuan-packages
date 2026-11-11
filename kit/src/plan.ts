@@ -34,6 +34,14 @@ export interface Plan {
   steps: BuildStep[];
   /** build 模式下是否产出 zip。 */
   zip: boolean;
+  /**
+   * 本次构建的时间戳（epoch 毫秒）。两个用途，必须同一个值：
+   * - 注入为 `__SIYUAN_BUILD_TIME__`，让 JS 拼资源 URL 的缓存标签；
+   * - 给产物 CSS 里以 `/plugins/<name>/` 开头的 `url()` 追加 `?v=`。
+   * 渲染进程按 URL 缓存已解码的字体，换掉字体文件但 URL 不变时会继续用旧字形
+   * （集市更新后要彻底重启才恢复）。同一个 Plan 只取一次，所以 dev 监听重建时稳定。
+   */
+  buildTime: number;
 }
 
 export function plan(pkg: ResolvedPackage, options: BuildOptions, mode: BuildMode): Plan {
@@ -42,19 +50,20 @@ export function plan(pkg: ResolvedPackage, options: BuildOptions, mode: BuildMod
   const zipPath = join(repoRoot, "dist", `${pkg.name}.zip`);
   // dev 口径的产物只用于本机链接，永远不打 zip；build 口径才走发布链路
   const zip = mode.profile === "build" && options.zip !== false;
+  const buildTime = Date.now();
 
   let steps: BuildStep[];
   switch (pkg.kind) {
     case "plugin":
-      steps = pluginSteps(pkg, options, mode, outDir);
+      steps = pluginSteps(pkg, options, mode, outDir, buildTime);
       break;
     case "widget":
-      steps = widgetSteps(pkg, options, mode, outDir);
+      steps = widgetSteps(pkg, options, mode, outDir, buildTime);
       break;
     case "theme":
       steps = themeSteps(pkg, options, mode, outDir);
       break;
   }
 
-  return { pkg, repoRoot, mode, outDir, zipPath, steps, zip };
+  return { pkg, repoRoot, mode, outDir, zipPath, steps, zip, buildTime };
 }

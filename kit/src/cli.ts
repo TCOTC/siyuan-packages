@@ -8,7 +8,7 @@ import { build } from "vite";
 import { checkWorkspace } from "./check.ts";
 import { createPlugin, parseCreateArgs } from "./create.ts";
 import type { BuildOptions } from "./define.ts";
-import { cleanOutput, copyAssets, copyExtras, zipDir } from "./pack.ts";
+import { cleanOutput, copyAssets, copyExtras, stampAssetUrls, zipDir } from "./pack.ts";
 import { plan, type BuildMode, type BuildStep } from "./plan.ts";
 import { findRepoRoot, listPackages, resolvePackage } from "./resolve.ts";
 import { runSassStep, watchSassStep } from "./sass.ts";
@@ -217,6 +217,10 @@ async function buildPackage(root: string, command: BuildCommand, rest: string[])
   if (options.copy && options.copy.length > 0) {
     copyExtras(pkg, options.copy, current.outDir);
   }
+
+  // 产物 CSS 里指向本包的绝对 url() 补上缓存标签，避免换字体后仍用旧字形。
+  // dev 也要做：产物目录已经链进工作空间，思源读的就是它。
+  stampAssetUrls(pkg, current.outDir, current.buildTime);
 
   if (current.zip) {
     await zipDir(current.outDir, current.zipPath);

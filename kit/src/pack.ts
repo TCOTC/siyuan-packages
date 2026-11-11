@@ -1,5 +1,5 @@
 import { ZipArchive } from "archiver";
-import { createWriteStream, existsSync, mkdirSync, readdirSync, copyFileSync, rmSync, globSync, statSync } from "node:fs";
+import { createWriteStream, existsSync, mkdirSync, readFileSync, readdirSync, copyFileSync, rmSync, globSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import type { CopyPattern } from "./define.ts";
 import { collectStaticAssets, writeManifest, type ResolvedPackage } from "./resolve.ts";
@@ -116,6 +116,38 @@ function copyFile(source: string, destDir: string, relativeName: string, outDir:
   const dest = join(outDir, destDir, relativeName);
   mkdirSync(dirname(dest), { recursive: true });
   copyFileSync(source, dest);
+}
+
+/** 包内相对路径的 `url()`：`/\plugins/<name>/...` 这类绝对路径，vite 既不解析也不加哈希。 */
+const PLUGIN_URL = /url\(\s*(["']?)([^"')]+)\1\s*\)/g;
+
+/**
+ * 给产物 CSS 里指向本包的绝对路径 `url()` 追加 `?v=<buildTime>`。
+ *
+ * 这些资源（字体、wasm）的文件名通常不含版本（如 `HarmonyOS_Sans_Regular.woff`），
+ * 集市换掉文件后 URL 不变，渲染进程就会继续用按 URL 缓存的旧字形——实测表现为
+ * 换了字体但页面没变，必须彻底退出思源才恢复。加个随构建变化的查询串即可。
+ *
+ * 只处理以 `/plugins/<本包名>/` 开头的目标：思源内置资源（`/appearance/fonts/...`）
+ * 不归本包管，相对路径与带哈希的资产本来就不会命中这个前缀。
+ * 内核的静态文件处理器只取 `c.Param("filepath")`，查询串不参与定位。
+ *
+ * 扫产物根下的 `*.css`：插件是 `index.css`、主题是 `theme.css`；`assets/` 里的
+ * 带哈希文件不需要。
+ */
+export function stampAssetUrls(pkg: ResolvedPackage, outDir: string, buildTime: number): void {
+  if (!existsSync(outDir)) {
+    return;
+  }
+  const prefix = `/plugins/${pkg.name}/`;
+  for (const file of globSync("*.css", { cwd: outDir })) {
+    const path = join(outDir, file);
+    const source = readFileSync(path, "utf8");
+    const stamped = source.replace(PLUGIN_URL, (whole: string, quote: string, target: string) => (target.startsWith(prefix) && !target.includes("?") ? `url(${quote}${target}?v=${buildTime}${quote})` : whole));
+    if (stamped !== source) {
+      writeFileSync(path, stamped);
+    }
+  }
 }
 
 function copyExtra(root: string, relativePath: string, outDir: string, excluded: Set<string>, copied: Set<string>): void {

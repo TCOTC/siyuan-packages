@@ -9,17 +9,17 @@ import type { ResolvedPackage } from "../resolve.ts";
  * 挂件 preset：产物是 /widgets/<name>/index.html。
  * 用 vite-plugin-singlefile 把 JS/CSS 全部内联，避免运行时请求相对资源。
  */
-export function widgetSteps(pkg: ResolvedPackage, options: BuildOptions, mode: BuildMode, outDir: string): BuildStep[] {
+export function widgetSteps(pkg: ResolvedPackage, options: BuildOptions, mode: BuildMode, outDir: string, buildTime: number): BuildStep[] {
   return [
     {
       runner: "vite",
       label: "widget:html",
-      config: widgetConfig(pkg, mode, outDir, options),
+      config: widgetConfig(pkg, mode, outDir, options, buildTime),
     },
   ];
 }
 
-function widgetConfig(pkg: ResolvedPackage, mode: BuildMode, outDir: string, options: BuildOptions): InlineConfig {
+function widgetConfig(pkg: ResolvedPackage, mode: BuildMode, outDir: string, options: BuildOptions, buildTime: number): InlineConfig {
   const dev = mode.profile === "dev";
 
   return {
@@ -31,8 +31,8 @@ function widgetConfig(pkg: ResolvedPackage, mode: BuildMode, outDir: string, opt
     define: {
       "process.env.NODE_ENV": JSON.stringify(dev ? "development" : "production"),
       "process.env": "{}",
-      // 构建时间戳，与插件预设同义：给固定 URL 的静态资源拼缓存标签。见 presets/plugin.ts 的注释。
-      __SIYUAN_BUILD_TIME__: JSON.stringify(String(Date.now())),
+      // 构建时间戳，与插件预设同义：给固定 URL 的静态资源拼缓存标签。见 Plan.buildTime 的注释。
+      __SIYUAN_BUILD_TIME__: JSON.stringify(String(buildTime)),
       ...options.define,
     },
 
