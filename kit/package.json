@@ -11,6 +11,7 @@
     "siyuan-kit": "./src/cli.ts"
   },
   "scripts": {
+    "test": "vitest run",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@types/archiver": "catalog:",
     "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }
