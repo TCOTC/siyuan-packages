@@ -30,6 +30,13 @@ const UI_FONT_SELECTORS = "body, button, input, select, textarea, .b3-tooltips::
 // 例如表头 th 的 600、表体 td 的 normal，不能改用插件下发的字重
 const TABLE_CELL_WEIGHT_SELECTORS = ".table__cell-rich, .table__cell-editor .protyle-wysiwyg";
 
+// 这些槽位在 SiYuan 的 base.css 里把 "Emojis File Tree" 硬写在字体栈首位：
+// font-family: "Emojis File Tree", var(--b3-font-family-emoji)。
+// 该 face 只在 emojiPlatform 判为 "windows"（非 Windows 11）时由 emojiFont.ts 声明，
+// 一旦命中就压过变量里排在前面的 Twemoji，文档树、菜单、开关图标都拿不到插件字体；
+// isWin11() 依赖 navigator.userAgentData，取不到时会退成 "windows"，故不能假定不会命中。
+const ICON_SLOT_SELECTORS = ".b3-list-item__icon, .b3-menu__avemoji, .b3-list-item__switch";
+
 // 鸿蒙黑体只提供 400 与 700 两个字重，沿用「设置 - 外观」中选择的字体字重会触发合成加粗
 const DEFAULT_FONT_WEIGHT = 400;
 
@@ -221,8 +228,13 @@ export default class HarmonyOSFontPlugin extends Plugin {
     if (emojiFont) {
       // emoji 前缀由该变量承载，覆盖它 Twemoji 才能排在 "Emojis Additional" 之前
       rules.push(`:root { --b3-font-family-emoji-reset: ${emojiStack} !important; }`);
-      // "Emojis Icon" 由主题在 Windows 11 上声明，图标位依赖其字形墨迹对齐，需要保留
-      rules.push(':root { --b3-font-family-emoji: "Twemoji", "Emojis Additional", "Emojis Icon", emojis !important; }');
+      // 图标位用 "Twemoji Icon"：它只改 ascent/descent（字号与墨迹不变），把定高盒里的字形
+      // 摆到比盒中心高 0.75px —— 思源默认偏高 1.5px、严格居中又偏低，取中间
+      // 正文档仍用 "Twemoji"，那里要的是与中文墨迹重心对齐，两个目标在同一个字形上无法同时满足
+      rules.push(':root { --b3-font-family-emoji: "Twemoji Icon", "Emojis Additional", "Emojis Icon", emojis !important; }');
+      // base.css 把这些槽位的字体栈写成 "Emojis File Tree", var(--b3-font-family-emoji)，
+      // 首位在非 Windows 11 平台会被光栅到内置 Noto，必须整条替换
+      rules.push(`${ICON_SLOT_SELECTORS} { font-family: var(--b3-font-family-emoji) !important; }`);
     }
 
     // id 以 snippetCSS 开头的 style 元素会被添加到导出 PDF 中
