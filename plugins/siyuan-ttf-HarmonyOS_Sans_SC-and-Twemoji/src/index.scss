@@ -84,6 +84,11 @@
   unicode-range: U+00A9-10FFFF;
   /* Twemoji 的字形墨迹约占 1.19em，而思源内置 emoji 经 emojiFont.ts 缩放后只有约 0.9em
      （Windows 11：Noto 1.07em × 85%，其余平台：Noto 1.07em × 92%），不缩放时明显大一圈。
-     76% 后约 0.90em，与 Windows 11 的内置 emoji 视觉大小一致；如需跟随其他平台可改 82% */
+     76% 后约 0.90em，与 Windows 11 的内置 emoji 视觉大小一致；如需跟随其他平台可改 82%
+     注意：76% 必须与字体文件里的字形上移量配套。Twemoji 的墨迹为 -0.254em…+0.938em，
+     重心在基线上方 0.342em，缩到 76% 后只剩 0.260em，而中文「中」的重心在 0.384em，
+     字形会明显偏下；因此本插件的 Twemoji 文件已把全部字形上移 167/1024 em（见
+     scripts/shift-twemoji-glyphs.py），换算到 76% 即 +0.124em，重心变为 0.384em，
+     与中文一致。改动这里的 size-adjust 会同时改变对齐结果。 */
   size-adjust: 76%;
 }
