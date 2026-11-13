@@ -4,7 +4,13 @@
 }
 
 .jchm-dialog__container {
-  background-color: var(--b3-menu-background);
+  /*
+   * 弹窗底色用画布色（等价于思源 .b3-dialog__container--theme），不用默认的 --b3-theme-surface。
+   * 格子档位按 --b3-theme-surface 混色，底色若同用 surface 会让低档位几乎看不出层级。
+   * 两处 sticky 遮挡层（月份占位、星期列）必须跟随此变量，否则横滚时会透出滑过的格子。
+   */
+  --jchm-surface: var(--b3-theme-background);
+  background-color: var(--jchm-surface);
   min-height: 0;
   max-height: 90vh;
   /* 不能 overflow:hidden：思源 resize 手柄定位在容器外 -8px，会被裁掉导致无法拖拽改尺寸 */
@@ -307,7 +313,7 @@
           z-index: 2;
           width: var(--jchm-weekday-col, 18px);
           flex: 0 0 var(--jchm-weekday-col, 18px);
-          background-color: var(--b3-menu-background);
+          background-color: var(--jchm-surface);
         }
 
         .jchm__month {
@@ -334,7 +340,7 @@
           width: var(--jchm-weekday-col, 18px);
           flex: 0 0 var(--jchm-weekday-col, 18px);
           margin-right: 0;
-          background-color: var(--b3-menu-background);
+          background-color: var(--jchm-surface);
 
           .jchm__weekday {
             width: 100%;
