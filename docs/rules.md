@@ -671,15 +671,26 @@ checkout 必须 `fetch-depth: 0` 且取全部标签：浅克隆既拿不到上�
 做法是把一份 issue 模板选择页配置推到每个收录仓库：
 
 - **真相源是 `.github/scripts/release-repo-issue-config.yml`**，改它、推 main，`.github/workflows/issue-template.yml`
-  跑 `.github/scripts/sync-issue-template.mjs` 写进各仓库的 `.github/ISSUE_TEMPLATE/config.yml`。
+  跑 `.github/scripts/sync-issue-template.mjs` **按包名渲染后**写进各仓库的 `.github/ISSUE_TEMPLATE/config.yml`。
   放在 `scripts/` 下与脚本同目录：`config.yml` 这个文件名归 GitHub 所有，摆到 `.github/` 根或 `.github/ISSUE_TEMPLATE/`
   都容易被当成本仓自己的模板（真挪进去会**关掉本仓的 issue 入口**）。
 - **`blank_issues_enabled: false`**，只留两条中文/英文各一条的 `contact_links` 跳回本仓。中英**不混排**：
   混排的句子对哪一边的读者都是多余的噪音。写 Write 及以上角色的维护者仍会看到 `Blank issue`（标着
   `Maintainers only`），这是 GitHub 的固定行为，不是配置没生效。
+- **标题预填 `[包名] `**：链接是 `/issues/new?title=…`，`title` 由脚本按包名填（空格写成 `+`，其余走
+  `encodeURIComponent`）。用户从哪个收录仓库点过来，标题里就带着哪个包，不用在正文里再说明一遍。
+  模板里因此有唯一的占位符 `{{title}}`：脚本强制要求它存在，渲染后若残留任何 `{{…}}` 直接报错，
+  免得把占位符原样推到 22 个仓库 —— 那种「链接还能点、只是不预填」的失败没有任何报错可循。
 - **目标仓库不硬编码**：从 `kit` 的 `listPackages` + `resolvePackage` 取合成清单的 `url`，与发布链路同一个来源。
   该模块只 import `node:` 内置模块，所以这个 workflow **不跑 `pnpm install`** —— 也别让它开始依赖 vite。
 - **幂等**：按 git blob sha 比对，内容没变不提交，随时可以重跑。已归档的仓库直接跳过（Issues 只读）。
+- **瞬时错误自动重试**：5xx / 429 / 408 与连接失败各最多试 4 次，退避 0.5s → 1s → 2s（带抖动），
+  429 优先用响应里的 `Retry-After`。首次跑就撞到过一次 `PUT … → 502`，22 个仓库里 1 个失败、
+  其余照常写完 —— 加了重试就不必为这种事重跑整个 workflow。
+  - **`Retry-After` 缺失时不能写 `Number(header)`**：那是 `0`，退避会变成「立刻重试」，4 次预算瞬间烧完
+    （实测日志里全是 `0ms 后重试`）。
+  - **PUT 重试要认 409**：上一次写成功但响应丢了时，重发带的是旧状态（甚至没有 `sha`），GitHub 会回
+    `409 sha wasn't supplied`。这不是失败，回读一次内容核对，一致就按成功算。
 - 触发条件含 `{plugins,themes,widgets}/*/manifest.json`：新包上线、包改名、换目标仓库都要把新入口补上。
 
 ---
