@@ -504,6 +504,7 @@ workflow 里 `uses:` 的版本与它对应的**提交 SHA** 记在 `.github/work
 
 - 写法：`uses:` 保留完整 semver tag（`actions/checkout@v7.0.1`），SHA 只进锁文件；运行时由 runner 按锁文件核对，对不上的 pin 直接拒绝执行。首次解析时 `v7` 会被**收窄**成 `v7.0.1`（完整 semver tag 基本不会移动，pin 的有效期更长），分支名与非版本 tag 不收窄。
 - 生成 / 修复：仓库根跑 `gh actions-lock`（首次先 `gh extension install github/gh-actions-lock`）。它按 `ref` / `commit` / `owner_id` / `repo_id` 写每个 action，并把 workflow 路径归到 `workflows` 段。
+- **新增 workflow 文件也要重建**：锁文件按 workflow 逐条记 `uses:`，只加一个新 workflow 而不锁，`--verify` 就报 `Not pinned … ↳ .github/workflows/<新文件>`，CI 第一步直接失败（实测：加 `issue-template.yml` 时撞到过）。
 - 升级到新版本：改完 `uses:` 后跑 `gh actions-lock --relock` 推进已锁条目，或直接跑 `gh actions-lock` 让新 ref 被 onboard。
 - CI 的「校验 workflow 锁文件」步骤跑 `gh actions-lock --verify`：`uses:` 与锁文件不一致、或锁定的提交已不是上游该 ref 指向的提交时失败。它在 checkout 之后、装 Node 之前跑，所以是「先拦，再跑长流程」。
 - `dependencies` 里每条都必须有 `ref` / `commit` / `owner_id` / `repo_id`，缺一个就会让引擎**静默**把整份锁文件当成空文件（Dependabot 侧会报 `actions.lock` 不可解析）。
@@ -598,7 +599,7 @@ EVENT=workflow_dispatch INPUT_DRY_RUN=true bash .github/scripts/publish.sh
 Release 链接只有发布后才知道，所以表格不能放在检测步骤——放两处必然不一致。
 
 **release 正文是脚本自己写的，不用 `gh --generate-notes`。** GitHub 的自动正文按**目标仓库**的提交生成，
-而每个包的收录仓库迁移后已归档、只剩 README，自动生成的笔记指过去永远是空区间。
+而每个包的收录仓库只剩一份 README（源码全在本仓），自动生成的笔记指过去永远是空区间。
 GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只能在同一仓库里换起点，所以只能自写：
 
 ```text
@@ -661,6 +662,25 @@ GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只�
 3. **不要用「推 tag 让目标仓库自己构建」**：那等于保留 20 多份 lockfile 和 20 多份工具链。
 
 checkout 必须 `fetch-depth: 0` 且取全部标签：浅克隆既拿不到上一个标签，也做不了 `git diff`。
+
+### 10.1 收录仓库的 issue 入口
+
+收录仓库的仓库树里只有一份 README，源码与反馈都在本仓。用户顺着集市卡片点进收录仓库的 Issues 时，
+会落在一个**写了也没人跟进**的空白编辑器上 —— 那里仅有的历史 issue 也不会被看见。
+
+做法是把一份 issue 模板选择页配置推到每个收录仓库：
+
+- **真相源是 `.github/scripts/release-repo-issue-config.yml`**，改它、推 main，`.github/workflows/issue-template.yml`
+  跑 `.github/scripts/sync-issue-template.mjs` 写进各仓库的 `.github/ISSUE_TEMPLATE/config.yml`。
+  放在 `scripts/` 下与脚本同目录：`config.yml` 这个文件名归 GitHub 所有，摆到 `.github/` 根或 `.github/ISSUE_TEMPLATE/`
+  都容易被当成本仓自己的模板（真挪进去会**关掉本仓的 issue 入口**）。
+- **`blank_issues_enabled: false`**，只留两条中文/英文各一条的 `contact_links` 跳回本仓。中英**不混排**：
+  混排的句子对哪一边的读者都是多余的噪音。写 Write 及以上角色的维护者仍会看到 `Blank issue`（标着
+  `Maintainers only`），这是 GitHub 的固定行为，不是配置没生效。
+- **目标仓库不硬编码**：从 `kit` 的 `listPackages` + `resolvePackage` 取合成清单的 `url`，与发布链路同一个来源。
+  该模块只 import `node:` 内置模块，所以这个 workflow **不跑 `pnpm install`** —— 也别让它开始依赖 vite。
+- **幂等**：按 git blob sha 比对，内容没变不提交，随时可以重跑。已归档的仓库直接跳过（Issues 只读）。
+- 触发条件含 `{plugins,themes,widgets}/*/manifest.json`：新包上线、包改名、换目标仓库都要把新入口补上。
 
 ---
 

@@ -1,0 +1,59 @@
+name: Issue Template
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 把 .github/scripts/release-repo-issue-config.yml 原样写入每个收录仓库的
+# .github/ISSUE_TEMPLATE/config.yml（规则见 docs/rules.md 第 10 节「收录仓库的 issue 入口」）
+#
+# 收录仓库的仓库树里只有 README，源码与反馈都在本仓。不做这件事时，用户顺着集市卡片点进
+# 收录仓库的 Issues 标签会看到一个空白编辑器 —— 写进去也没人跟进。config.yml 关掉空白 issue、
+# 只留跳回本仓的外链（中英各一条，不混排）。
+#
+# 触发：改模板 / 改脚本 / 改本文件 / 新增或改名包（新包也要有入口）。
+# 幂等：脚本按 git blob sha 比对，内容没变不产生提交，可以随时重跑。
+#
+# 跨仓库写必须用 PAT，GITHUB_TOKEN 只能写本仓库（同 Publish）。
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/scripts/release-repo-issue-config.yml"
+      - ".github/scripts/sync-issue-template.mjs"
+      - ".github/workflows/issue-template.yml"
+      # 新包上线 / 包改名 / 目标仓库变更都表现在清单上
+      - "plugins/*/manifest.json"
+      - "themes/*/manifest.json"
+      - "widgets/*/manifest.json"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只打印将要做的改动，不写入"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+# 只有一份「目标状态」，后跑的必然覆盖先跑的，所以可以安全取消
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version: "26"
+
+      # 不需要 pnpm install：脚本只 import kit 的 resolve.ts（纯 node: 内置模块，不碰 vite），
+      # 目标仓库从合成清单的 url 推导，与发布链路同一个来源。
+      - name: 同步 issue 模板
+        env:
+          GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+          INPUT_DRY_RUN: ${{ inputs.dry_run }}
+        run: node .github/scripts/sync-issue-template.mjs
