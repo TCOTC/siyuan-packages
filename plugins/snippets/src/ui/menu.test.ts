@@ -340,8 +340,11 @@ describe("SnippetsMenu", () => {
 
       menu.setMenuPosition();
 
-      expect(menuInstance.element.style.left).toBe("25px");
+      // 贴边只靠坐标，不写内联左右定位（否则 Menu 重算位置时会与残留的 right 一起把菜单撑宽）
+      expect(menuInstance.element.style.left).toBe("");
       expect(menuInstance.element.style.right).toBe("");
+      // 宽度固定，且在 open 之前写入，Menu 才能按最终宽度算出贴边位置
+      expect(menuInstance.element.style.width).toBe("min(400px, 90vw)");
       expect(menuInstance.open).toHaveBeenCalledWith({ x: 25, y: 29, isLeft: false });
     });
 
@@ -356,7 +359,8 @@ describe("SnippetsMenu", () => {
       menu.setMenuPosition();
 
       expect(menuInstance.element.style.left).toBe("");
-      expect(menuInstance.element.style.right).toBe("25px");
+      expect(menuInstance.element.style.right).toBe("");
+      expect(menuInstance.element.style.width).toBe("min(400px, 90vw)");
       expect(menuInstance.open).toHaveBeenCalledWith({ x: 975, y: 29, isLeft: true });
     });
   });

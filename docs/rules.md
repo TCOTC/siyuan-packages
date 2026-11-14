@@ -48,8 +48,7 @@ kit/              构建内核 @jeffrey-chen/siyuan-kit
 | `libs/html-safety`     | `escapeHtml`、`safeExternalUrl`                                                                                               | 拼 HTML 字符串、渲染外部链接一律走这里                                                                               |
 | `libs/token-field`     | 令牌输入框遮蔽策略与类名                                                                                                      | 类名要与消费方 `index.scss` 的同名选择器一致                                                                         |
 | `libs/version-compare` | `compareCoreVersions` / `isVersionInRange`（只比核心数字，预发布按核心数字归类）、`compareSemver`（严格 2.0.0，判「谁更新」） | 两种口径语义不同，**不要合并**；发布检测脚本也 import 这一份（Node 26 直接跑 `.ts`）                                 |
-| `libs/i18n-types`      | `SameKeys` / `Equal` / `AssertTrue`                                                                                           | 纯类型，`import type` 引用                                                                                           |
-| `libs/emoji-font`      | `getEmojiFontStyle(pluginName)`（两个 Twemoji `@font-face` + 字体栈变量与图标槽位规则）、`preloadEmojiFont()`                 | 声明与规则必须同进同出，只放一半会静默退回内置 Noto；见该目录注释                                                    |
+| `libs/i18n-types`      | `SameKeys` / `Equal` / `AssertTrue`                                                                                           | 纯类型，`import type` 引用                                                                                           |     | `libs/topbar-menu` | 顶栏菜单定位：锚点回退（`#barMore` / `#barPlugins`）、`openAlignedToButton`（贴按钮）、`openFlushToDock`（贴同侧停靠栏内边缘） | 只算坐标交给 `Menu.open`，**不要**在 `open` 后改写内联 `left`/`right`（siyuan#21447）；本库不含开合 |     | `libs/emoji-font` | `getEmojiFontStyle(pluginName)`（两个 Twemoji `@font-face` + 字体栈变量与图标槽位规则）、`preloadEmojiFont()` | 声明与规则必须同进同出，只放一半会静默退回内置 Noto；见该目录注释 |
 
 ### 2.2 目录名 == 清单 `name` == `package.json` 的 `name`
 

@@ -1,0 +1,5 @@
+{
+  // 加强档：本包源码会被每个消费方的 tsc 程序一并检查，严格度取所有消费方的上限。
+  "extends": "../../tsconfig.strict.json",
+  "include": ["src", "vitest.config.ts"]
+}

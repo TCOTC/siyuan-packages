@@ -15,7 +15,7 @@ import { DialogPanels } from "./ui/dialog-panels";
 import { showWindow } from "./infra/desktop";
 import { isMobileFrontend } from "siyuan-plugin-env";
 import { findCustomTabForReuse, focusCustomTab, openNewCustomTab, openOrFocusCustomTab } from "siyuan-custom-tab";
-import { openMenuFlushSide, topBarMenuAnchor } from "./ui/menu-position";
+import { openFlushToDock, topBarMenuAnchor } from "siyuan-topbar-menu";
 import { destroyGitHubNotice, setOpenPluginSettingsHandler } from "./github/github-notice";
 import { abortAllActiveInstalls } from "./install/install-session";
 import { initInstallHistory, INSTALL_HISTORY_STORAGE_NAME } from "./install/install-history";
@@ -195,11 +195,7 @@ export default class InstallPackage extends Plugin {
           return;
         }
         const rect = topBarMenuAnchor(anchor);
-        menu.open({
-          x: rect.right,
-          y: rect.bottom,
-          isLeft: true,
-        });
+        menu.open(rect === null ? { x: window.innerWidth, y: 0, isLeft: true } : { x: rect.right, y: rect.bottom, isLeft: true });
       },
     });
 
@@ -398,7 +394,7 @@ export default class InstallPackage extends Plugin {
       return;
     }
     // 列表内容宽窄差别大，向锚点所在的那一侧贴边看起来更整齐
-    openMenuFlushSide(menu, anchor);
+    openFlushToDock(menu, anchor);
   }
 
   /** 菜单关闭时调用：在途的列表加载凭销毁标记自行作废 */

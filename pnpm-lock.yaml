@@ -208,6 +208,18 @@ importers:
         specifier: 'catalog:'
         version: 5.1.0(@types/node@26.6.6)(jsdom@31.0.0)(vite@8.3.6(@types/node@26.6.6)(sass@1.108.1))
 
+  libs/topbar-menu:
+    devDependencies:
+      siyuan:
+        specifier: 'catalog:'
+        version: 1.3.0
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.1.0(@types/node@26.6.6)(jsdom@31.0.0)(vite@8.3.6(@types/node@26.6.6)(sass@1.108.1))
+
   libs/vconsole: {}
 
   libs/version-compare:
@@ -233,6 +245,9 @@ importers:
       siyuan-plugin-env:
         specifier: workspace:*
         version: link:../../libs/plugin-env
+      siyuan-topbar-menu:
+        specifier: workspace:*
+        version: link:../../libs/topbar-menu
       siyuan-version-compare:
         specifier: workspace:*
         version: link:../../libs/version-compare
@@ -440,6 +455,9 @@ importers:
       siyuan-token-vault:
         specifier: workspace:*
         version: link:../../libs/token-vault
+      siyuan-topbar-menu:
+        specifier: workspace:*
+        version: link:../../libs/topbar-menu
       siyuan-version-compare:
         specifier: workspace:*
         version: link:../../libs/version-compare
@@ -584,6 +602,9 @@ importers:
       siyuan-token-vault:
         specifier: workspace:*
         version: link:../../libs/token-vault
+      siyuan-topbar-menu:
+        specifier: workspace:*
+        version: link:../../libs/topbar-menu
       typescript:
         specifier: 'catalog:'
         version: 6.0.3

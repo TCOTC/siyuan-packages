@@ -12,6 +12,7 @@
     "siyuan": "catalog:",
     "siyuan-kernel-client": "workspace:*",
     "siyuan-plugin-env": "workspace:*",
+    "siyuan-topbar-menu": "workspace:*",
     "siyuan-version-compare": "workspace:*",
     "typescript": "catalog:"
   }

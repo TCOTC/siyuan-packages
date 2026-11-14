@@ -21,6 +21,7 @@
     "siyuan-plugin-env": "workspace:*",
     "siyuan-token-field": "workspace:*",
     "siyuan-token-vault": "workspace:*",
+    "siyuan-topbar-menu": "workspace:*",
     "siyuan-version-compare": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"

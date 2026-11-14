@@ -26,6 +26,7 @@
     "siyuan-html-safety": "workspace:*",
     "siyuan-token-field": "workspace:*",
     "siyuan-token-vault": "workspace:*",
+    "siyuan-topbar-menu": "workspace:*",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

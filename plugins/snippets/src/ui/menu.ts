@@ -1,5 +1,6 @@
 // 顶栏菜单：打开/绘制/事件委托/搜索/分组/拖拽排序，以及菜单与对话框的全局键盘协调。
 import { Menu, platformUtils } from "siyuan";
+import { openFlushToDock } from "siyuan-topbar-menu";
 import { escapeHtml, genSnippetSwitchHtml, getDialogKeyHandler, hideTooltip, htmlToElement, isInputElementActive, moveElementToTop, PLUGIN_NAME, showElementTooltip, SNIPPET_DIALOG_SELECTOR } from "../utils";
 import { filterSnippetsByKeyword, isSnippetsTypeEnabled, snippetTitle, sortSnippets } from "../domain/snippet";
 import { addGroup, cloneGroups, findGroup, genNewGroupId, isUngroupedGroup, removeGroup, renameGroup, UNGROUPED_GROUP_ID, ungroupedSnippetIds, withUngroupedAnchors } from "../domain/snippet-groups";
@@ -259,6 +260,9 @@ export class SnippetsMenu {
    * 设置菜单位置
    * 顶栏按钮支持自由拖拽，按按钮在窗口中的位置决定菜单贴靠哪一侧：按钮中心在窗口左半边时贴
    * 窗口左侧，在右半边时贴窗口右侧；同侧停靠栏（dock）展开时向外避让其标签栏宽度，避免遮挡。
+   *
+   * 贴边只能自己算：宿主的 `Menu.toggle` 与 `IPosition` 都只接受坐标，没有贴边参数；
+   * 且 `toggle` 的 `build` / `show` 是同步的，而片段列表要先异步读完才建菜单。开合因此自己管
    */
   setMenuPosition() {
     const menu = this.menu;
@@ -266,38 +270,14 @@ export class SnippetsMenu {
 
     // addTopBar 在移动端、独立窗口、图标无效时返回 undefined；没有按钮时菜单本来也不会被打开
     if (!this.topBarElement) return;
-    let rect = this.topBarElement.getBoundingClientRect();
-    // 如果被隐藏，则使用更多按钮
-    if (rect.width === 0) {
-      rect = document.querySelector("#barMore")!.getBoundingClientRect();
-    }
-    if (rect.width === 0) {
-      rect = document.querySelector("#barPlugins")!.getBoundingClientRect();
-    }
 
-    // 按钮中心落在窗口左半边时贴窗口左侧，否则贴窗口右侧
-    const isLeft = rect.left + rect.width / 2 < window.innerWidth / 2;
-    this.plugin.console.log("setMenuPosition: isLeft =", isLeft);
-
-    // 同侧停靠栏展开时向外避让它的标签栏宽度，+ 1px 留出间隙
-    const dock = document.querySelector(isLeft ? "#dockLeft" : "#dockRight");
-    const dockWidth = (dock?.getBoundingClientRect().width || 0) + 1;
-    const dockWidthStyle = dockWidth + "px";
-
-    menu.open({
-      x: isLeft ? dockWidth : window.innerWidth - dockWidth,
-      y: rect.bottom + 1,
-      isLeft: !isLeft,
-    });
-    // 不要用鼠标位置、菜单要固定宽度，否则切换 CSS 和 JS 时，菜单可能会大幅抖动或者超出窗口边界
+    // 不要用鼠标位置、菜单要固定宽度，否则切换 CSS 和 JS 时，菜单可能会大幅抖动或者超出窗口边界。
+    // 必须在 `open` 之前设：Menu 用 `clientWidth` 反推左边缘（`isLeft` 时），宽度事后改变会让贴边算错
     menu.element.style.width = "min(400px, 90vw)";
-    if (isLeft) {
-      menu.element.style.right = "";
-      menu.element.style.left = dockWidthStyle;
-    } else {
-      menu.element.style.left = "";
-      menu.element.style.right = dockWidthStyle;
-    }
+
+    // 贴边只算坐标，不写内联 `left` / `right`：Menu 会在内容变化后重算位置且只写 `left`，
+    // 两侧同时定位会把无 `width` 的 fixed 盒子撑开（siyuan-note/siyuan#21447）
+    openFlushToDock(menu, this.topBarElement);
 
     // 顶栏按钮样式
     if (!this.plugin.isMobile && this.topBarElement) {

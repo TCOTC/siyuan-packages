@@ -1,0 +1,19 @@
+{
+  "name": "siyuan-topbar-menu",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "思源插件共用的顶栏菜单定位：锚点回退、贴按钮对齐与贴同侧停靠栏内边缘",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "siyuan": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
