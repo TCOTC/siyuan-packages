@@ -75,8 +75,14 @@ function readOnlyArg() {
   );
 }
 
-/** 模板里唯一允许的占位符：替换成 URL 编码后的 issue 标题 `[包名] `。 */
-const TITLE_PLACEHOLDER = "{{title}}";
+/**
+ * 模板里唯一允许的占位符。
+ *
+ * 只替换 `?title={{title}}` 这一段而不是全局 `replaceAll`：模板的注释里也要写
+ * `{{title}}` 来解释它，全局替换会把注释一起改掉（实测第一次就推成了
+ * `# %5Bmove-doc%5D+ 由脚本按包名替换成 …`，看着像坏文件）。
+ */
+const PLACEHOLDER_TOKEN = "?title={{title}}";
 
 /**
  * 预填的 issue 标题。
@@ -102,18 +108,19 @@ function loadTemplate() {
     }
   }
   // 占位符被删掉不会报错，只会静默失去「标题带包名」这件事 —— 所以这里强制要求它还在
-  if (!text.includes(TITLE_PLACEHOLDER)) {
-    throw new Error(`${TEMPLATE_FILE} 里没有 ${TITLE_PLACEHOLDER}：链接会失去预填标题`);
+  if (!text.includes(PLACEHOLDER_TOKEN)) {
+    throw new Error(`${TEMPLATE_FILE} 里没有 ${PLACEHOLDER_TOKEN}：链接会失去预填标题`);
   }
   return text;
 }
 
-/** 按包名渲染模板。残留的占位符一律报错，否则会原样推进收录仓库。 */
+/** 按包名渲染模板。url 里残留占位符一律报错，否则会原样推进收录仓库。 */
 function renderTemplate(text, name) {
-  const rendered = text.replaceAll(TITLE_PLACEHOLDER, issueTitle(name));
-  const leftover = /\{\{[^}]*\}\}/.exec(rendered);
-  if (leftover !== null) {
-    throw new Error(`${TEMPLATE_FILE} 里有未定义的占位符 ${leftover[0]}`);
+  const rendered = text.replaceAll(PLACEHOLDER_TOKEN, `?title=${issueTitle(name)}`);
+  // 只查 url 行：注释里刻意保留着 {{title}} 作为说明
+  const bad = rendered.split("\n").find((line) => line.includes("url:") && /\{\{[^}]*\}\}/.test(line));
+  if (bad !== undefined) {
+    throw new Error(`${TEMPLATE_FILE} 的 url 里有未定义的占位符：${bad.trim()}`);
   }
   return Buffer.from(rendered, "utf8");
 }
