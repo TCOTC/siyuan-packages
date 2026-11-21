@@ -66,11 +66,6 @@
   }
 }
 
-// 已完成的任务列表项中的删除线文本变得更淡，只影响列表项第一层子块
-.protyle-task--done > [data-node-id] > [spellcheck] > span[data-type~="s"] {
-  color: color-mix(in srgb, var(--b3-protyle-inline-s-color) 75%, transparent) !important;
-}
-
 // 行级标签。
 [data-node-id] span[data-type~="tag"] {
   color: var(--b3-protyle-inline-tag-color); // 在大纲中也显示默认颜色
