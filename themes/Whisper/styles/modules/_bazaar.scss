@@ -1,5 +1,9 @@
 // 集市
 
+@use "sass:color";
+@use "sass:map";
+@use "sass:math";
+@use "sass:string";
 @use "../mixins" as *;
 
 .config-bazaar__panel {
@@ -46,34 +50,87 @@
 }
 
 // 给我的集市包详情页加点特效
+//
+// 配色写成 Sass map 而不是内联在 CSS 变量里：光斑每一级的透明度都要在编译期算出来，
+// 交给 CSS 就只能写成 color-mix()，产物里会多出几十个这样的函数。
+$bazaar-light: (
+  bg: rgba(228, 147, 208, 0.5),
+  blobs: (
+    rgba(235, 105, 78, 0.5),
+    rgba(243, 11, 164, 0.5),
+    rgba(254, 234, 131, 0.5),
+    rgba(170, 142, 245, 0.5),
+    rgba(248, 192, 147, 0.5),
+  ),
+);
+$bazaar-dark: (
+  bg: rgba(120, 80, 100, 0.3),
+  blobs: (
+    rgba(150, 80, 60, 0.3),
+    rgba(120, 60, 100, 0.3),
+    rgba(180, 160, 80, 0.3),
+    rgba(100, 80, 150, 0.3),
+    rgba(150, 120, 80, 0.3),
+  ),
+);
+
+// 单个光斑的段数。这些色标只负责「形状」（尾部拉长、两端斜率为 0），
+// 不指望它消除色带：实测把段数从 15 加到 48，台阶几乎没有减少。
+$bazaar-blob-steps: 8;
+
+// 百分比保留两位小数，免得色标里出现一长串 99.1130864198% 这种数字
+@function bazaar-pct($ratio) {
+  @return math.div(math.round($ratio * 10000), 100);
+}
+
+// 把一个光斑色展开成径向渐变。
+//
+// 直接用两色标（色 → 同色透明）会在末端突然停住，斜率突变处会被看成一条轮廓；
+// 而且线性衰减的有效范围太窄，光斑之间会露出大块底色，看着像几片色块叠在一起。
+// 这里取 (1 - t²)²：中心附近平缓、中段保持较高、到边缘才落回 0，尾部很长，
+// 相邻光斑互相渗透，整片才能连成一片雾。
+// 色标只有透明度不同，各级透明度在编译期算好，产物里就是纯 rgba()。
+@function bazaar-blob($color) {
+  $peak: color.alpha($color);
+  $stops: "";
+  @for $i from 0 through $bazaar-blob-steps {
+    $t: math.div($i, $bazaar-blob-steps);
+    $alpha: 0;
+    @if $i == 0 {
+      $alpha: $peak;
+    } @else if $i < $bazaar-blob-steps {
+      $alpha: math.div(math.round($peak * math.pow(1 - $t * $t, 2) * 1000), 1000);
+    }
+    @if $i > 0 {
+      $stops: "#{$stops}, ";
+    }
+    $stops: "#{$stops}#{color.change($color, $alpha: $alpha)} #{bazaar-pct($t)}%";
+  }
+  @return string.unquote("radial-gradient(closest-side, #{$stops})");
+}
+
+// 把一套配色的全部光斑拼成 background-image 的列表
+@function bazaar-blobs($theme) {
+  $images: "";
+  @each $color in map.get($theme, blobs) {
+    @if $images != "" {
+      $images: "#{$images}, ";
+    }
+    $images: "#{$images}#{bazaar-blob($color)}";
+  }
+  @return string.unquote($images);
+}
+
+// 整套背景只按明暗各算一次，再用 CSS 变量交给下面那条规则，避免整条声明写两遍
 html[data-theme-mode="light"] {
-  // 明亮模式配色
-  --wh-bazaar-bg-color: rgba(228, 147, 208, 0.5);
-  --wh-bazaar-gradient-1: rgba(235, 105, 78, 0.5);
-  --wh-bazaar-gradient-1-transparent: rgba(235, 105, 78, 0);
-  --wh-bazaar-gradient-2: rgba(243, 11, 164, 0.5);
-  --wh-bazaar-gradient-2-transparent: rgba(243, 11, 164, 0);
-  --wh-bazaar-gradient-3: rgba(254, 234, 131, 0.5);
-  --wh-bazaar-gradient-3-transparent: rgba(254, 234, 131, 0);
-  --wh-bazaar-gradient-4: rgba(170, 142, 245, 0.5);
-  --wh-bazaar-gradient-4-transparent: rgba(170, 142, 245, 0);
-  --wh-bazaar-gradient-5: rgba(248, 192, 147, 0.5);
-  --wh-bazaar-gradient-5-transparent: rgba(248, 192, 147, 0);
+  --wh-bazaar-bg-color: #{map.get($bazaar-light, bg)};
+  --wh-bazaar-blobs: #{bazaar-blobs($bazaar-light)};
 }
 html[data-theme-mode="dark"] {
-  // 暗黑模式配色
-  --wh-bazaar-bg-color: rgba(120, 80, 100, 0.3);
-  --wh-bazaar-gradient-1: rgba(150, 80, 60, 0.3);
-  --wh-bazaar-gradient-1-transparent: rgba(150, 80, 60, 0);
-  --wh-bazaar-gradient-2: rgba(120, 60, 100, 0.3);
-  --wh-bazaar-gradient-2-transparent: rgba(120, 60, 100, 0);
-  --wh-bazaar-gradient-3: rgba(180, 160, 80, 0.3);
-  --wh-bazaar-gradient-3-transparent: rgba(180, 160, 80, 0);
-  --wh-bazaar-gradient-4: rgba(100, 80, 150, 0.3);
-  --wh-bazaar-gradient-4-transparent: rgba(100, 80, 150, 0);
-  --wh-bazaar-gradient-5: rgba(150, 120, 80, 0.3);
-  --wh-bazaar-gradient-5-transparent: rgba(150, 120, 80, 0);
+  --wh-bazaar-bg-color: #{map.get($bazaar-dark, bg)};
+  --wh-bazaar-blobs: #{bazaar-blobs($bazaar-dark)};
 }
+
 // 原始样式来源于 https://www.bilibili.com/video/BV1b44y1e7Wx/ https://codepen.io/stevenlei/pen/ZEJxXGL
 #configBazaarReadme .item__side[data-repourl*="/TCOTC/"] + .item__main::before {
   content: "";
@@ -81,15 +138,11 @@ html[data-theme-mode="dark"] {
   pointer-events: none;
   display: block;
   position: fixed;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
+  // 比视口大一圈，模糊把边缘化开时不会在屏幕四周露出硬边（留出约两倍模糊半径的余量）
+  inset: -20vmax;
   border-radius: var(--b3-border-radius-b);
   background-color: var(--wh-bazaar-bg-color);
-  background-image:
-    radial-gradient(closest-side, var(--wh-bazaar-gradient-1), var(--wh-bazaar-gradient-1-transparent)), radial-gradient(closest-side, var(--wh-bazaar-gradient-2), var(--wh-bazaar-gradient-2-transparent)), radial-gradient(closest-side, var(--wh-bazaar-gradient-3), var(--wh-bazaar-gradient-3-transparent)),
-    radial-gradient(closest-side, var(--wh-bazaar-gradient-4), var(--wh-bazaar-gradient-4-transparent)), radial-gradient(closest-side, var(--wh-bazaar-gradient-5), var(--wh-bazaar-gradient-5-transparent));
+  background-image: var(--wh-bazaar-blobs);
   background-size:
     130vmax 130vmax,
     80vmax 80vmax,
@@ -103,8 +156,15 @@ html[data-theme-mode="dark"] {
     -30vmax -10vmax,
     50vmax 50vmax;
   background-repeat: no-repeat;
+  // 剩下那点“分层”是光斑自身的外轮廓（半径 80〜130vmax 的圆，边缘仍在画面里），
+  // 不是 8bit 量化色带——叠噪点、加色标都试过，对轮廓无效。
+  // 只有模糊能把轮廓抹开：6vmax 对这么大的光斑太弱，半径提到 16vmax 才明显，
+  // 再往大（30vmax 以上）颜色就被洗得发白，光斑的存在感也没了。
+  // 半径用 vmax，与光斑同单位，换屏幕尺寸后观感一致。
+  filter: blur(16vmax);
   animation: 10s movement linear infinite;
 }
+
 @keyframes movement {
   0%,
   100% {
