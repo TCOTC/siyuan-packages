@@ -33,37 +33,13 @@
 }
 
 // 原生样式
-// .protyle 自身也带 data-node-id（文档块），排除后编辑器工具栏的按钮（同为 data-type=sup/sub 等）不会被行级标记样式命中
-[data-node-id]:not(.protyle) {
-  [data-type~="sup"],
-  [data-type~="sub"] {
-    position: relative;
-    font-size: 75%;
-    line-height: 0;
-    vertical-align: baseline;
-  }
+// sup/sub/em/strong 的声明与原生完全一致（原生已覆盖 .b3-typography / .protyle-wysiwyg /
+// .table__cell-rich / .mindmap-view__content 与大纲面板），不重复声明。
 
-  [data-type~="sup"] {
-    top: -0.5em;
-  }
-
-  [data-type~="sub"] {
-    bottom: -0.25em;
-  }
-
-  [data-type~="em"] {
-    font-style: italic;
-    color: var(--b3-protyle-inline-em-color);
-  }
-
-  [data-type~="s"] {
-    color: var(--b3-protyle-inline-s-color) !important; // 删除线下的文本始终变淡
-    text-decoration: line-through;
-  }
-
-  [data-type~="strong"] {
-    font-weight: bold;
-  }
+// 删除线要强制变淡，除非用户给删除线文本设置颜色
+// 行级标记在 DOM 里都是 span，工具栏里同名的 data-type 是 <button>
+[data-node-id] span[data-type~="s"]:not([style*=color]) {
+  color: var(--b3-protyle-inline-s-color) !important;
 }
 
 // 行级标签。
