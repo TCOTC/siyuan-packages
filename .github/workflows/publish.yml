@@ -76,6 +76,15 @@ jobs:
           INPUT_PACKAGES: ${{ inputs.packages }}
         run: node .github/scripts/detect-packages.mjs
 
+      # 发布前只把 lint 当门禁，刻意不跑 format:check：
+      # oxfmt 只重写源码文本（例如给属性选择器 [style*=color] 补成 [style*="color"]），
+      # 产物语义不变，不该为风格差异卡住发布；而 lint 指向真正的代码问题。放在逐包循环之前，
+      # 失败即整批中止，不会出现「一批里发了一半」。用整仓命令而不是只查待发包，
+      # 是为了与 CI 用的还是同一条 `pnpm lint`。
+      - name: Lint
+        if: steps.detect.outputs.count != '0'
+        run: pnpm lint
+
       - name: 构建并发布
         if: steps.detect.outputs.count != '0'
         env:

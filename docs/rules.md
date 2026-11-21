@@ -542,6 +542,7 @@ workflow 里 `uses:` 的版本与它对应的**提交 SHA** 记在 `.github/work
         ├─ 逐个跳过：基准与现在 version 相同（只改了文案）／版本变小（报错）
         ├─ siyuan-kit manifest <目录> 取合成清单（包里那份没有 name / url）
         ├─ 从清单 url 推导目标仓库 TCOTC/<name>，校验目录名 == 清单 name
+        ├─ pnpm lint（整仓；不过就整批中止，不进入逐包循环）
         ├─ 只构建这些包（不是全量）→ dist/<name>.zip
         ├─ 校验 zip 根目录直接是 plugin.json / theme.json / widget.json
         ├─ 校验产物清单的 version == 检测到的版本（防检测与构建不是同一棵树）
@@ -593,6 +594,17 @@ EVENT=workflow_dispatch INPUT_DRY_RUN=true bash .github/scripts/publish.sh
 之所以是 bash 而不是 Node：这段逻辑已经在本仓 CI 上实跑验证过，重写会把三个已修好的坑
 （`grep` 提前退出导致的 SIGPIPE、`set -u` 下 `$GITHUB_STEP_SUMMARY` unbound、`mapfile` 读清单）重新引入一遍。
 单独成文件是为了能 `bash -n` 检查语法、能本地执行；塞在 YAML 里两者都做不到。
+
+**发布门禁只有 `pnpm lint`（2026-11-21 起）。** `publish.yml` 在检测之后、逐包构建之前跑一次整仓 `pnpm lint`，
+失败即整批中止，不会出现「一批里发了一半」。刻意不把另外三项放进来：
+
+- **不跑 `format:check`**：oxfmt 只重写源码文本，产物语义不变。实测 `[style*=color]` 被补成 `[style*="color"]`
+  那一次，CI 因格式红而发布照常成功——为等价的格式差异重新发版没有意义。
+- **`typecheck` / `test` 也不在链路上**：rolldown 会剥离类型，类型错误与测试失败都不会让 `pnpm build` 失败，
+  所以这两类问题只能靠 push main 的 CI 兜住；发布流程本身不等 CI（两条工作流之间没有 `needs:`）。
+- **`lint` 用的是与 CI 完全相同的一条命令**，不按待发包裁剪，保证「CI 绿 ⟺ 可发布」在 lint 这一维度成立。
+- ⚠️ oxlint 默认只让 **error 级规则**产生非零退出码，warning 不失败（本仓当前零警告）。要让警告也拦住发布，
+  需把根脚本改成 `oxlint --deny-warnings` —— 那会同时让 CI 变严，属独立决定，当前未启用。
 
 **运行汇总表**由 `publish.sh` 输出（`| 类型 | 包名 | 前一个版本 | 当前发布版本 | Release |`）：
 Release 链接只有发布后才知道，所以表格不能放在检测步骤——放两处必然不一致。
