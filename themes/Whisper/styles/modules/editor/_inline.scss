@@ -38,7 +38,7 @@
 
 // 删除线要强制变淡，除非用户给删除线文本设置颜色
 // 行级标记在 DOM 里都是 span，工具栏里同名的 data-type 是 <button>
-[data-node-id] span[data-type~="s"]:not([style*=color]) {
+[data-node-id] span[data-type~="s"]:not([style*="color"]) {
   color: var(--b3-protyle-inline-s-color) !important;
 }
 
