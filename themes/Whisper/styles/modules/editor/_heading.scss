@@ -8,9 +8,14 @@
 //
 // 与思源 v3.8 标题自动编号共存：图标占 --wh-heading-icon-pad，编号占 --b3-protyle-heading-number-offset，
 // 编号 ::before 右移到图标之后，避免叠在图标上。
-.protyle-wysiwyg [data-node-id] {
+//
+// 单元格预览会替换块属性（siyuan 仓库 `app/src/protyle/render/tableCellRich.ts`）：
+// data-node-id → data-table-cell-node、[spellcheck] → [data-table-cell-content]，故两种并列
+.protyle-wysiwyg [data-node-id],
+.protyle-wysiwyg [data-table-cell-node] {
   // 导出 PDF 的文档标题不应用样式，用 :not([title]) 排除
-  &[data-type="NodeHeading"]:not([title]) > [spellcheck] {
+  &[data-type="NodeHeading"]:not([title]) > [spellcheck],
+  &[data-type="NodeHeading"]:not([title]) > [data-table-cell-content] {
     background-size: 1em;
     background-repeat: no-repeat;
     padding-inline-start: calc(var(--wh-heading-icon-pad, 0px) + var(--b3-protyle-heading-number-offset, 0px));
@@ -32,7 +37,8 @@
       $sel: "&.h1:not([title])";
     }
 
-    #{$sel} > [spellcheck] {
+    #{$sel} > [spellcheck],
+    #{$sel} > [data-table-cell-content] {
       --wh-heading-icon-pad: #{$base * 0.43em};
       background-image: url("../../../icons/headings/h#{$i}.svg");
       background-position: $base * ($i - 1) * 0.3 * 1px $base * 0.3em + (0.05em - ($i - 1) * 0.05em);
@@ -40,6 +46,7 @@
   }
 
   // 覆盖思源注入的编号样式（选择器需高于 headingNumberCore.ts 的动态 CSS）
+  // 单元格里的标题不参与编号，只写 data-node-id 一支
   @at-root .protyle-wysiwyg[data-heading-number-scope] [data-node-id][data-type="NodeHeading"]:not([title]) > :first-child[spellcheck] {
     padding-inline-start: calc(var(--wh-heading-icon-pad, 0px) + var(--b3-protyle-heading-number-offset, 0px));
 
@@ -55,7 +62,8 @@
   &[data-type="NodeHeading"]:not([title]) {
     &[style*="text-align: center"],
     &[style*="text-align: right"] {
-      & > [spellcheck] {
+      & > [spellcheck],
+      & > [data-table-cell-content] {
         background: unset !important;
         --wh-heading-icon-pad: 0px;
       }

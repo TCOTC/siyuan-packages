@@ -76,3 +76,21 @@
     }
   }
 }
+
+// 表格单元格里的代码块：上游给 .table__cell-rich 的 .protyle-action__language / .protyle-icon
+// 写了 display: none !important，主题的吸顶操作栏会塌成 0 高且底色比代码区淡一层。
+// 这里改为不吸顶、透明，只放回语言标签（预览里的按钮没有事件处理器，显示出来只会误点）。
+div:not(#preview):not(.export-img) > .protyle-wysiwyg .table__cell-rich .code-block:not(pre) .protyle-action,
+div:not(#preview):not(.export-img) > .protyle-wysiwyg .table__cell-editor .code-block:not(pre) .protyle-action {
+  position: static;
+  background-color: transparent;
+  min-height: 24px; // 预览没有按钮，补足高度避免进出单元格时跳动
+
+  &::after {
+    content: none;
+  }
+}
+
+.table__cell-rich .code-block .protyle-action__language {
+  display: block !important;
+}
