@@ -11,8 +11,8 @@
 }
 
 // 分隔线
-.protyle-wysiwyg [data-node-id].hr > div::after,
-.protyle-wysiwyg [data-table-cell-node].hr > div::after {
+// 表格单元格里不会有分隔线（上游 ALLOWED_BLOCK_TYPES 不含 NodeThematicBreak），故只写 data-node-id
+.protyle-wysiwyg [data-node-id].hr > div::after {
   height: calc(3em / 16);
   top: calc(1.625em / 2 - (3em / 16) / 2); // 居中，与块标对齐
 }
