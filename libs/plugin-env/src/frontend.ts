@@ -22,8 +22,9 @@ export function isMobileFrontendOf(frontend: string): boolean {
 /**
  * 是否桌面客户端（桌面应用与分离窗口）
  *
- * 只回答「能拿到 Electron 的思源客户端」，不含浏览器桌面版；需要在浏览器里也成立时用
- * {@link isMobileFrontendOf} 的反面判断。
+ * 只回答「宿主前端类型是桌面客户端」，**不代表一定有 Electron**：鸿蒙端同样返回
+ * `desktop`，但它跑在 ArkWeb 里。需要 Electron 能力时用 `index.ts` 的
+ * `isElectronFrontend()`。也不含浏览器桌面版。
  */
 export function isDesktopClientFrontendOf(frontend: string): boolean {
   return frontend === "desktop" || frontend === "desktop-window";

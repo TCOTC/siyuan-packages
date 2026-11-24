@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "minAppVersion": "3.8.2-alpha.3",
   "disabledInPublish": true,
   "displayName": {
@@ -7,7 +7,7 @@
     "zh-CN": "开发者工具"
   },
   "description": {
-    "default": "Reload the window, open plugin-related directories, and toggle developer tools (uses vConsole on mobile).",
-    "zh-CN": "支持重载窗口、打开插件相关目录、切换开发者工具（移动端使用 vConsole）。"
+    "default": "Reload the window, open plugin-related directories, and toggle developer tools (uses vConsole on mobile and HarmonyOS).",
+    "zh-CN": "支持重载窗口、打开插件相关目录、切换开发者工具（移动端与鸿蒙端使用 vConsole）。"
   }
 }

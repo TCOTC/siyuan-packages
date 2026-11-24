@@ -1,5 +1,5 @@
 import { Constants, fetchPost, Menu, Plugin, Setting, showMessage } from "siyuan";
-import { isDesktopClientFrontend, isMobileFrontend } from "siyuan-plugin-env";
+import { isElectronFrontend, isHarmonyBackend, isMobileFrontend } from "siyuan-plugin-env";
 import VConsole from "vconsole";
 import type zhCN from "./i18n/zh-CN.json";
 import "./index.scss";
@@ -160,12 +160,15 @@ export default class DevToolsPlugin extends Plugin {
   declare i18n: typeof zhCN;
 
   private isMobile = false;
-  private isDesktopClient = false;
+  /** 有 Electron 可用（桌面端与设置窗口）；鸿蒙端虽是桌面布局但没有 */
+  private hasElectron = false;
+  private isHarmony = false;
   private config: PluginConfig = { ...DEFAULT_CONFIG };
 
   override async onload() {
     this.isMobile = isMobileFrontend();
-    this.isDesktopClient = isDesktopClientFrontend();
+    this.hasElectron = isElectronFrontend();
+    this.isHarmony = isHarmonyBackend();
     await this.loadConfig();
     this.initSetting();
     this.registerCommands();
@@ -219,9 +222,12 @@ export default class DevToolsPlugin extends Plugin {
         return true;
       case "openPluginDir":
       case "openPluginStorageDir":
-        return this.isDesktopClient;
+        // 鸿蒙端的数据目录在 ArkTS 沙箱里（/data/storage/el2/...），页面上没有 openPath，
+        // 打开必然失败，所以不放出来。
+        return this.hasElectron;
       case "toggleDevTools":
-        return this.isDesktopClient || this.isMobile;
+        // 鸿蒙端与移动端没有 Electron 开发者工具，用 vConsole。
+        return this.hasElectron || this.isMobile || this.isHarmony;
     }
   }
 
@@ -282,7 +288,7 @@ export default class DevToolsPlugin extends Plugin {
     addSwitchItem("reloadUI", this.i18n.reloadUI, this.i18n.reloadUIDesc);
     addSwitchItem("openPluginDir", this.i18n.openPluginDir, this.i18n.openPluginDirDesc);
     addSwitchItem("openPluginStorageDir", this.i18n.openPluginStorageDir, this.i18n.openPluginStorageDirDesc);
-    addSwitchItem("toggleDevTools", this.i18n.toggleDevTools, this.isMobile ? this.i18n.toggleDevToolsDescMobile : this.i18n.toggleDevToolsDescDesktop);
+    addSwitchItem("toggleDevTools", this.i18n.toggleDevTools, this.hasElectron ? this.i18n.toggleDevToolsDescDesktop : this.i18n.toggleDevToolsDescMobile);
   }
 
   private registerCommands() {
@@ -404,7 +410,7 @@ export default class DevToolsPlugin extends Plugin {
     if (!this.ensureFeatureActive("toggleDevTools")) {
       return;
     }
-    if (this.isMobile) {
+    if (this.isMobile || this.isHarmony) {
       toggleVConsoleSwitch();
       return;
     }

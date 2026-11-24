@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "思源插件共用的前端环境判定：宿主 getFrontend() 的取值与移动端 / 桌面端分类",
+  "description": "思源插件共用的环境判定：宿主 getFrontend() 的前端分类与内核容器判定",
   "exports": {
     ".": "./src/index.ts"
   },
