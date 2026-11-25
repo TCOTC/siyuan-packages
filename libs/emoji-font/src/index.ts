@@ -9,6 +9,11 @@
  * 依赖的注入方式：调用方把 {@link getEmojiFontStyle} 的返回值放进 id 以 `snippetCSS`
  * 开头的 `<style>`。这样它在主界面生效，同时被 PDF / HTML 导出收集
  * （siyuan 仓库 `app/src/protyle/export/index.ts` 的 `getSnippetCSS`）。
+ *
+ * 注意导出并非只认这条路径：同一个导出模板还会拼 `${await getPluginStyle()}`，它走
+ * `/api/petal/loadPetals` 把所有启用插件的 `css`（内核读的 `index.css`）一并带进导出页面。
+ * 所以 `@font-face` 写在插件样式的 `index.scss` 里与写在运行时的 `snippetCSS` 里，
+ * 在导出结果上是等价的——用 `snippetCSS` 是为了与变量规则同进同出，不是为了让导出生效。
  */
 
 /**
@@ -49,6 +54,24 @@ export const ICON_SLOT_SELECTORS = ".b3-list-item__icon, .b3-menu__avemoji, .b3-
 const SIYUAN_EMOJI_FALLBACK = '"Emojis Additional", "Emojis Reset"';
 
 /**
+ * emoji 字体覆盖的码点范围。
+ *
+ * 从 U+00A9 起（两个字体的彩色字形都在这之上），但刻意**排除**四个不可见的格式字符：
+ * U+200B ZWSP、U+200C ZWNJ、U+2060 WORD JOINER、U+FEFF BOM —— 思源把它们当作行内语义
+ * 元素的占位符写进正文（siyuan 仓库 `app/src/protyle/util/inlineElementMarker.ts` 的
+ * `getInlinePlaceholder` / `buildSemanticInlineHTML`）。
+ *
+ * 一旦 emoji 字体抢到这些字符，行级 `code` / `kbd` / `tag` / `sup` / `sub` 的文本节点首字符
+ * 就由 emoji 字体（缺该字形，走 fallback）渲染、其余字符由代码字体渲染，Chromium 会把该节点内
+ * 后续所有偏移的光标矩形算错：`"\u2060nodejs"` 在偏移 1 处跨过一个字符、在末尾直接回落到
+ * 内容起点，表现为「行级代码开头插不进光标、在末尾按左键跳到开头」
+ * （https://github.com/siyuan-note/siyuan/issues/21661）。
+ *
+ * `U+200D` ZWJ 必须保留：组合表情（👨‍👩‍👧 等）要靠它连成一个字形。
+ */
+export const EMOJI_UNICODE_RANGE = "U+00A9-200A, U+200D-205F, U+2061-FEFE, U+FF00-10FFFF";
+
+/**
  * 生成两个 `@font-face`。
  *
  * `pluginName` 只用于拼 `/plugins/<name>/Twemoji/...` 的绝对路径：字体文件由各包的
@@ -72,10 +95,12 @@ const SIYUAN_EMOJI_FALLBACK = '"Emojis Additional", "Emojis Reset"';
  *   它需要成为 first available font，`ascent/descent-override` 才生效，所以**必须**含
  *   `U+0020`（见下）。
  *
- * ## unicode-range 的两个作用
+ * ## unicode-range 的三个作用
  * 1. 避开 Twemoji 为 U+0023 / U+002A / U+0030-0039 准备的**零宽占位字形**（供 keycap
  *    序列使用）。不加限制时正文里所有数字都会渲染成空白。
- * 2. 按 CSS 字体规范，first available font（strut 度量的来源）要求字体能匹配 U+0020。
+ * 2. 避开思源用作行内占位符的不可见格式字符，否则行级代码的光标位置会错乱
+ *    （见 {@link EMOJI_UNICODE_RANGE}）。
+ * 3. 按 CSS 字体规范，first available font（strut 度量的来源）要求字体能匹配 U+0020。
  *    范围里没有空格时，带 override 的 face 当不了 strut 来源，行盒基线改由后备字体
  *    决定，`ascent/descent-override` 就等于没写。实测（16px / 22px 盒，负值 = 比盒中心高）：
  *
@@ -106,7 +131,7 @@ export const getEmojiFontFaceCSS = (pluginName: string): string => {
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+00A9-10FFFF;
+  unicode-range: ${EMOJI_UNICODE_RANGE};
   size-adjust: 76%;
 }
 @font-face {
@@ -115,7 +140,7 @@ export const getEmojiFontFaceCSS = (pluginName: string): string => {
   font-weight: 400;
   font-style: normal;
   font-display: swap;
-  unicode-range: U+0020, U+00A9-10FFFF;
+  unicode-range: U+0020, ${EMOJI_UNICODE_RANGE};
   size-adjust: 76%;
   ascent-override: 100%;
   descent-override: 8%;

@@ -10,6 +10,7 @@
   "devDependencies": {
     "@jeffrey-chen/siyuan-kit": "workspace:*",
     "siyuan": "catalog:",
+    "siyuan-emoji-font": "workspace:*",
     "typescript": "catalog:"
   }
 }
