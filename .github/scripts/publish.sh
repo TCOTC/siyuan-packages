@@ -7,10 +7,12 @@
 # 塞在 YAML 里既没法 lint 也没法直接执行。
 #
 # 环境变量（都由 workflow 注入，脚本本身不读任何仓库配置）：
-#   PACKAGES            待发包清单，每行七列，制表符分隔：
-#                       包目录 \t 包名 \t 版本 \t 目标仓库 \t 类型 \t 上一个版本（新包为空）\t 本包上一个发布点
-#                       最后一列是「本包自己上次发布」的标签，只用来生成 release 正文
-#                       （仓库级的上一个标签会把它之后本包的提交漏掉）
+#   PACKAGES            待发包清单，每行八列，制表符分隔：
+#                       包目录 \t 包名 \t 版本 \t 目标仓库 \t 类型 \t 上一个版本（新包为空）\t 本包上一个发布点 \t 仓库内依赖目录
+#                       第 7 列是「本包自己上次发布」的标签，只用来生成 release 正文
+#                       （仓库级的上一个标签会把它之后本包的提交漏掉）；
+#                       第 8 列是它 workspace 依赖的共享目录（libs/* / kit，空格分隔），
+#                       与包目录一起构成正文的提交过滤路径。
 #   EVENT               push | workflow_dispatch；只有 dispatch 才认下面的两个布尔值
 #   INPUT_DRY_RUN       dispatch 下为 true 时只构建与校验，不调 gh
 #   INPUT_FORCE         dispatch 下为 true 时允许覆盖目标仓库已存在的同版本 release
@@ -67,7 +69,7 @@ release_url() {
 mapfile -t LINES <<< "${PACKAGES:-}"
 
 for line in "${LINES[@]}"; do
-  IFS=$'\t' read -r dir name version target kind previous base <<< "$line"
+  IFS=$'\t' read -r dir name version target kind previous base deps <<< "$line"
   if [ -z "${dir:-}" ]; then
     continue
   fi
@@ -157,10 +159,22 @@ for line in "${LINES[@]}"; do
   if [ -n "$base" ] && base_sha=$(git rev-parse --verify "${base}^{commit}" 2>/dev/null); then
     # 区间下界是本包上一次发布（不是上一个 release 标签）：标签是仓库级的，一批只发其中几个包
     # `-n 30` 而不是 `| head -30`：head 提前退出会让 git 吃 SIGPIPE，在 pipefail 下整条命令判失败
-    commits=$(git log -n 30 --no-merges --pretty="$commit_format" "${base_sha}..${head_sha}" -- "$dir")
+    #
+    # 路径集 = 本包目录 + 它实际用到的仓库内共享目录（第 8 列，由检测阶段从 package.json 的
+    # `workspace:*` 依赖算出来）。只按包目录过滤会漏掉真正改变了产物的提交：实测两个 ttf 插件
+    # 2.4.2 那版的修复落在 libs/emoji-font，正文只剩一条「版本 +1」；而固定写 `kit libs` 又会让
+    # 改 libs/vconsole 出现在每个插件的正文里。
+    # `:(exclude)` 剔掉「只改清单版本号」的提交 —— 发布流程必然产生这么一条，对读者等于没说。
+    # git 的路径过滤是「提交里任一匹配路径有改动就保留」，所以同时改了 src 与清单的提交仍在。
+    paths=("$dir")
+    if [ -n "${deps:-}" ]; then
+      read -ra shared <<< "$deps"
+      paths+=("${shared[@]}")
+    fi
+    commits=$(git log -n 30 --no-merges --pretty="$commit_format" "${base_sha}..${head_sha}" -- "${paths[@]}" ':(exclude)**/manifest.json')
     if [ -z "$commits" ]; then
-      # 本包目录没有直接提交（改动来自 kit / libs 这类共享代码），退一步列共享部分的提交
-      commits=$(git log -n 30 --no-merges --pretty="$commit_format" "${base_sha}..${head_sha}" -- kit libs)
+      # 区间里只有版本号类提交时退回不过滤的写法，正文不至于是空的
+      commits=$(git log -n 30 --no-merges --pretty="$commit_format" "${base_sha}..${head_sha}" -- "${paths[@]}")
     fi
   fi
   note_body=""

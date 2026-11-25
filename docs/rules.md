@@ -586,8 +586,9 @@ pnpm release
 它读 `PACKAGES` / `EVENT` / `INPUT_DRY_RUN` / `INPUT_FORCE` 四个环境变量，本地也能直接跑 dry-run：
 
 ```bash
-# PACKAGES 每行七列（制表符分隔）：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本（新包留空）/ 本包上一个发布点
-PACKAGES=$'plugins/move-doc\tmove-doc\t1.0.2\tTCOTC/move-doc\tplugin\t1.0.1\trelease/20261001-120000' \
+# PACKAGES 每行八列（制表符分隔）：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本（新包留空）/
+# 本包上一个发布点 / 仓库内依赖目录（空格分隔，可为空）
+PACKAGES=$'plugins/move-doc\tmove-doc\t1.0.2\tTCOTC/move-doc\tplugin\t1.0.1\trelease/20261001-120000\tkit libs/topbar-menu' \
 EVENT=workflow_dispatch INPUT_DRY_RUN=true bash .github/scripts/publish.sh
 ```
 
@@ -617,7 +618,7 @@ GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只�
 ## 更新内容
 
 - <提交标题>（[<短 sha>](https://github.com/<本仓>/commit/<完整 sha>)）
-- …（本包上次发布 → HEAD 区间里本包目录的提交；本包目录没有直接提交时退一步列 kit / libs 的提交）
+- …（本包上次发布 → HEAD 区间里「本包目录 + 它的 workspace 依赖目录」下的提交，剔除只改清单的提交）
 
 提交历史：https://github.com/<本仓>/commits/<HEAD sha>/<包目录>?since=<本包上次发布提交的日期>
 
@@ -626,6 +627,20 @@ GitHub 也没有「跨仓库生成 notes」的能力，`--notes-start-tag` 只�
 
 提交列表里的哈希必须带完整链接（显示短 sha，链接用完整 sha）：只写裸哈希时读者没法一键跳到那次改动，
 而收录仓库里又没有这些提交。
+
+**提交列表的过滤路径是「本包目录 + 它 workspace 依赖的仓库内目录」。** 只按包目录过滤会漏掉真正改变了产物的提交：
+2026-11-25 两个 ttf 插件发 2.4.2 时，修复落在 `libs/emoji-font`，正文只剩一条「版本 +1」，读者看不出这版修了什么。
+所以检测阶段按 `package.json` 的 `workspace:*` 依赖（**含 `devDependencies`**，kit 也在其中）递归展开，
+把结果写进 `list` 的第 8 列，`publish.sh` 拼成 pathspec。
+**不固定写 `kit libs`**：那会让 `libs/vconsole` 的改动挂到每个插件的正文上。
+
+**路径集里同时排除 `**/manifest.json`。** 发布流程必然产生一条「只抬版本号」的提交，对读者等于没说；
+git 的路径过滤是「提交里任一匹配路径有改动就保留」，所以同时改了源码与清单的提交仍然在列表里。
+剔除后列表为空（区间里只有版本号提交）时退回不过滤的写法，正文不至于空着。
+
+**已知不覆盖：`pnpm-workspace.yaml` 的 catalog 升级。** 它确实会改变产物（例如 CodeMirror 换版本），
+但它不在任何包的目录树下。把它放进路径集会让每次 Dependabot 合并后每个包都重复挂同一条 bump 提交，
+权衡后选择不写：正文只保留能定位到具体目录的改动。
 
 **正文里不写整仓的 `Full Changelog` 对比链接。** 本仓唯一的「区间」是整个仓库的区间，
 指向 `compare/<基准 sha>...<HEAD sha>` 会把同时发布的其他包的改动一起摊开

@@ -13,13 +13,14 @@
  *
  * 输出（$GITHUB_OUTPUT）：
  *   count   要发布的包数
- *   list    每行七列，制表符分隔：包目录 \t 名称 \t 版本 \t 目标收录仓库 \t 类型 \t 上一个版本 \t 基准 ref
+ *   list    每行八列，制表符分隔：
+ *           包目录 \t 名称 \t 版本 \t 目标收录仓库 \t 类型 \t 上一个版本 \t 基准 ref \t 仓库内依赖目录（空格分隔）
  *
  * 加 `--json` 则只往 stdout 打一份 JSON（count / noBase / packages / notes），
  * 不碰 $GITHUB_OUTPUT —— `release.mjs` 用它做打标签前的预检。
  */
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync } from "node:fs";
+import { appendFileSync, existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 // 版本比较只有一份实现（libs/version-compare）。Node 26 直接跑 .ts，无需预编译；
 // 该文件没有任何 import，类型注解可完整剥离。
@@ -39,6 +40,78 @@ const KIND_BY_DIR = { plugins: "plugin", themes: "theme", widgets: "widget" };
  */
 const MANUAL_PREVIOUS = "—（未检测）";
 const jsonMode = process.argv.includes("--json");
+
+/** workspace 内部包名 → 仓库内目录（libs/* 与 kit）。
+ *
+ * 用来把包内 package.json 的 `workspace:*` 依赖翻成目录路径：发布正文要按这些路径过滤提交，
+ * 否则「改的是 libs/emoji-font」这类真正改变了产物的提交会被漏掉（实测 ttf 2.4.2 那版正文
+ * 因此只剩一条「版本 +1」）。
+ */
+function collectWorkspacePackages() {
+  const map = new Map();
+  const libsDir = join(ROOT, "libs");
+  if (existsSync(libsDir)) {
+    for (const entry of readdirSync(libsDir)) {
+      const manifestPath = join(libsDir, entry, "package.json");
+      if (!existsSync(manifestPath)) {
+        continue;
+      }
+      const pkg = JSON.parse(readFileSync(manifestPath, "utf8"));
+      if (typeof pkg.name === "string" && pkg.name) {
+        map.set(pkg.name, `libs/${entry}`);
+      }
+    }
+  }
+  const kitPath = join(ROOT, "kit", "package.json");
+  if (existsSync(kitPath)) {
+    const kit = JSON.parse(readFileSync(kitPath, "utf8"));
+    if (typeof kit.name === "string" && kit.name) {
+      map.set(kit.name, "kit");
+    }
+  }
+  return map;
+}
+
+const WORKSPACE_PACKAGES = collectWorkspacePackages();
+
+/**
+ * 包在仓库内真正用到的共享目录（不含自己），按依赖传递展开。
+ *
+ * 只认 `workspace:*` —— 其余依赖是 npm 上的包，不在本仓目录树里，正文也不该提。
+ * kit 无需特判：`@jeffrey-chen/siyuan-kit` 本身就是 workspace 依赖。
+ */
+function workspaceDeps(dir) {
+  const seen = new Set([dir]);
+  const queue = [dir];
+  const result = [];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const manifestPath = join(ROOT, current, "package.json");
+    if (!existsSync(manifestPath)) {
+      continue;
+    }
+    const pkg = JSON.parse(readFileSync(manifestPath, "utf8"));
+    for (const field of ["dependencies", "devDependencies"]) {
+      const deps = pkg[field];
+      if (!deps || typeof deps !== "object") {
+        continue;
+      }
+      for (const [name, range] of Object.entries(deps)) {
+        if (typeof range !== "string" || !range.startsWith("workspace:")) {
+          continue;
+        }
+        const target = WORKSPACE_PACKAGES.get(name);
+        if (target === undefined || seen.has(target)) {
+          continue;
+        }
+        seen.add(target);
+        result.push(target);
+        queue.push(target);
+      }
+    }
+  }
+  return result;
+}
 
 /**
  * 逐包进度日志：`--json` 时改走 stderr。
@@ -212,7 +285,7 @@ function resolvePackage(dir) {
     throw new Error(`${dir} 不在 ${KIND_DIRS.join(" / ")} 之下，无法判断包类型`);
   }
 
-  return { dir, kind, name, version, target };
+  return { dir, kind, name, version, target, deps: workspaceDeps(dir) };
 }
 
 function setOutput(key, value) {
@@ -242,10 +315,11 @@ function finish(rows, notes, extra = {}) {
   }
 
   setOutput("count", String(rows.length));
-  // 七列：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本 / 本包上一个发布点。
-  // 上一个版本为空字符串表示新包（基准里没有它）；最后一个只用来在 publish.sh 里生成
-  // release 正文 —— 它是「本包自己上次发布」，不是仓库级的上一个标签。
-  setOutput("list", rows.map((row) => [row.dir, row.name, row.version, row.target, row.kind, row.previous ?? "", row.base ?? ""].join("\t")).join("\n"));
+  // 八列：包目录 / 包名 / 版本 / 目标仓库 / 类型 / 上一个版本 / 本包上一个发布点 / 仓库内依赖目录。
+  // 上一个版本为空字符串表示新包（基准里没有它）；第 7 列只用来在 publish.sh 里生成
+  // release 正文 —— 它是「本包自己上次发布」，不是仓库级的上一个标签；
+  // 第 8 列是它 workspace 依赖的共享目录（libs/*、kit），与包目录一起构成正文的提交过滤路径。
+  setOutput("list", rows.map((row) => [row.dir, row.name, row.version, row.target, row.kind, row.previous ?? "", row.base ?? "", (row.deps ?? []).join(" ")].join("\t")).join("\n"));
 
   // 表格由 publish.sh 输出：Release 链接只有发布后才知道，放两处必然不一致。
   // 这里只留基准行 —— 逐个包列「1.0.1 → 1.0.2」与表格完全重复。
